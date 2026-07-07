@@ -1,0 +1,79 @@
+{
+  "_uitleg": "Alle (oude, rommelige) verlies-redenen vallen onder de 8 nieuwe HOOFD-redenen. Sleutel = genormaliseerde variant (kleine letters, zonder 'X '-voorvoegsel en zonder leestekens). Waarde = de hoofd-reden. Onbekende/nieuwe redenen tonen netjes onder hun eigen naam totdat je ze hier toevoegt.",
+  "_hoofdredenen": [
+    "Concurrent / bestaande samenwerking",
+    "Geen reactie / contact verloren",
+    "Niet juiste fit / scope",
+    "Geen nood momenteel",
+    "Andere / administratief",
+    "Project uitgesteld",
+    "Geen (urgente) interesse",
+    "Prijs / budget"
+  ],
+  "map": {
+    "concurrent bestaande samenwerking": "Concurrent / bestaande samenwerking",
+    "geen reactie contact verloren": "Geen reactie / contact verloren",
+    "niet juiste fit scope": "Niet juiste fit / scope",
+    "geen nood momenteel": "Geen nood momenteel",
+    "andere administratief": "Andere / administratief",
+    "project uitgesteld": "Project uitgesteld",
+    "geen urgente interesse": "Geen (urgente) interesse",
+    "prijs budget": "Prijs / budget",
+
+    "geen reactie niet teruggekoppeld": "Geen reactie / contact verloren",
+    "niet meer opgevolgd": "Geen reactie / contact verloren",
+    "email niet meer actief": "Geen reactie / contact verloren",
+    "secr wil zaakvoerder niet doorgeven ook gsm niet enkel via mail": "Geen reactie / contact verloren",
+
+    "gekozen voor een andere partij": "Concurrent / bestaande samenwerking",
+    "gekozen voor andere partij": "Concurrent / bestaande samenwerking",
+    "gekozen voor een ander partij": "Concurrent / bestaande samenwerking",
+    "gekozen voor een andere partij door architect voorgesteld": "Concurrent / bestaande samenwerking",
+    "reeds in samenwerking met andere bureau": "Concurrent / bestaande samenwerking",
+    "werken al samen met andere partners en hebben geen interesse in een andere samenwerking": "Concurrent / bestaande samenwerking",
+    "heeft al iemand anders": "Concurrent / bestaande samenwerking",
+    "data leads heeft al iemand anders": "Concurrent / bestaande samenwerking",
+
+    "gekozen voor andere partij te duur": "Prijs / budget",
+    "gekozen voor een ander partij te duur": "Prijs / budget",
+    "te duur": "Prijs / budget",
+    "ze vinden de prijs goed maar willen het in 2d": "Prijs / budget",
+
+    "geen behoefte nu maar misschien later wel": "Geen nood momenteel",
+    "neemt later contact op met ons": "Geen nood momenteel",
+    "maakt later contact met ons op": "Geen nood momenteel",
+    "geen behoefte in onze diensten": "Geen nood momenteel",
+    "niet meer nodig": "Geen nood momenteel",
+
+    "geen interesse": "Geen (urgente) interesse",
+    "geen interesse in ons": "Geen (urgente) interesse",
+
+    "doen geen stabiliteits of dergelijke studies": "Niet juiste fit / scope",
+    "niet voor ons": "Niet juiste fit / scope",
+    "geen woningen": "Niet juiste fit / scope",
+    "tekenwerk wordt zelf gedaan": "Niet juiste fit / scope",
+    "niet passende klant te hoog samenwerkingsrisico": "Niet juiste fit / scope",
+
+    "project gaat niet door": "Project uitgesteld",
+    "project stopgezet misschien later nieuwe": "Project uitgesteld",
+
+    "reeds benaderd via unabo": "Andere / administratief",
+    "reeds benaderd via ee": "Andere / administratief",
+    "foutief nummer": "Andere / administratief",
+    "pensioen gestopt met engineering": "Andere / administratief",
+    "niet meer actief": "Andere / administratief",
+    "lost": "Andere / administratief",
+    "geen ingenieur": "Andere / administratief",
+    "werkt met arbeidkrachten uit moldavie": "Andere / administratief",
+    "tom": "Andere / administratief",
+    "teveel benaderd": "Andere / administratief",
+    "test deal research": "Andere / administratief",
+    "slechte ervaring in het verleden met andere tekenburo s": "Andere / administratief",
+    "samenwerking met tkn stopgezet": "Andere / administratief",
+    "ss te ver": "Andere / administratief",
+    "onvoldoende plannen voor berekening": "Andere / administratief",
+    "medeweker geen zaakvoerder": "Andere / administratief",
+    "heeft offerte aangevraagd nieuwe deal": "Andere / administratief",
+    "collega": "Andere / administratief"
+  }
+}

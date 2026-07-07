@@ -1,0 +1,10 @@
+{
+  "_uitleg": "Custom (aangepaste) velden die per account uit Pipedrive gelezen worden en opgeslagen als leesbare labels. Sleutel = vriendelijke naam (gebruikt in het dashboard), waarde = de Pipedrive-veld-key (40-teken hash). Enum/set-velden worden automatisch naar hun label vertaald. Voeg velden toe zonder code te wijzigen; leeg = wordt gewoon niet getoond.",
+  "unabo": {
+    "gebouwtype": "68f15f6c93058199f625aff59b5d8e903d3cae87",
+    "type_aanvraag": "cd1e5146cea21aecff4172a25ad7c99a7d4dfff0",
+    "lost_influenceable": "e923cfe7d26be988137ed71fe7969e5697456fa9",
+    "lost_cause": "466c6b9334a6957c0184ef1f3dc35a12342648ad"
+  },
+  "tknburo": {}
+}

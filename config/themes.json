@@ -1,0 +1,13 @@
+{
+  "_uitleg": "Thema-filter. Een deal hoort bij een thema als één van zijn producten (naam) een van de 'match'-woorden bevat (niet hoofdletter-gevoelig). Voeg thema's/woorden toe zonder code te wijzigen. Lege/onbekende thema's tonen gewoon niets.",
+  "themes": [
+    { "key": "epb", "label": "EPB", "match": ["epb"] },
+    { "key": "epc", "label": "EPC", "match": ["epc"] },
+    { "key": "stabiliteit", "label": "Stabiliteit", "match": ["stabilit", "betonnen", "stalen", "ligger", "dragende", "struct", "berekening"] },
+    { "key": "ventilatie", "label": "Ventilatie", "match": ["ventilat"] },
+    { "key": "veiligheid", "label": "Veiligheid", "match": ["veiligheid", "coördinat", "coordinat", "pid"] },
+    { "key": "scanning", "label": "3D-Scanning", "match": ["scan"] },
+    { "key": "plaatsbeschrijving", "label": "Plaatsbeschrijving", "match": ["plaatsbeschr"] },
+    { "key": "meetstaat", "label": "Meetstaten", "match": ["meetstat", "bill of quant"] }
+  ]
+}
