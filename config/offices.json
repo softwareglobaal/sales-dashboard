@@ -1,0 +1,16 @@
+{
+  "_note": "Kantooradressen van de groep, aangeleverd door Mehdi (juli 2026). coords (lat,lng) worden ingevuld bij het bouwen van de kaart. 'confirmed:false' = Mehdi moet nog bevestigen of dit een van onze kantoren is.",
+  "offices": [
+    { "label": "UNABO", "address": "Pontstraat 72 bus 1, 9300 Aalst", "postal": "9300", "city": "Aalst", "province": "Oost-Vlaanderen", "confirmed": true },
+    { "label": "TKN-Buro", "address": "Koning Albertstraat 74/bus A, 3290 Diest", "postal": "3290", "city": "Diest", "province": "Vlaams-Brabant", "confirmed": true },
+    { "label": "Energie Efficiënt", "address": "Rootenstraat 7 Kantoor F, 3600 Genk", "postal": "3600", "city": "Genk", "province": "Limburg", "confirmed": true },
+    { "label": "H-Architects", "address": "Herfstlaan 65, 3010 Leuven", "postal": "3010", "city": "Leuven", "province": "Vlaams-Brabant", "confirmed": true },
+    { "label": "HarmonieBOUW", "address": "Gerzenstraat 5, 3060 Bertem", "postal": "3060", "city": "Bertem", "province": "Vlaams-Brabant", "confirmed": true },
+
+    { "label": "Kantoor (te bevestigen)", "address": "Nielsestraat 41, 2850 Boom", "postal": "2850", "city": "Boom", "province": "Antwerpen", "confirmed": false },
+    { "label": "Kantoor (te bevestigen)", "address": "Scandinaviëstraat 167, 9000 Gent", "postal": "9000", "city": "Gent", "province": "Oost-Vlaanderen", "confirmed": false },
+    { "label": "Kantoor (te bevestigen)", "address": "Antwerpsesteenweg 230, 2660 Antwerpen", "postal": "2660", "city": "Antwerpen (Hoboken)", "province": "Antwerpen", "confirmed": false },
+    { "label": "Kantoor (te bevestigen)", "address": "Demerstraat 24, 3290 Diest", "postal": "3290", "city": "Diest", "province": "Vlaams-Brabant", "confirmed": false },
+    { "label": "Kantoor (te bevestigen)", "address": "Louizalaan 523, 1050 Elsene", "postal": "1050", "city": "Elsene", "province": "Brussel", "confirmed": false }
+  ]
+}

@@ -137,52 +137,112 @@ export function EngineeringTrendChart({
 }
 
 // Eén kolomreeks in Pipedrive Insights-stijl
+type DealMini = { id: number; title: string; client: string; value: number; url: string };
+
 function InsightBars({
   data,
   dataKey,
   name,
   color,
   euroFmt,
+  dealsKey,
 }: {
   data: any[];
   dataKey: string;
   name: string;
   color: string;
   euroFmt?: boolean;
+  dealsKey?: "reqDeals" | "wonDeals" | "lostDeals";
 }) {
+  const [sel, setSel] = useState<{ label: string; deals: DealMini[] } | null>(null);
   if (!data.length) {
     return <p className="py-8 text-center text-sm text-zinc-400">Geen data voor deze periode.</p>;
   }
+  const onBarClick = (d: any) => {
+    if (!dealsKey) return;
+    const row = d?.payload ?? d;
+    const deals: DealMini[] = row?.[dealsKey] ?? [];
+    setSel({ label: row?.label ?? "", deals: [...deals].sort((a, b) => b.value - a.value) });
+  };
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data} margin={{ top: 16, right: 12, left: 0, bottom: 0 }} barCategoryGap="18%">
-        <CartesianGrid strokeDasharray="0" vertical={false} stroke="#eef0f3" />
-        <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={{ stroke: "#e5e7eb" }} />
-        <YAxis
-          allowDecimals={false}
-          tick={{ fontSize: 11, fill: "#6b7280" }}
-          tickLine={false}
-          axisLine={false}
-          width={euroFmt ? 52 : 36}
-          tickFormatter={euroFmt ? (v) => euroShort(Number(v)) : undefined}
-        />
-        <Tooltip
-          cursor={{ fill: "rgba(0,0,0,0.04)" }}
-          contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
-          formatter={(v: any) => [euroFmt ? euro(Number(v)) : num(Number(v)), name]}
-        />
-        <Bar dataKey={dataKey} name={name} fill={color} radius={[3, 3, 0, 0]} maxBarSize={38} isAnimationActive={false} />
-      </BarChart>
-    </ResponsiveContainer>
+    <div>
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={data} margin={{ top: 16, right: 12, left: 0, bottom: 0 }} barCategoryGap="18%">
+          <CartesianGrid strokeDasharray="0" vertical={false} stroke="#eef0f3" />
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={{ stroke: "#e5e7eb" }} />
+          <YAxis
+            allowDecimals={false}
+            tick={{ fontSize: 11, fill: "#6b7280" }}
+            tickLine={false}
+            axisLine={false}
+            width={euroFmt ? 52 : 36}
+            tickFormatter={euroFmt ? (v) => euroShort(Number(v)) : undefined}
+          />
+          <Tooltip
+            cursor={{ fill: "rgba(0,0,0,0.04)" }}
+            contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
+            formatter={(v: any) => [euroFmt ? euro(Number(v)) : num(Number(v)), name]}
+          />
+          <Bar
+            dataKey={dataKey}
+            name={name}
+            fill={color}
+            radius={[3, 3, 0, 0]}
+            maxBarSize={38}
+            isAnimationActive={false}
+            onClick={onBarClick}
+            style={dealsKey ? { cursor: "pointer" } : undefined}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+      {dealsKey && (
+        <p className="mt-1 text-center text-[11px] text-zinc-400">Klik op een balk om de onderliggende deals te zien.</p>
+      )}
+      {sel && (
+        <div className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50/60">
+          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2.5">
+            <div className="text-[13px] font-semibold text-zinc-800">
+              {name} · {sel.label} <span className="text-zinc-400">({sel.deals.length})</span>
+            </div>
+            <button onClick={() => setSel(null)} className="text-zinc-400 hover:text-zinc-700" aria-label="Sluiten">✕</button>
+          </div>
+          {sel.deals.length === 0 ? (
+            <p className="px-4 py-4 text-[12.5px] text-zinc-400">Geen deals in deze balk.</p>
+          ) : (
+            <div className="max-h-72 overflow-y-auto px-2 py-1.5">
+              <table className="w-full text-[12.5px]">
+                <tbody>
+                  {sel.deals.slice(0, 150).map((d) => (
+                    <tr key={d.id} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-1.5 pl-2">
+                        <span className="text-zinc-800">{d.title}</span>
+                        <span className="ml-1.5 text-zinc-400">· {d.client}</span>
+                      </td>
+                      <td className="whitespace-nowrap py-1.5 pr-1 text-right tabular-nums text-zinc-500">{d.value > 0 ? euro(d.value) : "—"}</td>
+                      <td className="py-1.5 pr-2 text-right">
+                        {d.url && (
+                          <a href={d.url} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap text-blue-600 hover:underline">openen ↗</a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {sel.deals.length > 150 && <p className="px-2 pt-1.5 text-[11px] text-zinc-400">Eerste 150 van {sel.deals.length} getoond.</p>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
 export function RequestsBarChart({ data }: { data: any[] }) {
-  return <InsightBars data={data} dataKey="requests" name="Aanvragen" color="#3b82f6" />;
+  return <InsightBars data={data} dataKey="requests" name="Aanvragen" color="#3b82f6" dealsKey="reqDeals" />;
 }
 
 export function LostBarChart({ data }: { data: any[] }) {
-  return <InsightBars data={data} dataKey="lostCount" name="Verloren" color="#f0645d" />;
+  return <InsightBars data={data} dataKey="lostCount" name="Verloren" color="#f0645d" dealsKey="lostDeals" />;
 }
 
 export function WonBarChart({ data }: { data: any[] }) {
@@ -211,6 +271,7 @@ export function WonBarChart({ data }: { data: any[] }) {
         name={metric === "count" ? "Gewonnen (aantal)" : "Gewonnen (waarde)"}
         color="#22a06b"
         euroFmt={metric === "value"}
+        dealsKey="wonDeals"
       />
     </div>
   );

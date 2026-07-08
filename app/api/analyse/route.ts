@@ -13,6 +13,7 @@ import {
   getEngineeringProjectType,
   getEngineeringActivity,
   type Period,
+  type EngScope,
 } from "@/lib/queries";
 import { getTheme } from "@/lib/themes";
 
@@ -25,21 +26,24 @@ export const dynamic = "force-dynamic";
 const eur = (n: number) => "€" + Math.round(n).toLocaleString("nl-BE");
 const pct = (v: number | null) => (v == null ? "n.v.t." : (v > 0 ? "+" : "") + v + "%");
 
-function buildAggregates(period: Period, themeKey: string | undefined) {
+function buildAggregates(period: Period, themeKey: string | undefined, scope: EngScope) {
   const label = periodRange(period).label;
   const themeLabel = themeKey ? getTheme(themeKey)?.label || themeKey : "Alle thema's";
+  const scopeLabel =
+    scope === "unabo" ? "Enkel UNABO Engineering" : scope === "tkn" ? "Enkel TKN-Buro" : "Alles (UNABO Engineering + TKN-Buro)";
 
-  const k = getEngineeringKpisWithDelta(period, themeKey);
-  const offerte = getEngineeringOfferteStats(period, themeKey);
-  const channels = getEngineeringChannels(period, themeKey);
-  const lost = getEngineeringLostReasons(period, themeKey);
-  const services = getEngineeringServices(period, themeKey);
-  const bundle = getEngineeringBundleSplit(period, themeKey);
-  const motivation = getEngineeringMotivation(period);
-  const projectType = getEngineeringProjectType(period, themeKey);
-  const activity = getEngineeringActivity(period, "month", themeKey);
+  const k = getEngineeringKpisWithDelta(period, themeKey, scope);
+  const offerte = getEngineeringOfferteStats(period, themeKey, scope);
+  const channels = getEngineeringChannels(period, themeKey, scope);
+  const lost = getEngineeringLostReasons(period, themeKey, scope);
+  const services = getEngineeringServices(period, themeKey, scope);
+  const bundle = getEngineeringBundleSplit(period, themeKey, scope);
+  const motivation = getEngineeringMotivation(period, scope);
+  const projectType = getEngineeringProjectType(period, themeKey, scope);
+  const activity = getEngineeringActivity(period, "month", themeKey, scope);
 
   const lines: string[] = [];
+  lines.push(`FIRMA-SCOPE: ${scopeLabel}`);
   lines.push(`PERIODE: ${label}`);
   lines.push(`THEMA-FILTER: ${themeLabel}`);
   lines.push("");
@@ -136,7 +140,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { period?: string; t?: string };
+  let body: { period?: string; t?: string; sc?: string };
   try {
     body = await req.json();
   } catch {
@@ -145,10 +149,11 @@ export async function POST(req: Request) {
 
   const period: Period = isValidPeriod(body.period) ? (body.period as Period) : "ytd";
   const themeKey = body.t && body.t.length ? body.t : undefined;
+  const scope: EngScope = body.sc === "unabo" ? "unabo" : body.sc === "tkn" ? "tkn" : "all";
 
   let aggregates: string;
   try {
-    aggregates = buildAggregates(period, themeKey);
+    aggregates = buildAggregates(period, themeKey, scope);
   } catch (e: any) {
     return NextResponse.json({ error: "Kon de cijfers niet ophalen: " + (e?.message || String(e)) }, { status: 500 });
   }
@@ -177,7 +182,7 @@ export async function POST(req: Request) {
       .join("")
       .trim();
 
-    return NextResponse.json({ text, period, themeKey: themeKey || null });
+    return NextResponse.json({ text, period, themeKey: themeKey || null, scope });
   } catch (e: any) {
     const status = e?.status || 500;
     let error = "Er ging iets mis bij het genereren van de analyse.";

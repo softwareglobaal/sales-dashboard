@@ -7,7 +7,10 @@ import { SyncButton } from "./SyncButton";
 
 type Item = { href: string; label: string; dot?: string; icon?: string; soon?: boolean };
 
-const OVERZICHT: Item[] = [{ href: "/", label: "Algemeen", icon: "▦" }];
+const OVERZICHT: Item[] = [
+  { href: "/", label: "Algemeen", icon: "▦" },
+  { href: "/kaart", label: "Kaart (alles)", icon: "◉" },
+];
 const AFDELINGEN: Item[] = [
   { href: "/engineering", label: "Engineering", dot: "#16a34a" },
   { href: "/energy", label: "Energy", dot: "#3a4459", soon: true },

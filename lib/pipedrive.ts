@@ -259,3 +259,42 @@ export async function fetchAllDeals(
   }
   return rows;
 }
+
+// Deal-flow: het eerste moment dat een deal in een offerte-fase kwam (voor exacte aanvraag->offerte-tijd).
+export async function fetchDealOfferteTime(account: Account, dealId: number, offerteStageIds: Set<number>): Promise<string | null> {
+  const json = await api(account, `/deals/${dealId}/flow`);
+  let earliest: string | null = null;
+  for (const it of (json?.data as any[]) || []) {
+    const d = it?.data || {};
+    if (d.field_key === "stage_id" && offerteStageIds.has(Number(d.new_value)) && d.log_time) {
+      if (!earliest || d.log_time < earliest) earliest = d.log_time;
+    }
+  }
+  return earliest;
+}
+
+// Organisaties (klanten/firma's) met adres — voor de B2B-kaartlaag. Alleen lezen.
+export type OrgRow = { account_key: string; id: number; name: string | null; address: string | null; postal: string | null; city: string | null };
+export async function fetchAllOrganizations(account: Account): Promise<OrgRow[]> {
+  const rows: OrgRow[] = [];
+  let start = 0;
+  const limit = 500;
+  for (let guard = 0; guard < 1000; guard++) {
+    const json = await api(account, "/organizations", { start, limit, sort: "id ASC" });
+    const data: any[] = json.data || [];
+    for (const o of data) {
+      rows.push({
+        account_key: account.key,
+        id: o.id,
+        name: o.name ?? null,
+        address: o.address ?? null,
+        postal: o.address_postal_code ?? null,
+        city: o.address_locality ?? null,
+      });
+    }
+    const pag = json.additional_data?.pagination;
+    if (!pag || !pag.more_items_in_collection) break;
+    start = pag.next_start ?? start + limit;
+  }
+  return rows;
+}

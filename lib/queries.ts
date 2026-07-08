@@ -4,6 +4,8 @@ import { hiddenExclusion, HIDDEN_PIPELINES } from "./hiddenPipelines";
 import { ENG_IGNORE_PIPELINES, channelsForLabels, channelsInfoForLabels, isOfferteStage } from "./engineeringConfig";
 import { getTheme } from "./themes";
 import { normalizeLossReason } from "./lossReasons";
+import { parseProjectLocation } from "./regio";
+import { POSTCODE_COORDS } from "./postcodeCoords";
 
 const nameByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.name]));
 const colorByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.color]));
@@ -499,7 +501,7 @@ function cleanServiceName(name: string | null): string {
   return name.replace(/^ENGINEERING:\s*/i, "").trim() || name;
 }
 
-export function getEngineeringServices(period: Period, themeKey?: string): ServiceRow[] {
+export function getEngineeringServices(period: Period, themeKey?: string, scope: EngScope = "all"): ServiceRow[] {
   const db = getDb();
   const { from, to } = periodBounds(period);
 
@@ -530,7 +532,7 @@ export function getEngineeringServices(period: Period, themeKey?: string): Servi
                   THEN julianday(d.won_time) - julianday(d.add_time) END) AS avgDays
        FROM deal_products p
        JOIN deals d ON d.account_key = p.account_key AND d.id = p.deal_id
-       WHERE ((d.account_key='unabo' AND p.department='ENGINEERING') OR d.account_key='tknburo')
+       WHERE ${engProductScopeExpr(scope)}
          ${hiddenClause} ${th.clause}
        GROUP BY source, rawName
        HAVING requests > 0 OR soldCount > 0
@@ -548,8 +550,20 @@ export function getEngineeringServices(period: Period, themeKey?: string): Servi
   }));
 }
 
-// Engineering-scope (UNABO Engineering-producten + alle TKN-Buro-producten), verborgen pipelines weg.
-function engScope(): { clause: string; named: Record<string, string> } {
+// Firma-scope binnen Engineering: alle, enkel UNABO Engineering, of enkel TKN-Buro.
+export type EngScope = "all" | "unabo" | "tkn";
+
+// Product-niveau scope-expressie (aliassen d = deals, p = deal_products), zonder hidden-pipelines.
+function engProductScopeExpr(scope: EngScope): string {
+  const unabo = "(d.account_key='unabo' AND p.department='ENGINEERING')";
+  const tkn = "d.account_key='tknburo'";
+  if (scope === "unabo") return unabo;
+  if (scope === "tkn") return tkn;
+  return `(${unabo} OR ${tkn})`;
+}
+
+// Engineering-scope (product-niveau) + verborgen pipelines weg.
+function engScope(scope: EngScope = "all"): { clause: string; named: Record<string, string> } {
   const hiddenNames = Array.from(
     new Set([
       ...(HIDDEN_PIPELINES["unabo"] || []),
@@ -564,16 +578,22 @@ function engScope(): { clause: string; named: Record<string, string> } {
     return `@${k}`;
   });
   const hidden = keys.length ? ` AND (d.pipeline_name IS NULL OR d.pipeline_name NOT IN (${keys.join(", ")}))` : "";
-  const clause = `((d.account_key='unabo' AND p.department='ENGINEERING') OR d.account_key='tknburo')${hidden}`;
+  const clause = `${engProductScopeExpr(scope)}${hidden}`;
   return { clause, named };
 }
 
 // Deal-niveau LEAD-scope voor Engineering: TKN-Buro + UNABO (eng-product ÓF UNABO-Engineering pipeline).
-// Zo tellen ook 'plannen op aanvraag' zonder product mee als lead.
-const ENG_LEAD_SCOPE =
-  "(account_key='tknburo' OR (account_key='unabo' AND (" +
-  "id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='ENGINEERING') " +
-  "OR pipeline_name='UNABO-Engineering')))";
+// Zo tellen ook 'plannen op aanvraag' zonder product mee als lead. Scope beperkt tot één firma indien gevraagd.
+function engLeadScope(scope: EngScope = "all"): string {
+  const unabo =
+    "(account_key='unabo' AND (" +
+    "id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='ENGINEERING') " +
+    "OR pipeline_name='UNABO-Engineering'))";
+  const tkn = "(account_key='tknburo')";
+  if (scope === "unabo") return unabo;
+  if (scope === "tkn") return tkn;
+  return `(${tkn} OR ${unabo})`;
+}
 
 // Verborgen pipelines (Engineering) als named params, met vrij te kiezen prefix.
 function engHidden(prefix: string): { clause: string; named: Record<string, string> } {
@@ -615,7 +635,8 @@ function engTheme(themeKey: string | undefined, dealRef = "deals", prefix = "th"
 // zijn aangemaakt én gewonnen (= meteen gewonnen). Zo is het een eerlijke vergelijking.
 export function getEngineeringByMonth(
   period: Period,
-  themeKey?: string
+  themeKey?: string,
+  scope: EngScope = "all"
 ): { month: string; requests: number; revenue: number; wonCount: number }[] {
   const db = getDb();
   const { from, to } = periodBounds(period);
@@ -627,13 +648,13 @@ export function getEngineeringByMonth(
     .prepare(
       `SELECT substr(add_time,1,7) AS month, COUNT(*) AS requests
        FROM deals
-       WHERE ${ENG_LEAD_SCOPE} AND add_time >= @from AND add_time < @to ${h.clause} ${th.clause}
+       WHERE ${engLeadScope(scope)} AND add_time >= @from AND add_time < @to ${h.clause} ${th.clause}
        GROUP BY month`
     )
     .all({ from, to, ...h.named, ...th.named }) as any[];
 
   // omzet + aantal: aangemaakt ÉN gewonnen in dezelfde maand (op product-prijs)
-  const s = engScope();
+  const s = engScope(scope);
   const thp = engTheme(themeKey, "d", "bmtp");
   const revRows = db
     .prepare(
@@ -661,6 +682,7 @@ export function getEngineeringByMonth(
 
 // ---------- Engineering: aanvragen / gewonnen / verloren per periode ----------
 export type ActivityGranularity = "month" | "week";
+export type DealMini = { id: number; title: string; client: string; value: number; url: string };
 export type ActivityRow = {
   bucket: string;
   label: string;
@@ -668,13 +690,16 @@ export type ActivityRow = {
   wonCount: number; // gewonnen deals (win-datum)
   wonValue: number; // gewonnen omzet op product-prijs (win-datum)
   lostCount: number; // verloren deals (verlies-datum)
+  reqDeals: DealMini[]; // deals achter 'aanvragen' (voor klik-detail)
+  wonDeals: DealMini[]; // deals achter 'gewonnen'
+  lostDeals: DealMini[]; // deals achter 'verloren'
 };
 
 function parseYmd(s: string): Date {
   return new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
 }
 
-export function getEngineeringActivity(period: Period, granularity: ActivityGranularity, themeKey?: string): ActivityRow[] {
+export function getEngineeringActivity(period: Period, granularity: ActivityGranularity, themeKey?: string, scope: EngScope = "all"): ActivityRow[] {
   const db = getDb();
   const { from, to } = periodBounds(period);
   const h = engHidden("ac_h");
@@ -683,14 +708,14 @@ export function getEngineeringActivity(period: Period, granularity: ActivityGran
   // deal-niveau: aantallen (aanvragen / gewonnen / verloren) — LEAD-scope
   const rows = db
     .prepare(
-      `SELECT status, add_time, won_time, lost_time
+      `SELECT id, account_key, title, status, value, add_time, won_time, lost_time, raw
        FROM deals
-       WHERE ${ENG_LEAD_SCOPE} ${h.clause} ${th.clause}`
+       WHERE ${engLeadScope(scope)} ${h.clause} ${th.clause}`
     )
     .all({ ...h.named, ...th.named }) as any[];
 
   // product-niveau: gewonnen omzet (op product-prijs), gebucket op win-datum
-  const s = engScope();
+  const s = engScope(scope);
   const thp = engTheme(themeKey, "d", "thp");
   const prodRows = db
     .prepare(
@@ -721,22 +746,43 @@ export function getEngineeringActivity(period: Period, granularity: ActivityGran
     const { key, label } = bucketFor(dateStr);
     let e = buckets.get(key);
     if (!e) {
-      e = { bucket: key, label, requests: 0, wonCount: 0, wonValue: 0, lostCount: 0 };
+      e = { bucket: key, label, requests: 0, wonCount: 0, wonValue: 0, lostCount: 0, reqDeals: [], wonDeals: [], lostDeals: [] };
       buckets.set(key, e);
     }
     return e;
   }
 
   for (const r of rows) {
+    let raw: any = {};
+    try {
+      raw = JSON.parse(r.raw || "{}");
+    } catch {}
+    const domain = domainByKey[r.account_key] || "";
+    const mini: DealMini = {
+      id: r.id,
+      title: r.title || "(zonder titel)",
+      client: raw.org_name || raw.person_name || "(onbekend)",
+      value: Math.round(r.value || 0),
+      url: domain ? `https://${domain}.pipedrive.com/deal/${r.id}` : "",
+    };
     const req = bucket(r.add_time);
-    if (req) req.requests++;
+    if (req) {
+      req.requests++;
+      req.reqDeals.push(mini);
+    }
     if (r.status === "won") {
       const b = bucket(r.won_time);
-      if (b) b.wonCount++;
+      if (b) {
+        b.wonCount++;
+        b.wonDeals.push(mini);
+      }
     }
     if (r.status === "lost") {
       const b = bucket(r.lost_time);
-      if (b) b.lostCount++;
+      if (b) {
+        b.lostCount++;
+        b.lostDeals.push(mini);
+      }
     }
   }
   for (const p of prodRows) {
@@ -760,7 +806,7 @@ export type ChannelRow = {
   subs: ChannelSub[]; // subkanalen (partners)
 };
 
-export function getEngineeringChannels(period: Period, themeKey?: string): ChannelRow[] {
+export function getEngineeringChannels(period: Period, themeKey?: string, scope: EngScope = "all"): ChannelRow[] {
   const db = getDb();
   const { from, to } = periodBounds(period);
   const h = engHidden("ch_h");
@@ -771,7 +817,7 @@ export function getEngineeringChannels(period: Period, themeKey?: string): Chann
     .prepare(
       `SELECT status, label_names
        FROM deals
-       WHERE ${ENG_LEAD_SCOPE} AND add_time >= @from AND add_time < @to ${h.clause} ${th.clause}`
+       WHERE ${engLeadScope(scope)} AND add_time >= @from AND add_time < @to ${h.clause} ${th.clause}`
     )
     .all({ from, to, ...h.named, ...th.named }) as any[];
 
@@ -826,7 +872,7 @@ export type EngLostReasons = {
 
 const domainByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.domain]));
 
-export function getEngineeringLostReasons(period: Period, themeKey?: string): EngLostReasons {
+export function getEngineeringLostReasons(period: Period, themeKey?: string, scope: EngScope = "all"): EngLostReasons {
   const db = getDb();
   const { from, to } = periodBounds(period);
   // afbakenen tot 2026
@@ -844,7 +890,7 @@ export function getEngineeringLostReasons(period: Period, themeKey?: string): En
     .prepare(
       `SELECT id, account_key, pipeline_name, title, lost_reason
        FROM deals
-       WHERE ${ENG_LEAD_SCOPE} AND status='lost' AND lost_time >= @from AND lost_time < @to ${h.clause} ${th.clause}
+       WHERE ${engLeadScope(scope)} AND status='lost' AND lost_time >= @from AND lost_time < @to ${h.clause} ${th.clause}
        ORDER BY lost_time DESC`
     )
     .all({ from: from26, to: to26, ...h.named, ...th.named }) as any[];
@@ -877,7 +923,7 @@ export function getEngineeringLostReasons(period: Period, themeKey?: string): En
 // ---------- Engineering: KPI's (aanvragen = LEADS op add_time, niet productregels) ----------
 export type EngKpis = { requests: number; wonCount: number; wonValue: number; avgDays: number | null };
 
-function kpisForRange(from: string, to: string, themeKey?: string): EngKpis {
+function kpisForRange(from: string, to: string, themeKey?: string, scope: EngScope = "all"): EngKpis {
   const db = getDb();
   const h = engHidden("kpi_h");
   const th = engTheme(themeKey, "deals", "kpit");
@@ -889,11 +935,11 @@ function kpisForRange(from: string, to: string, themeKey?: string): EngKpis {
          SUM(CASE WHEN status='won' AND won_time >= @from AND won_time < @to THEN 1 ELSE 0 END) AS wonCount,
          AVG(CASE WHEN status='won' AND won_time >= @from AND won_time < @to
                   THEN julianday(won_time) - julianday(add_time) END) AS avgDays
-       FROM deals WHERE ${ENG_LEAD_SCOPE} ${h.clause} ${th.clause}`
+       FROM deals WHERE ${engLeadScope(scope)} ${h.clause} ${th.clause}`
     )
     .get({ from, to, ...h.named, ...th.named }) as any;
 
-  const s = engScope();
+  const s = engScope(scope);
   const thp = engTheme(themeKey, "d", "kpitp");
   const val = db
     .prepare(
@@ -911,9 +957,9 @@ function kpisForRange(from: string, to: string, themeKey?: string): EngKpis {
   };
 }
 
-export function getEngineeringKpis(period: Period, themeKey?: string): EngKpis {
+export function getEngineeringKpis(period: Period, themeKey?: string, scope: EngScope = "all"): EngKpis {
   const { from, to } = periodBounds(period);
-  return kpisForRange(from, to, themeKey);
+  return kpisForRange(from, to, themeKey, scope);
 }
 
 // KPI's + vergelijking met de vorige, even lange periode (voor delta's).
@@ -929,9 +975,9 @@ function isoDate(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-export function getEngineeringKpisWithDelta(period: Period, themeKey?: string): EngKpisDelta {
+export function getEngineeringKpisWithDelta(period: Period, themeKey?: string, scope: EngScope = "all"): EngKpisDelta {
   const { from, to } = periodBounds(period);
-  const cur = kpisForRange(from, to, themeKey);
+  const cur = kpisForRange(from, to, themeKey, scope);
 
   // effectieve einddatum = min(to, vandaag) zodat open-eindes (dit jaar / 12m) eerlijk vergelijken
   const today = isoDate(new Date());
@@ -943,7 +989,7 @@ export function getEngineeringKpisWithDelta(period: Period, themeKey?: string): 
   }
   const spanMs = parseYmd(eff).getTime() - parseYmd(from).getTime();
   const prevFrom = isoDate(new Date(parseYmd(from).getTime() - spanMs));
-  const prev = kpisForRange(prevFrom, from, themeKey);
+  const prev = kpisForRange(prevFrom, from, themeKey, scope);
   return {
     ...cur,
     prev,
@@ -962,7 +1008,7 @@ export type BundleSplit = {
   bundelEngValue: number; // enkel de engineering-productwaarde binnen die bundels
 };
 
-export function getEngineeringBundleSplit(period: Period, themeKey?: string): BundleSplit {
+export function getEngineeringBundleSplit(period: Period, themeKey?: string, scope: EngScope = "all"): BundleSplit {
   const db = getDb();
   const { from, to } = periodBounds(period);
   const h = engHidden("bl_h");
@@ -971,7 +1017,7 @@ export function getEngineeringBundleSplit(period: Period, themeKey?: string): Bu
   const wonDeals = db
     .prepare(
       `SELECT id, account_key, value FROM deals
-       WHERE ${ENG_LEAD_SCOPE} AND status='won' AND won_time >= @from AND won_time < @to ${h.clause} ${th.clause}`
+       WHERE ${engLeadScope(scope)} AND status='won' AND won_time >= @from AND won_time < @to ${h.clause} ${th.clause}`
     )
     .all({ from, to, ...h.named, ...th.named }) as any[];
 
@@ -1023,7 +1069,9 @@ export type EngMotivation = {
   filledInfluenceable: number;
   outside2026: boolean;
 };
-export function getEngineeringMotivation(period: Period): EngMotivation {
+export function getEngineeringMotivation(period: Period, scope: EngScope = "all"): EngMotivation {
+  // Deze velden bestaan enkel bij UNABO — bij TKN-only scope tonen we niets.
+  if (scope === "tkn") return { influenceable: [], cause: [], total: 0, filledInfluenceable: 0, outside2026: false };
   const db = getDb();
   const { from, to } = periodBounds(period);
   const from26 = from < "2026-01-01" ? "2026-01-01" : from;
@@ -1066,7 +1114,9 @@ export type EngProjectType = {
   typeAanvraag: { label: string; count: number }[];
   typeAanvraagFilled: number;
 };
-export function getEngineeringProjectType(period: Period, themeKey?: string): EngProjectType {
+export function getEngineeringProjectType(period: Period, themeKey?: string, scope: EngScope = "all"): EngProjectType {
+  // Gebouwtype/type-aanvraag zijn UNABO-velden — bij TKN-only scope niets tonen.
+  if (scope === "tkn") return { total: 0, gebouwtype: [], gebouwtypeFilled: 0, typeAanvraag: [], typeAanvraagFilled: 0 };
   const db = getDb();
   const { from, to } = periodBounds(period);
   const h = engHidden("pt_h");
@@ -1104,12 +1154,18 @@ export function getEngineeringProjectType(period: Period, themeKey?: string): En
 }
 
 // ---------- Engineering: offerte-teller + tijd aanvraag -> offerte ----------
-export type EngOfferte = { leadCount: number; offerteCount: number; avgDaysToOfferte: number | null; timingSample: number };
-export function getEngineeringOfferteStats(period: Period, themeKey?: string): EngOfferte {
+export type EngOfferte = { leadCount: number; offerteCount: number; avgDaysToOfferte: number | null; timingSample: number; exact: boolean };
+export function getEngineeringOfferteStats(period: Period, themeKey?: string, scope: EngScope = "all"): EngOfferte {
   const db = getDb();
   const { from, to } = periodBounds(period);
   const h = engHidden("of_h");
   const th = engTheme(themeKey, "deals", "oft");
+
+  // exacte offerte-tijdstippen uit de deal-flow (wanneer de deal in een offerte-fase kwam)
+  const flow = new Map<string, string>();
+  for (const f of db.prepare("SELECT account_key, deal_id, offerte_time FROM deal_flow WHERE offerte_time IS NOT NULL").all() as any[]) {
+    flow.set(f.account_key + ":" + f.deal_id, f.offerte_time);
+  }
 
   // offerte-drempel per pipeline (laagste stage_order van een offerte-fase)
   const stages = db
@@ -1129,9 +1185,8 @@ export function getEngineeringOfferteStats(period: Period, themeKey?: string): E
 
   const rows = db
     .prepare(
-      `SELECT status, pipeline_name, account_key, stage_name, stage_order, add_time,
-              json_extract(raw,'$.stage_change_time') AS sct
-       FROM deals WHERE ${ENG_LEAD_SCOPE} AND add_time>=@from AND add_time<@to ${h.clause} ${th.clause}`
+      `SELECT id, status, pipeline_name, account_key, stage_name, stage_order, add_time
+       FROM deals WHERE ${engLeadScope(scope)} AND add_time>=@from AND add_time<@to ${h.clause} ${th.clause}`
     )
     .all({ from, to, ...h.named, ...th.named }) as any[];
 
@@ -1145,10 +1200,11 @@ export function getEngineeringOfferteStats(period: Period, themeKey?: string): E
       isOfferteStage(r.stage_name) ||
       (thr != null && r.stage_order != null && r.stage_order >= thr);
     if (reached) offerteCount++;
-    // partiële timing: deals die NU in een offerte-fase staan
-    if (isOfferteStage(r.stage_name) && r.sct && r.add_time) {
+    // exacte timing: aanvraag -> moment dat de offerte de deur uit ging (uit deal-flow)
+    const ot = flow.get(r.account_key + ":" + r.id);
+    if (ot && r.add_time) {
       const d =
-        (new Date(String(r.sct).replace(" ", "T") + "Z").getTime() -
+        (new Date(String(ot).replace(" ", "T") + "Z").getTime() -
           new Date(String(r.add_time).replace(" ", "T") + "Z").getTime()) /
         86400000;
       if (d >= 0 && d < 3650) {
@@ -1162,6 +1218,272 @@ export function getEngineeringOfferteStats(period: Period, themeKey?: string): E
     offerteCount,
     avgDaysToOfferte: timingSample ? Math.round(daysSum / timingSample) : null,
     timingSample,
+    exact: timingSample > 0,
+  };
+}
+
+// ---------- TKN-Buro: verdeling Tekenwerk vs. Stabiliteitsstudie (per pipeline) ----------
+export type TknSplitRow = { category: string; pipeline: string; requests: number; won: number; lost: number; omzet: number };
+export function getEngineeringTknSplit(period: Period): TknSplitRow[] {
+  const db = getDb();
+  const { from, to } = periodBounds(period);
+  const cats: [string, string][] = [
+    ["Tekenwerk", "TKN-Tekenwerk"],
+    ["Stabiliteitsstudie", "TKN-Stabiliteitsstudie"],
+  ];
+  const map = new Map<string, TknSplitRow>(
+    cats.map(([label, pl]) => [pl, { category: label, pipeline: pl, requests: 0, won: 0, lost: 0, omzet: 0 }])
+  );
+  const rows = db
+    .prepare(
+      `SELECT pipeline_name, status, add_time, won_time, lost_time
+       FROM deals
+       WHERE account_key='tknburo' AND pipeline_name IN ('TKN-Tekenwerk','TKN-Stabiliteitsstudie')`
+    )
+    .all() as any[];
+  for (const r of rows) {
+    const e = map.get(r.pipeline_name);
+    if (!e) continue;
+    if (r.add_time >= from && r.add_time < to) e.requests++;
+    if (r.status === "won" && r.won_time >= from && r.won_time < to) e.won++;
+    if (r.status === "lost" && r.lost_time >= from && r.lost_time < to) e.lost++;
+  }
+  const omz = db
+    .prepare(
+      `SELECT d.pipeline_name AS pn, SUM(p.line_sum) AS s
+       FROM deal_products p JOIN deals d ON d.account_key=p.account_key AND d.id=p.deal_id
+       WHERE d.account_key='tknburo' AND d.status='won' AND d.won_time>=@from AND d.won_time<@to
+         AND d.pipeline_name IN ('TKN-Tekenwerk','TKN-Stabiliteitsstudie')
+       GROUP BY d.pipeline_name`
+    )
+    .all({ from, to }) as any[];
+  for (const o of omz) {
+    const e = map.get(o.pn);
+    if (e) e.omzet = Math.round(o.s || 0);
+  }
+  return Array.from(map.values());
+}
+
+// ---------- Engineering: regio (projectadres uit deal-titel -> provincie + punt op de kaart) ----------
+export type RegionRow = { province: string; won: number; open: number; lost: number; total: number };
+export type RegionStatus = "won" | "open" | "lost";
+export type RegionPoint = {
+  id: number;
+  lat: number;
+  lng: number;
+  status: RegionStatus;
+  firma?: string; // firma-naam (voor de globale kaart, kleuren per firma)
+  client: string;
+  address: string;
+  city: string;
+  pipeline: string;
+  value: number;
+  currency: string;
+  url: string;
+  products: string[];
+};
+export type B2BOffice = { id: number; name: string; lat: number; lng: number; city: string; count: number; url: string };
+export type UnplacedDeal = { id: number; title: string; client: string; status: RegionStatus; url: string };
+export type EngRegion = {
+  rows: RegionRow[];
+  points: RegionPoint[];
+  b2bOffices: B2BOffice[];
+  unplacedDeals: UnplacedDeal[];
+  placed: number; // met herkenbare provincie
+  plotted: number; // effectief als punt op de kaart (postcode-coördinaat gevonden)
+  unplaced: number;
+  total: number;
+};
+
+const UNABO_ADDR_HASH = "851a82ca35b98f6f166752733ad0498887b2fc8c";
+
+export function getEngineeringRegion(period: Period, themeKey?: string, scope: EngScope = "all"): EngRegion {
+  const db = getDb();
+  const { from, to } = periodBounds(period);
+  const h = engHidden("rg_h");
+  const th = engTheme(themeKey, "deals", "rgt");
+  // deals die in de periode vallen volgens hun status-datum (zelfde attributie als de KPI's)
+  const rows = db
+    .prepare(
+      `SELECT id, account_key, title, status, value, currency, pipeline_name, raw
+       FROM deals
+       WHERE ${engLeadScope(scope)}
+         AND ( (status='won'  AND won_time  >= @from AND won_time  < @to)
+            OR (status='lost' AND lost_time >= @from AND lost_time < @to)
+            OR (status='open' AND add_time  >= @from AND add_time  < @to) )
+         ${h.clause} ${th.clause}`
+    )
+    .all({ from, to, ...h.named, ...th.named }) as any[];
+
+  // producten per deal (voor de pop-up)
+  const prodByDeal = new Map<string, string[]>();
+  for (const p of db
+    .prepare("SELECT account_key, deal_id, name FROM deal_products WHERE account_key IN ('unabo','tknburo') AND name IS NOT NULL")
+    .all() as any[]) {
+    const key = p.account_key + ":" + p.deal_id;
+    const arr = prodByDeal.get(key) || [];
+    const clean = String(p.name).replace(/^ENGINEERING:\s*/i, "").trim();
+    if (clean && !arr.includes(clean)) arr.push(clean);
+    prodByDeal.set(key, arr);
+  }
+
+  // organisatie-adressen (met coördinaat) voor de B2B-laag
+  const orgMap = new Map<string, { name: string; city: string; lat: number; lng: number }>();
+  for (const o of db
+    .prepare("SELECT account_key, id, name, city, lat, lng FROM organizations WHERE lat IS NOT NULL")
+    .all() as any[]) {
+    orgMap.set(o.account_key + ":" + o.id, { name: o.name || "", city: o.city || "", lat: o.lat, lng: o.lng });
+  }
+
+  const provMap = new Map<string, RegionRow>();
+  const points: RegionPoint[] = [];
+  const b2bMap = new Map<string, B2BOffice>();
+  const unplacedDeals: UnplacedDeal[] = [];
+  let placed = 0;
+  let unplaced = 0;
+  let plotted = 0;
+  for (const r of rows) {
+    let raw: any = {};
+    try {
+      raw = JSON.parse(r.raw || "{}");
+    } catch {}
+    const status: RegionStatus = r.status === "won" ? "won" : r.status === "lost" ? "lost" : "open";
+    const client = raw.org_name || raw.person_name || "(onbekend)";
+    const domain = domainByKey[r.account_key] || "";
+    const orgId = raw.org_id && typeof raw.org_id === "object" ? raw.org_id.value : raw.org_id;
+    const pcField = r.account_key === "unabo" ? raw[UNABO_ADDR_HASH + "_postal_code"] || null : null;
+    const loc = parseProjectLocation(r.title, pcField);
+    if (!loc) {
+      unplaced++;
+      if (unplacedDeals.length < 500) {
+        unplacedDeals.push({
+          id: r.id,
+          title: r.title || "(zonder titel)",
+          client,
+          status,
+          url: domain ? `https://${domain}.pipedrive.com/deal/${r.id}` : "",
+        });
+      }
+      // B2B-kantoor via organisatie-adres
+      if (orgId) {
+        const org = orgMap.get(r.account_key + ":" + orgId);
+        if (org) {
+          const key = r.account_key + ":" + orgId;
+          let b = b2bMap.get(key);
+          if (!b) {
+            b = {
+              id: orgId,
+              name: org.name || client,
+              lat: org.lat,
+              lng: org.lng,
+              city: org.city,
+              count: 0,
+              url: domain ? `https://${domain}.pipedrive.com/organization/${orgId}` : "",
+            };
+            b2bMap.set(key, b);
+          }
+          b.count++;
+        }
+      }
+      continue;
+    }
+    placed++;
+    let pr = provMap.get(loc.province);
+    if (!pr) {
+      pr = { province: loc.province, won: 0, open: 0, lost: 0, total: 0 };
+      provMap.set(loc.province, pr);
+    }
+    pr[status]++;
+    pr.total++;
+
+    const coord = POSTCODE_COORDS[loc.postcode];
+    if (coord) {
+      plotted++;
+      points.push({
+        id: r.id,
+        lat: coord[0],
+        lng: coord[1],
+        status,
+        client,
+        address: r.title || "",
+        city: loc.city,
+        pipeline: r.pipeline_name || "",
+        value: Math.round(r.value || 0),
+        currency: r.currency || "EUR",
+        url: domain ? `https://${domain}.pipedrive.com/deal/${r.id}` : "",
+        products: prodByDeal.get(r.account_key + ":" + r.id) || [],
+      });
+    }
+  }
+  return {
+    rows: Array.from(provMap.values()).sort((a, b) => b.total - a.total),
+    points,
+    b2bOffices: Array.from(b2bMap.values()).sort((a, b) => b.count - a.count),
+    unplacedDeals,
+    placed,
+    plotted,
+    unplaced,
+    total: placed + unplaced,
+  };
+}
+
+// ---------- Globale kaart: ALLE deals van ALLE firma's (projectadres uit titel) ----------
+export type GlobalMap = { points: RegionPoint[]; byFirma: { firma: string; count: number }[]; plotted: number; unplaced: number; total: number };
+export function getGlobalMap(accountKey: string, status: "won" | "open" | "lost" | "all"): GlobalMap {
+  const db = getDb();
+  const accClause = accountKey === "all" ? "" : "AND account_key = @acc";
+  const rows = db
+    .prepare(`SELECT id, account_key, title, status, value, currency, pipeline_name, raw FROM deals WHERE 1=1 ${accClause}`)
+    .all(accountKey === "all" ? {} : { acc: accountKey }) as any[];
+
+  const points: RegionPoint[] = [];
+  const firmaCount = new Map<string, number>();
+  let plotted = 0;
+  let unplaced = 0;
+  let total = 0;
+  for (const r of rows) {
+    const st: RegionStatus = r.status === "won" ? "won" : r.status === "lost" ? "lost" : "open";
+    if (status !== "all" && st !== status) continue;
+    total++;
+    let raw: any = {};
+    try {
+      raw = JSON.parse(r.raw || "{}");
+    } catch {}
+    const pcField = r.account_key === "unabo" ? raw[UNABO_ADDR_HASH + "_postal_code"] || null : null;
+    const loc = parseProjectLocation(r.title, pcField);
+    const coord = loc ? POSTCODE_COORDS[loc.postcode] : undefined;
+    if (!loc || !coord) {
+      unplaced++;
+      continue;
+    }
+    plotted++;
+    const firma = nameByKey[r.account_key] || r.account_key;
+    firmaCount.set(firma, (firmaCount.get(firma) || 0) + 1);
+    const domain = domainByKey[r.account_key] || "";
+    points.push({
+      id: r.id,
+      lat: coord[0],
+      lng: coord[1],
+      status: st,
+      firma,
+      client: raw.org_name || raw.person_name || "(onbekend)",
+      address: r.title || "",
+      city: loc.city,
+      pipeline: r.pipeline_name || "",
+      value: Math.round(r.value || 0),
+      currency: r.currency || "EUR",
+      url: domain ? `https://${domain}.pipedrive.com/deal/${r.id}` : "",
+      products: [],
+    });
+  }
+  return {
+    points,
+    byFirma: Array.from(firmaCount.entries())
+      .map(([firma, count]) => ({ firma, count }))
+      .sort((a, b) => b.count - a.count),
+    plotted,
+    unplaced,
+    total,
   };
 }
 

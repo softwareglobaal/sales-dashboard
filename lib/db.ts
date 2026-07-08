@@ -72,6 +72,28 @@ function initSchema(db: Database.Database) {
       updated_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS organizations (
+      account_key TEXT NOT NULL,
+      id          INTEGER NOT NULL,
+      name        TEXT,
+      address     TEXT,
+      postal      TEXT,
+      city        TEXT,
+      province    TEXT,
+      lat         REAL,
+      lng         REAL,
+      PRIMARY KEY (account_key, id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_org_account ON organizations(account_key);
+
+    CREATE TABLE IF NOT EXISTS deal_flow (
+      account_key  TEXT NOT NULL,
+      deal_id      INTEGER NOT NULL,
+      offerte_time TEXT,          -- eerste moment dat de deal in een offerte-fase kwam (uit deal-flow)
+      fetched_at   TEXT,
+      PRIMARY KEY (account_key, deal_id)
+    );
+
     CREATE TABLE IF NOT EXISTS sync_meta (
       account_key TEXT PRIMARY KEY,
       last_sync   TEXT,

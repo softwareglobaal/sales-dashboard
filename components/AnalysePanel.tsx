@@ -66,14 +66,15 @@ function renderMarkdown(md: string) {
   return out;
 }
 
-export function AnalysePanel({ period, themeKey }: { period: string; themeKey?: string }) {
+export function AnalysePanel({ period, themeKey, scope }: { period: string; themeKey?: string; scope?: string }) {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generatedFor, setGeneratedFor] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
 
-  const stale = text != null && generatedFor !== period + "|" + (themeKey || "");
+  const filterKey = period + "|" + (themeKey || "") + "|" + (scope || "all");
+  const stale = text != null && generatedFor !== filterKey;
 
   async function generate() {
     setLoading(true);
@@ -82,7 +83,7 @@ export function AnalysePanel({ period, themeKey }: { period: string; themeKey?: 
       const res = await fetch("/api/analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period, t: themeKey || "" }),
+        body: JSON.stringify({ period, t: themeKey || "", sc: scope || "" }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -90,7 +91,7 @@ export function AnalysePanel({ period, themeKey }: { period: string; themeKey?: 
         setText(null);
       } else {
         setText(data.text);
-        setGeneratedFor(period + "|" + (themeKey || ""));
+        setGeneratedFor(filterKey);
       }
     } catch {
       setError("Kon geen verbinding maken met de server.");
