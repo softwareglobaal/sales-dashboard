@@ -26,11 +26,11 @@ _(status: ✅ KLAAR — commit "review-8juli sprint 2")_
 - [~] Aparte "Bundel"-sectie (aanvraag / offerte / gewonnen / verloren) — **bewust beperkt gehouden** (zie "Openstaand"). De bundel-vs-los verdeling bestaat al voor **gewonnen** deals (in Omzet & bundel). Voor open/verloren deals is de bundel-classificatie onbetrouwbaar omdat producten daar vaak nog niet ingevuld zijn; een volledige trechter zou misleidend zijn.
 
 ## Sprint 3 — Nieuwe onderdelen (Groep B, deel 2)
-_(status: gepland)_
+_(status: ✅ deels — commit "review-8juli sprint 3")_
 
-- [ ] Targets op KPI's (mechanisme; waarden door jou in te vullen)
-- [ ] Kosten per lead/kanaal (config-gedreven)
-- [ ] AI-analyse per deal (klik deal → "wat is er gebeurd")
+- [x] **Targets op KPI's (mechanisme)** — jaardoelen per scope in `config/targets.json` (omzet + aantal, excl. btw), gelezen via `lib/targets.ts`. Toont een voortgangsbalk op de KPI-kaarten "Omzet" en "Verkocht", **enkel bij periode 'Dit jaar'** en **enkel als een doel > 0 is ingevuld**. Standaard staat alles op 0 → niets te zien tot jullie de waarden invullen. Zo kan het cijfer nooit misleiden.
+- [~] **Kosten per lead/kanaal** — mechanisme kan later config-gedreven, maar heeft de **echte advertentiekosten** nodig (Google Ads / website). Wacht op de Google Ads-koppeling. Zie "Openstaand".
+- [~] **AI-analyse per deal** — bewust nog niet gebouwd: de huidige AI-analyse stuurt enkel geaggregeerde cijfers (géén klantnamen) naar Claude, uit privacy-overweging. Analyse per individuele deal zou deal-specifieke gegevens versturen — dit eerst met jou afstemmen. Zie "Openstaand".
 
 ## Sprint 4 — Placeholders die wachten op Pipedrive-velden (Groep C)
 _(status: gepland)_
@@ -44,7 +44,8 @@ _(status: gepland)_
 ## Openstaand / bewust laten staan (twijfel of externe input nodig)
 
 - **Volledige bundel-trechter (aanvraag → offerte → gewonnen → verloren):** bundel-vs-los kan enkel betrouwbaar bepaald worden voor gewonnen deals (producten dan ingevuld). Voor open/verloren deals ontbreken producten vaak → laten staan tot dit met Mehdi besproken is. Bundel-vs-los voor gewonnen deals staat al in "Omzet & bundel".
-- **Targets/streefwaarden op KPI's:** mechanisme kan gebouwd worden, maar de waarden moeten door jullie ingevuld worden. Wacht op input (Sprint 3).
+- **Targets/streefwaarden op KPI's:** mechanisme is gebouwd (Sprint 3). Vul de waarden in `config/targets.json` in (omzet + aantal per scope, excl. btw) om de voortgangsbalken te activeren bij "Dit jaar".
 - **Kosten per lead/kanaal:** vereist de exacte advertentiekosten (Google Ads / website). Wacht op de Google Ads-koppeling die jij aan jullie kant voorbereidt.
+- **AI-analyse per deal:** wacht op akkoord — deal-specifieke gegevens (incl. klantnaam) zouden dan naar Claude gestuurd worden; nu bewust enkel geaggregeerd.
 - **Geslacht, projecttype-detail, meeting-metrics:** placeholders staan klaar; vullen zich zodra de Pipedrive-velden bestaan/ingevuld zijn.
 - **Exacte definities van enkele verliesredenen:** in het Woordenboek gemarkeerd met "controleren".

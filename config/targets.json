@@ -1,0 +1,13 @@
+{
+  "_uitleg": "Jaardoelen per scope (excl. btw). Vul een waarde in > 0 om een voortgangsbalk te tonen op de KPI-kaarten (enkel zichtbaar bij periode 'Dit jaar'). 0 = geen doel = niets tonen. 'omzet' = gewonnen omzet in euro, 'aantal' = aantal gewonnen deals.",
+  "omzet": {
+    "all": 0,
+    "unabo": 0,
+    "tkn": 0
+  },
+  "aantal": {
+    "all": 0,
+    "unabo": 0,
+    "tkn": 0
+  }
+}

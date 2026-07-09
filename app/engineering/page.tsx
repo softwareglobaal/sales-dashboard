@@ -34,6 +34,7 @@ import { SyncFreshness } from "@/components/SyncFreshness";
 import { PeriodSelector, MonthSelector, WeekSelector, GranularitySelector, ScopeSelector, RegionStatusSelector } from "@/components/Controls";
 import { BelgiumMap, type OurOffice } from "@/components/BelgiumMap";
 import { POSTCODE_COORDS } from "@/lib/postcodeCoords";
+import { getYearTarget } from "@/lib/targets";
 import officesConfig from "@/config/offices.json";
 import { Kpi, Card, Highlight, CombineRow } from "@/components/ui";
 import { LastSync } from "@/components/LastSync";
@@ -69,6 +70,9 @@ export default async function EngineeringPage({
   }
 
   const kpis = getEngineeringKpisWithDelta(period, themeKey, scope);
+  // Jaardoelen: enkel tonen bij "Dit jaar" (ytd) én wanneer een doel is ingevuld (> 0).
+  const yearTarget = getYearTarget(scope);
+  const showTargets = period === "ytd";
   const eng = getEngineeringCombined(period, themeKey);
   const bundle = getEngineeringBundleSplit(period, themeKey, scope);
   const services = getEngineeringServices(period, themeKey, scope);
@@ -210,6 +214,9 @@ export default async function EngineeringPage({
           <div className="text-[11px] font-medium uppercase tracking-wide text-indigo-200">Omzet (gewonnen)</div>
           <div className="text-[30px] font-extrabold leading-none tracking-tight">{euro(kpis.wonValue)}</div>
           <Delta v={kpis.dWonValue} hero />
+          {showTargets && yearTarget.omzet > 0 && (
+            <TargetBar current={kpis.wonValue} target={yearTarget.omzet} fmt={euro} hero />
+          )}
           <div className="mt-auto text-[11.5px] text-indigo-200/80">op product-prijs</div>
         </div>
         <div className="flex flex-col gap-1.5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -222,6 +229,9 @@ export default async function EngineeringPage({
           <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Verkocht</div>
           <div className="text-2xl font-bold text-zinc-900">{num(kpis.wonCount)}</div>
           <Delta v={kpis.dWonCount} />
+          {showTargets && yearTarget.aantal > 0 && (
+            <TargetBar current={kpis.wonCount} target={yearTarget.aantal} fmt={(n) => num(n)} />
+          )}
           <div className="text-xs text-zinc-500">gewonnen deals in periode</div>
         </div>
         <div className="flex flex-col gap-1.5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -790,5 +800,34 @@ function Delta({ v, hero = false }: { v: number | null; hero?: boolean }) {
       </span>
       <span className={hero ? "text-indigo-200/80" : "text-zinc-400"}>vs. vorige periode</span>
     </span>
+  );
+}
+
+// Voortgangsbalk t.o.v. het jaardoel (enkel getoond bij "Dit jaar" met een ingevuld doel).
+function TargetBar({
+  current,
+  target,
+  fmt,
+  hero = false,
+}: {
+  current: number;
+  target: number;
+  fmt: (n: number) => string;
+  hero?: boolean;
+}) {
+  const pct = Math.max(0, Math.min(100, Math.round((current / target) * 100)));
+  const reached = current >= target;
+  const trackCls = hero ? "bg-white/15" : "bg-zinc-100";
+  const barCls = reached ? (hero ? "bg-emerald-300" : "bg-emerald-500") : hero ? "bg-indigo-300" : "bg-blue-500";
+  const textCls = hero ? "text-indigo-200/80" : "text-zinc-500";
+  return (
+    <div className="mt-0.5 flex flex-col gap-1">
+      <div className={"h-1.5 w-full overflow-hidden rounded-full " + trackCls}>
+        <div className={"h-full rounded-full " + barCls} style={{ width: `${pct}%` }} />
+      </div>
+      <div className={"text-[11px] " + textCls}>
+        {pct}% van jaardoel {fmt(target)}
+      </div>
+    </div>
   );
 }
