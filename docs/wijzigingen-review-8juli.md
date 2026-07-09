@@ -33,11 +33,11 @@ _(status: ✅ deels — commit "review-8juli sprint 3")_
 - [~] **AI-analyse per deal** — bewust nog niet gebouwd: de huidige AI-analyse stuurt enkel geaggregeerde cijfers (géén klantnamen) naar Claude, uit privacy-overweging. Analyse per individuele deal zou deal-specifieke gegevens versturen — dit eerst met jou afstemmen. Zie "Openstaand".
 
 ## Sprint 4 — Placeholders die wachten op Pipedrive-velden (Groep C)
-_(status: gepland)_
+_(status: ✅ KLAAR — commit "review-8juli sprint 4")_
 
-- [ ] Projecttype-uitsplitsing (vult zich als velden ingevuld zijn)
-- [ ] Geslacht-analyse (idem)
-- [ ] Meeting-metrics (wacht op data)
+- [x] Projecttype-uitsplitsing — bestond al (sectie "Projecttype" met NIEUW/onvolledig-badge, vult zich als velden ingevuld zijn).
+- [x] Geslacht-analyse — placeholder bestond al (sectie "Geslacht", BINNENKORT-badge, "nog geen data").
+- [x] Meeting-metrics — nieuwe placeholder-sectie "Meetings & afspraken" toegevoegd (4 tegels: gepland, meeting→offerte, meeting→gewonnen, tijd tot meeting) + sub-nav "Meetings". Vult zich zodra afspraak-activiteiten aan deals gekoppeld en gesynct zijn.
 
 ---
 

@@ -203,6 +203,7 @@ export default async function EngineeringPage({
             { id: "diensten", label: "Diensten" },
             { id: "projecttype", label: "Projecttype" },
             { id: "geslacht", label: "Geslacht" },
+            { id: "meetings", label: "Meetings" },
           ]}
         />
       </div>
@@ -772,6 +773,34 @@ export default async function EngineeringPage({
           <p className="mt-3 text-xs text-zinc-400">
             Zodra het geslacht-veld in Pipedrive bestaat en gesynct is, vullen deze cijfers zich automatisch (verdeling
             over contactpersonen van de aanvragen).
+          </p>
+        </Card>
+      </section>
+
+      {/* Meetings / afspraken — placeholder, wacht op data uit Pipedrive-activiteiten */}
+      <section id="meetings" className="mb-8 scroll-mt-40">
+        <Card title="Meetings & afspraken">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+            <span className="rounded bg-zinc-400 px-1.5 py-0.5 font-semibold text-white">BINNENKORT</span>
+            Wacht op afsprakendata uit Pipedrive-activiteiten — nog geen cijfers.
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              { label: "Meetings gepland", hint: "in periode" },
+              { label: "Meeting → offerte", hint: "conversie" },
+              { label: "Meeting → gewonnen", hint: "conversie" },
+              { label: "Gem. tijd tot meeting", hint: "aanvraag → afspraak" },
+            ].map((m) => (
+              <div key={m.label} className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 p-4">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{m.label}</div>
+                <div className="mt-1 text-2xl font-bold text-zinc-300">—</div>
+                <div className="mt-1 text-[11px] text-zinc-400">{m.hint}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-zinc-400">
+            Zodra afspraak-activiteiten gekoppeld zijn aan de deals, tonen we hier hoeveel meetings er plaatsvonden en hoe
+            goed ze converteren.
           </p>
         </Card>
       </section>
