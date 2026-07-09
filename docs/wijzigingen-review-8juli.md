@@ -17,13 +17,13 @@ _(status: ✅ KLAAR — commit "review-8juli sprint 1")_
 - [x] Kaart: provincie- + stad-labels + kantoornamen + "Namen"-toggle — `components/BelgiumMap.tsx`
 
 ## Sprint 2 — Nieuwe onderdelen (Groep B, deel 1)
-_(status: gepland)_
+_(status: ✅ KLAAR — commit "review-8juli sprint 2")_
 
-- [ ] Aparte "Bundel"-sectie (aanvraag / offerte / gewonnen / verloren)
-- [ ] Woordenboek/definitie-tab (o.a. verliesredenen)
-- [ ] Aanvraagdatum tonen bij gewonnen deals
-- [ ] Dag/uur-analyse (wanneer komen aanvragen binnen)
-- [ ] Conversie % over langere periode
+- [x] Woordenboek/definitie-tab (o.a. verliesredenen) — nieuwe pagina `app/woordenboek/page.tsx` + zijbalk-item. Toont kernbegrippen (aanvraag, offerte, conversie, bundel, scope, kanaal, …) en groepeert alle ruwe verliesredenen onder de 8 hoofd-redenen (leest `config/lossReasons.json`). Onzekere items gemarkeerd met "controleren".
+- [x] Aanvraagdatum tonen bij deal-lijsten — kolom "aangemaakt" toegevoegd in de klikbare deal-detaillijsten (aanvragen/gewonnen/verloren). `lib/queries.ts` (`DealMini.addDate` via `getEngineeringActivity`) + `components/Charts.tsx`.
+- [x] Dag/uur-analyse "Wanneer komen aanvragen binnen?" — nieuwe sectie in de Engineering-tab met twee grafieken (per weekdag / per uur), Belgische tijd. `lib/queries.ts` (`getEngineeringTiming`), `components/Charts.tsx` (`TimingBars`), `app/engineering/page.tsx` + sub-nav "Dag & uur".
+- [x] Conversie % — stat "Conversie" toegevoegd aan de offerte-strip (aandeel aanvragen → gewonnen), met uitleg dat het over kortere periodes ruwer is.
+- [~] Aparte "Bundel"-sectie (aanvraag / offerte / gewonnen / verloren) — **bewust beperkt gehouden** (zie "Openstaand"). De bundel-vs-los verdeling bestaat al voor **gewonnen** deals (in Omzet & bundel). Voor open/verloren deals is de bundel-classificatie onbetrouwbaar omdat producten daar vaak nog niet ingevuld zijn; een volledige trechter zou misleidend zijn.
 
 ## Sprint 3 — Nieuwe onderdelen (Groep B, deel 2)
 _(status: gepland)_
@@ -42,4 +42,9 @@ _(status: gepland)_
 ---
 
 ## Openstaand / bewust laten staan (twijfel of externe input nodig)
-_(wordt tijdens de sessie aangevuld)_
+
+- **Volledige bundel-trechter (aanvraag → offerte → gewonnen → verloren):** bundel-vs-los kan enkel betrouwbaar bepaald worden voor gewonnen deals (producten dan ingevuld). Voor open/verloren deals ontbreken producten vaak → laten staan tot dit met Mehdi besproken is. Bundel-vs-los voor gewonnen deals staat al in "Omzet & bundel".
+- **Targets/streefwaarden op KPI's:** mechanisme kan gebouwd worden, maar de waarden moeten door jullie ingevuld worden. Wacht op input (Sprint 3).
+- **Kosten per lead/kanaal:** vereist de exacte advertentiekosten (Google Ads / website). Wacht op de Google Ads-koppeling die jij aan jullie kant voorbereidt.
+- **Geslacht, projecttype-detail, meeting-metrics:** placeholders staan klaar; vullen zich zodra de Pipedrive-velden bestaan/ingevuld zijn.
+- **Exacte definities van enkele verliesredenen:** in het Woordenboek gemarkeerd met "controleren".

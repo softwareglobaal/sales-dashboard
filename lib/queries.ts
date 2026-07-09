@@ -682,7 +682,7 @@ export function getEngineeringByMonth(
 
 // ---------- Engineering: aanvragen / gewonnen / verloren per periode ----------
 export type ActivityGranularity = "month" | "week";
-export type DealMini = { id: number; title: string; client: string; value: number; url: string };
+export type DealMini = { id: number; title: string; client: string; value: number; url: string; addDate: string };
 export type ActivityRow = {
   bucket: string;
   label: string;
@@ -764,6 +764,7 @@ export function getEngineeringActivity(period: Period, granularity: ActivityGran
       client: raw.org_name || raw.person_name || "(onbekend)",
       value: Math.round(r.value || 0),
       url: domain ? `https://${domain}.pipedrive.com/deal/${r.id}` : "",
+      addDate: r.add_time ? String(r.add_time).slice(0, 10) : "",
     };
     const req = bucket(r.add_time);
     if (req) {
@@ -1219,6 +1220,41 @@ export function getEngineeringOfferteStats(period: Period, themeKey?: string, sc
     avgDaysToOfferte: timingSample ? Math.round(daysSum / timingSample) : null,
     timingSample,
     exact: timingSample > 0,
+  };
+}
+
+// ---------- Engineering: timing van aanvragen (welke dag / welk uur) ----------
+export type EngTiming = { byWeekday: { label: string; count: number }[]; byHour: { label: string; count: number }[]; total: number };
+export function getEngineeringTiming(period: Period, themeKey?: string, scope: EngScope = "all"): EngTiming {
+  const db = getDb();
+  const { from, to } = periodBounds(period);
+  const h = engHidden("tm_h");
+  const th = engTheme(themeKey, "deals", "tmt");
+  const rows = db
+    .prepare(`SELECT add_time FROM deals WHERE ${engLeadScope(scope)} AND add_time>=@from AND add_time<@to ${h.clause} ${th.clause}`)
+    .all({ from, to, ...h.named, ...th.named }) as any[];
+
+  const wk = new Array(7).fill(0); // Ma..Zo
+  const hr = new Array(24).fill(0);
+  const wkIdx: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  const fmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", weekday: "short", hour: "2-digit", hour12: false });
+  let total = 0;
+  for (const r of rows) {
+    if (!r.add_time) continue;
+    const d = new Date(String(r.add_time).replace(" ", "T") + "Z");
+    if (isNaN(d.getTime())) continue;
+    const parts = fmt.formatToParts(d);
+    const w = parts.find((p) => p.type === "weekday")?.value || "";
+    const hStr = parts.find((p) => p.type === "hour")?.value || "0";
+    if (!(w in wkIdx)) continue;
+    wk[wkIdx[w]]++;
+    hr[Number(hStr) % 24]++;
+    total++;
+  }
+  return {
+    byWeekday: ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map((l, i) => ({ label: l, count: wk[i] })),
+    byHour: Array.from({ length: 24 }, (_, i) => ({ label: String(i).padStart(2, "0"), count: hr[i] })),
+    total,
   };
 }
 

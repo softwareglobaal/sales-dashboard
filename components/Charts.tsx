@@ -137,7 +137,7 @@ export function EngineeringTrendChart({
 }
 
 // Eén kolomreeks in Pipedrive Insights-stijl
-type DealMini = { id: number; title: string; client: string; value: number; url: string };
+type DealMini = { id: number; title: string; client: string; value: number; url: string; addDate: string };
 
 function InsightBars({
   data,
@@ -218,6 +218,7 @@ function InsightBars({
                         <span className="text-zinc-800">{d.title}</span>
                         <span className="ml-1.5 text-zinc-400">· {d.client}</span>
                       </td>
+                      <td className="whitespace-nowrap py-1.5 pr-3 text-right tabular-nums text-zinc-400" title="Aanvraagdatum">{d.addDate || "—"}</td>
                       <td className="whitespace-nowrap py-1.5 pr-1 text-right tabular-nums text-zinc-500">{d.value > 0 ? euro(d.value) : "—"}</td>
                       <td className="py-1.5 pr-2 text-right">
                         {d.url && (
@@ -239,6 +240,11 @@ function InsightBars({
 
 export function RequestsBarChart({ data }: { data: any[] }) {
   return <InsightBars data={data} dataKey="requests" name="Aanvragen" color="#3b82f6" dealsKey="reqDeals" />;
+}
+
+// Eenvoudige balken (bv. per weekdag / per uur) — dataKey "count", geen klik-detail.
+export function TimingBars({ data, name, color = "#6366f1" }: { data: any[]; name: string; color?: string }) {
+  return <InsightBars data={data} dataKey="count" name={name} color={color} />;
 }
 
 export function LostBarChart({ data }: { data: any[] }) {

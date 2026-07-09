@@ -12,6 +12,7 @@ import {
   getEngineeringOfferteStats,
   getEngineeringRegion,
   getEngineeringTknSplit,
+  getEngineeringTiming,
   type ActivityGranularity,
   hasData,
   periodRange,
@@ -23,7 +24,7 @@ import {
   type EngScope,
 } from "@/lib/queries";
 import { euro, num } from "@/lib/format";
-import { EngineeringTrendChart, ChannelChart, RequestsBarChart, WonBarChart, LostBarChart } from "@/components/Charts";
+import { EngineeringTrendChart, ChannelChart, RequestsBarChart, WonBarChart, LostBarChart, TimingBars } from "@/components/Charts";
 import { ServiceTable } from "@/components/ServiceTable";
 import { ChannelTable } from "@/components/ChannelTable";
 import { LostReasonsTable } from "@/components/LostReasonsTable";
@@ -80,6 +81,7 @@ export default async function EngineeringPage({
   const projectType = getEngineeringProjectType(period, themeKey, scope);
   const offerte = getEngineeringOfferteStats(period, themeKey, scope);
   const region = getEngineeringRegion(period, themeKey, scope);
+  const timing = getEngineeringTiming(period, themeKey, scope);
   const regionVal = (r: { won: number; open: number; lost: number; total: number }) =>
     regionStatus === "all" ? r.total : r[regionStatus];
   const regionRowsSorted = [...region.rows].sort((a, b) => regionVal(b) - regionVal(a));
@@ -189,6 +191,7 @@ export default async function EngineeringPage({
             ...(scope === "tkn" ? [{ id: "tkn-split", label: "Tekenwerk vs Stab." }] : []),
             { id: "analyse", label: "Analyse & advies" },
             { id: "overtijd", label: "Over tijd" },
+            { id: "timing", label: "Dag & uur" },
             { id: "regio", label: "Regio" },
             { id: "kanalen", label: "Kanalen" },
             { id: "verlies", label: "Verlies" },
@@ -237,6 +240,13 @@ export default async function EngineeringPage({
             {offerte.leadCount > 0 && (
               <span className="text-zinc-400"> · {Math.round((offerte.offerteCount / offerte.leadCount) * 100)}% van de aanvragen</span>
             )}
+          </span>
+          <span className="text-zinc-600">
+            Conversie:{" "}
+            <strong className="text-zinc-900">{kpis.requests > 0 ? `${Math.round((kpis.wonCount / kpis.requests) * 100)}%` : "—"}</strong>
+            <span className="ml-1 text-xs text-zinc-400">
+              (gewonnen/aanvragen deze periode — kies een langere periode voor een stabieler cijfer)
+            </span>
           </span>
           <span className="text-zinc-600">
             Gem. aanvraag → offerte:{" "}
@@ -386,6 +396,31 @@ export default async function EngineeringPage({
             <LostBarChart data={activity} />
           </Card>
         </div>
+      </section>
+
+      {/* Wanneer komen aanvragen binnen (dag / uur) */}
+      <section id="timing" className="mb-8 scroll-mt-40">
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-zinc-900">Wanneer komen aanvragen binnen?</h2>
+          <p className="text-xs text-zinc-500">
+            Op basis van de aanmaakdatum/-tijd van de aanvraag (Belgische tijd). Handig om te weten wanneer opvolging het
+            meest nodig is. {timing.total > 0 ? `${num(timing.total)} aanvragen in deze periode.` : ""}
+          </p>
+        </div>
+        {timing.total === 0 ? (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-400 shadow-sm">
+            Geen aanvragen in deze periode.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card title="Per weekdag">
+              <TimingBars data={timing.byWeekday} name="Aanvragen" color="#6366f1" />
+            </Card>
+            <Card title="Per uur van de dag">
+              <TimingBars data={timing.byHour} name="Aanvragen" color="#0891b2" />
+            </Card>
+          </div>
+        )}
       </section>
 
       {/* Regio — projectlocaties op de kaart */}

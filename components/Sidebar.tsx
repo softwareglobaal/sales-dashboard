@@ -23,6 +23,7 @@ const AFDELINGEN: Item[] = [
 const MARKETING: Item[] = [{ href: "/seo-sea", label: "SEO / SEA", icon: "◎", soon: true }];
 const TEAM: Item[] = [
   { href: "/sales-team", label: "Sales team", icon: "◍" },
+  { href: "/woordenboek", label: "Woordenboek", icon: "≣" },
   { href: "/applicaties", label: "Applicaties", icon: "⊞" },
 ];
 
