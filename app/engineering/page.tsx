@@ -175,6 +175,9 @@ export default async function EngineeringPage({
           <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-zinc-600">
             Weergave: <b className="text-zinc-800">{granularity === "week" ? "Per week" : "Per maand"}</b>
           </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-2.5 py-1 font-medium text-zinc-600">
+            Alle bedragen <b className="text-zinc-800">excl. btw</b>
+          </span>
           <span className="inline-flex items-center rounded-full px-2.5 py-1 text-zinc-400">
             Leads &amp; open op aanmaakdatum · gewonnen op win-datum · omzet op product-prijs
           </span>
@@ -555,12 +558,12 @@ export default async function EngineeringPage({
       {/* Trend + verdeling + bundel/los */}
       <section id="omzet" className="mb-8 grid scroll-mt-40 grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card title="Aanvragen vs. direct gewonnen omzet (zelfde maand)">
+          <Card title="Aanvragen vs. omzet die dezelfde maand meteen werd gewonnen">
             <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-800">
-              Eerlijke vergelijking: de balken tonen <strong>leads die in die maand binnenkwamen</strong>; de lijn
-              toont <strong>omzet uit deals die in diezelfde maand zijn aangemaakt én gewonnen</strong> (meteen
-              gewonnen). Zo zie je hoeveel van de maand-instroom je direct binnenhaalt (deals die later winnen,
-              tellen mee in hún aanvraagmaand).
+              <b>Wat toont dit?</b> De balken = <strong>alle aanvragen (leads) die in die maand binnenkwamen</strong>.
+              De lijn = enkel de <strong>omzet uit deals die in diezelfde maand zijn binnengekomen én meteen gewonnen</strong>.
+              Deals die pas later winnen, tellen niet in de lijn maar wél in hun aanvraagmaand-balk. Dit is dus géén
+              totale maandomzet — voor de volledige gewonnen omzet: zie de KPI bovenaan of &ldquo;Over tijd → Gewonnen&rdquo;.
             </div>
             <EngineeringTrendChart data={trend} />
           </Card>
@@ -635,7 +638,10 @@ export default async function EngineeringPage({
               </div>
               <p className="mb-2 text-xs text-zinc-400">
                 Klik op een kolomtitel om te sorteren. &ldquo;Aanvragen&rdquo; hier = aantal keer dat de dienst op
-                een deal is aangevraagd (productregels), niet het aantal leads.
+                een deal is aangevraagd (productregels), niet het aantal leads.{" "}
+                <b className="text-zinc-500">Let op:</b> &ldquo;verkocht&rdquo; kan hoger zijn dan &ldquo;aanvragen&rdquo; in
+                dezelfde periode — een dienst die vorige maand werd aangevraagd, kan deze maand verkocht zijn (aanvragen tellen
+                op aanvraagdatum, verkocht op win-datum).
               </p>
               <ServiceTable rows={services} />
             </>

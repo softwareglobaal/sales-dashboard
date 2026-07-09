@@ -1,4 +1,5 @@
 // Regio-afleiding uit projectadressen (postcode -> provincie) + parser voor deal-titels.
+import { CITY_TO_POSTAL } from "./cityCoords";
 
 export const BE_PROVINCE_NAMES = [
   "Antwerpen",
@@ -61,5 +62,15 @@ export function parseProjectLocation(
     const city = m[3].trim().replace(/\s+/g, " ");
     best = { province: prov, postcode: m[2], city };
   }
-  return best;
+  if (best) return best;
+
+  // 3) Terugval: geen postcode gevonden, maar wél een gekende gemeente na een komma
+  //    (bv. "Grote Molenweg 106, Herent, Belgium"). Conservatief: enkel komma-segmenten.
+  const segs = title.split(",").map((s) => s.trim().replace(/\s+/g, " "));
+  for (const seg of segs) {
+    const key = seg.toLowerCase().replace(/\b(belgium|belgië|belgie)\b/g, "").trim();
+    const hit = key ? CITY_TO_POSTAL[key] : undefined;
+    if (hit) return { province: hit.province, postcode: hit.postal, city: seg };
+  }
+  return null;
 }

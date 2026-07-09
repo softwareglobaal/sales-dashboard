@@ -24,7 +24,9 @@ export function ChannelTable({ rows, total }: { rows: Row[]; total: number }) {
             <th className="py-2 pr-4 text-right font-medium">Gewonnen</th>
             <th className="py-2 pr-4 text-right font-medium">Open</th>
             <th className="py-2 pr-4 text-right font-medium">Verloren</th>
-            <th className="py-2 pr-4 text-right font-medium">Aandeel</th>
+            <th className="py-2 pr-4 text-right font-medium" title="Aandeel van dit kanaal in alle binnengekomen aanvragen">
+              Aandeel v/d aanvragen
+            </th>
           </tr>
         </thead>
         <tbody>

@@ -131,6 +131,30 @@ function building(idx: number, color: string) {
   }
 }
 
+// Referentielabels voor oriëntatie: provincies (groot/vaag) + grote steden (klein).
+const PROVINCE_LABELS: [string, number, number][] = [
+  ["ANTWERPEN", 51.18, 4.78],
+  ["OOST-VL.", 51.02, 3.78],
+  ["WEST-VL.", 51.02, 3.05],
+  ["VLAAMS-BRABANT", 50.83, 4.78],
+  ["LIMBURG", 50.98, 5.42],
+];
+const CITY_LABELS: [string, number, number][] = [
+  ["Antwerpen", 51.22, 4.4],
+  ["Gent", 51.05, 3.72],
+  ["Brugge", 51.21, 3.22],
+  ["Leuven", 50.88, 4.7],
+  ["Hasselt", 50.93, 5.34],
+  ["Genk", 50.97, 5.5],
+  ["Kortrijk", 50.83, 3.27],
+  ["Mechelen", 51.03, 4.48],
+  ["Sint-Niklaas", 51.16, 4.14],
+  ["Turnhout", 51.32, 4.95],
+  ["Oostende", 51.23, 2.92],
+  ["Aalst", 50.94, 4.04],
+  ["Brussel", 50.85, 4.35],
+];
+
 const euro = (n: number) => new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 const [VBW, VBH] = BE_VIEWBOX.split(" ").slice(2).map(Number);
 const K_MIN = 1;
@@ -154,7 +178,7 @@ export function BelgiumMap({
   firmaColors?: Record<string, string>;
 }) {
   const [sel, setSel] = useState<Sel>(null);
-  const [show, setShow] = useState({ projects: true, b2b: false, offices: true });
+  const [show, setShow] = useState({ projects: true, b2b: false, offices: true, labels: true });
   const pointColor = (p: RegionPoint) => (colorBy === "firma" ? firmaColors?.[p.firma || ""] ?? "#64748b" : STATUS[p.status].color);
   const [t, setT] = useState({ k: 1, x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -322,6 +346,71 @@ export function BelgiumMap({
                 </g>
               );
             })}
+
+          {/* onze-kantoor-namen (labels bij de gebouwen) */}
+          {show.offices &&
+            ourOffices.map((o, i) => {
+              const [x, y] = projectLatLng(o.lat, o.lng);
+              return (
+                <text
+                  key={"ol" + i}
+                  x={x + 7 / t.k}
+                  y={y + 3 / t.k}
+                  fontSize={9 / t.k}
+                  fontWeight={600}
+                  fill="#1e293b"
+                  stroke="#f6f8fb"
+                  strokeWidth={2.5}
+                  paintOrder="stroke"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {o.label}
+                </text>
+              );
+            })}
+
+          {/* referentielabels: provincies + grote steden */}
+          {show.labels && (
+            <g style={{ pointerEvents: "none" }}>
+              {PROVINCE_LABELS.map(([name, lat, lng]) => {
+                const [x, y] = projectLatLng(lat, lng);
+                return (
+                  <text
+                    key={"pl" + name}
+                    x={x}
+                    y={y}
+                    fontSize={13 / t.k}
+                    fontWeight={700}
+                    letterSpacing={1 / t.k}
+                    textAnchor="middle"
+                    fill="#94a3b8"
+                    fillOpacity={0.75}
+                  >
+                    {name}
+                  </text>
+                );
+              })}
+              {CITY_LABELS.map(([name, lat, lng]) => {
+                const [x, y] = projectLatLng(lat, lng);
+                return (
+                  <text
+                    key={"cl" + name}
+                    x={x}
+                    y={y}
+                    fontSize={8.5 / t.k}
+                    fontWeight={600}
+                    textAnchor="middle"
+                    fill="#475569"
+                    stroke="#f6f8fb"
+                    strokeWidth={2.2 / t.k}
+                    paintOrder="stroke"
+                  >
+                    {name}
+                  </text>
+                );
+              })}
+            </g>
+          )}
         </g>
       </svg>
 
@@ -330,6 +419,13 @@ export function BelgiumMap({
         <Chip k="projects" color={colorBy === "firma" ? "#64748b" : STATUS.won.color} label="Projecten" shape="dot" />
         <Chip k="b2b" color={B2B_COLOR} label={`B2B-kantoren (${b2bOffices.length})`} shape="diamond" />
         <Chip k="offices" color="#334155" label="Onze kantoren" shape="building" />
+        <button
+          onClick={() => toggle("labels")}
+          className={"flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition " + (show.labels ? "text-zinc-700" : "text-zinc-400 opacity-60")}
+        >
+          <span className="grid h-3 w-3 place-items-center text-[9px] text-zinc-500">Aa</span>
+          Namen
+        </button>
         {colorBy === "firma" && firmaColors && show.projects && (
           <div className="mt-0.5 border-t border-zinc-100 px-2 pt-1">
             <div className="mb-0.5 text-[9.5px] font-medium uppercase tracking-wide text-zinc-400">Firma</div>
