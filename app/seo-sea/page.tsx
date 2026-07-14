@@ -75,15 +75,35 @@ export default async function SeoSeaPage({
     </div>
   );
 
-  // 1) Niet geconfigureerd (geen credentials)
+  // 1) Niet geconfigureerd (geen credentials) — toon per variabele of hij gevonden is,
+  // zodat je meteen ziet wat er mist (zonder de waarde te tonen).
   if (!adsConfigured()) {
+    const checks: { name: string; ok: boolean }[] = [
+      { name: "GOOGLE_ADS_CLIENT_ID", ok: Boolean(process.env.GOOGLE_ADS_CLIENT_ID) },
+      { name: "GOOGLE_ADS_CLIENT_SECRET", ok: Boolean(process.env.GOOGLE_ADS_CLIENT_SECRET) },
+      { name: "GOOGLE_ADS_REFRESH_TOKEN", ok: Boolean(process.env.GOOGLE_ADS_REFRESH_TOKEN) },
+      { name: "GOOGLE_ADS_DEVELOPER_TOKEN", ok: Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN) },
+    ];
+    const missing = checks.filter((c) => !c.ok);
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
         <Header />
-        <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
+        <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
           <h2 className="text-lg font-semibold text-zinc-800">Google Ads nog niet gekoppeld</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
-            Zet de <code className="rounded bg-zinc-100 px-1">GOOGLE_ADS_*</code>-variabelen in <code className="rounded bg-zinc-100 px-1">.env.local</code> (of op de VM) en klik daarna op &ldquo;Data verversen&rdquo;.
+            De app ziet {missing.length === checks.length ? "geen enkele" : `${missing.length} van de`}{" "}
+            <code className="rounded bg-zinc-100 px-1">GOOGLE_ADS_*</code>-variabele(n) nog niet. Zet ze in het env-bestand op de VM (zelfde plek als de <code className="rounded bg-zinc-100 px-1">PIPEDRIVE_TOKEN_*</code>) en <strong>herstart de app</strong>.
+          </p>
+          <ul className="mx-auto mt-4 inline-block text-left text-sm">
+            {checks.map((c) => (
+              <li key={c.name} className="flex items-center gap-2 py-0.5 font-mono text-[12.5px]">
+                <span className={c.ok ? "text-emerald-600" : "text-red-500"}>{c.ok ? "✓" : "✗"}</span>
+                <span className={c.ok ? "text-zinc-600" : "text-red-600"}>{c.name}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-zinc-400">
+            (De waarden worden nooit getoond — enkel of ze gevonden zijn. Herstart is nodig omdat variabelen bij het opstarten van het proces worden geladen.)
           </p>
         </div>
       </main>
