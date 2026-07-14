@@ -20,7 +20,7 @@ const AFDELINGEN: Item[] = [
   { href: "/meetstaten", label: "Meetstaten", dot: "#3a4459", soon: true },
   { href: "/h-architects", label: "H-Architects", dot: "#3a4459", soon: true },
 ];
-const MARKETING: Item[] = [{ href: "/seo-sea", label: "SEO / SEA", icon: "◎", soon: true }];
+const MARKETING: Item[] = [{ href: "/seo-sea", label: "SEO / SEA", icon: "◎" }];
 const TEAM: Item[] = [
   { href: "/sales-team", label: "Sales team", icon: "◍" },
   { href: "/woordenboek", label: "Woordenboek", icon: "≣" },

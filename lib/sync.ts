@@ -13,6 +13,7 @@ import {
 import { POSTCODE_COORDS } from "./postcodeCoords";
 import { postcodeToProvince } from "./regio";
 import { isOfferteStage } from "./engineeringConfig";
+import { syncGoogleAds } from "./adsSync";
 
 // haal een BE-postcode uit een adres-string (voor accounts zonder los postcode-veld)
 function postcodeFromAddress(addr: string | null): string | null {
@@ -191,6 +192,13 @@ export async function syncAll() {
   const results = [];
   for (const account of ACCOUNTS) {
     results.push(await syncAccount(account));
+  }
+  // Google Ads meesyncen als side-effect (mag de Pipedrive-sync nooit blokkeren,
+  // en de terugvorm blijft de bestaande array zodat de SyncButton blijft werken).
+  try {
+    await syncGoogleAds();
+  } catch {
+    // negeren — Google Ads is optioneel
   }
   return results;
 }
