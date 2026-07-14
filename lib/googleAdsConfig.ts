@@ -5,6 +5,7 @@ export type AdService = {
   key: string;
   label: string;
   themeKey: string | null;
+  pipelineMatch: string[];
   adMatch: string[];
   urlMatch: string[];
 };
@@ -15,6 +16,7 @@ export const AD_CATALOG: AdService[] = ((cfg.catalog as any[]) || []).map((s) =>
   key: s.key,
   label: s.label,
   themeKey: s.themeKey ?? null,
+  pipelineMatch: (s.pipelineMatch || []).map((m: string) => m.toLowerCase()),
   adMatch: (s.adMatch || []).map((m: string) => m.toLowerCase()),
   urlMatch: (s.urlMatch || []).map((m: string) => m.toLowerCase()),
 }));

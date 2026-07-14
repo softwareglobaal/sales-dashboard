@@ -1,16 +1,16 @@
 {
-  "_uitleg": "Configuratie voor de SEO/SEA-tab (Google Ads). Pas dit bestand aan zonder code te wijzigen. 'accounts' = welke Pipedrive-account gekoppeld is aan welk Google Ads customer-id. 'catalog' = alle diensten die de firma aanbiedt (voor de gap-analyse: welke diensten hebben géén ads). Per dienst: adMatch/urlMatch = woorden om een campagne aan de dienst te koppelen (niet hoofdletter-gevoelig, gedeeltelijke match op campagnenaam resp. landingspagina); themeKey = koppeling naar de Pipedrive-leads (verwijst naar een thema in themes.json, matcht op productnaam).",
+  "_uitleg": "Configuratie voor de SEO/SEA-tab (Google Ads). Pas dit bestand aan zonder code te wijzigen. 'accounts' = welke Pipedrive-account gekoppeld is aan welk Google Ads customer-id. 'catalog' = alle diensten die de firma aanbiedt (voor de gap-analyse: welke diensten hebben géén ads). Per dienst: adMatch/urlMatch = woorden om een campagne aan de dienst te koppelen (niet hoofdletter-gevoelig, gedeeltelijke match op campagnenaam resp. landingspagina). Voor de lead-correlatie (welke UNABO-aanvragen horen bij de dienst): 'pipelineMatch' heeft VOORRANG (gedeeltelijke match op de Pipedrive pipeline-naam) — betrouwbaarder dan producten; is die leeg/afwezig, dan valt hij terug op 'themeKey' (thema in themes.json, matcht op productnaam).",
   "accounts": [
     { "pipedriveKey": "unabo", "customerId": "1907613111", "label": "UNABO" }
   ],
   "catalog": [
-    { "key": "epb", "label": "EPB (UNABO Energy)", "themeKey": "epb", "adMatch": ["epb", "verslaggever"], "urlMatch": ["promo-epb", "epb"] },
-    { "key": "engineering", "label": "Engineering / Stabiliteit", "themeKey": "stabiliteit", "adMatch": ["stabilit", "ingenieur", "engineering"], "urlMatch": ["stabiliteit", "ingenieur"] },
-    { "key": "scanning", "label": "3D-Scanning", "themeKey": "scanning", "adMatch": ["scan", "3d"], "urlMatch": ["scan"] },
-    { "key": "ventilatie", "label": "Ventilatie", "themeKey": "ventilatie", "adMatch": ["ventilat"], "urlMatch": ["ventilat"] },
-    { "key": "veiligheid", "label": "Veiligheid / Coördinatie", "themeKey": "veiligheid", "adMatch": ["veiligheid", "coordinat", "coördinat", "pid"], "urlMatch": ["veiligheid", "coordinat"] },
-    { "key": "epc", "label": "EPC", "themeKey": "epc", "adMatch": ["epc"], "urlMatch": ["epc"] },
-    { "key": "plaatsbeschrijving", "label": "Plaatsbeschrijving", "themeKey": "plaatsbeschrijving", "adMatch": ["plaatsbeschr"], "urlMatch": ["plaatsbeschr"] },
-    { "key": "meetstaten", "label": "Meetstaten", "themeKey": "meetstaat", "adMatch": ["meetstat"], "urlMatch": ["meetstat"] }
+    { "key": "epb", "label": "EPB (UNABO Energy)", "themeKey": "epb", "pipelineMatch": ["epb"], "adMatch": ["epb", "verslaggever"], "urlMatch": ["promo-epb", "epb"] },
+    { "key": "engineering", "label": "Engineering / Stabiliteit", "themeKey": "stabiliteit", "pipelineMatch": ["engineering"], "adMatch": ["stabilit", "ingenieur", "engineering"], "urlMatch": ["stabiliteit", "ingenieur"] },
+    { "key": "scanning", "label": "3D-Scanning", "themeKey": "scanning", "pipelineMatch": [], "adMatch": ["scan", "3d"], "urlMatch": ["scan"] },
+    { "key": "ventilatie", "label": "Ventilatie", "themeKey": "ventilatie", "pipelineMatch": [], "adMatch": ["ventilat"], "urlMatch": ["ventilat"] },
+    { "key": "veiligheid", "label": "Veiligheid / Coördinatie", "themeKey": "veiligheid", "pipelineMatch": [], "adMatch": ["veiligheid", "coordinat", "coördinat", "pid"], "urlMatch": ["veiligheid", "coordinat"] },
+    { "key": "epc", "label": "EPC", "themeKey": "epc", "pipelineMatch": [], "adMatch": ["epc"], "urlMatch": ["epc"] },
+    { "key": "plaatsbeschrijving", "label": "Plaatsbeschrijving", "themeKey": "plaatsbeschrijving", "pipelineMatch": [], "adMatch": ["plaatsbeschr"], "urlMatch": ["plaatsbeschr"] },
+    { "key": "meetstaten", "label": "Meetstaten", "themeKey": "meetstaat", "pipelineMatch": [], "adMatch": ["meetstat"], "urlMatch": ["meetstat"] }
   ]
 }

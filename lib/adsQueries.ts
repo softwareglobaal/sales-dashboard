@@ -1,7 +1,7 @@
 import { getDb } from "./db";
 import { periodRange, type Period } from "./queries";
 import { getTheme } from "./themes";
-import { AD_CATALOG, ADS_ACCOUNTS } from "./googleAdsConfig";
+import { AD_CATALOG, ADS_ACCOUNTS, type AdService } from "./googleAdsConfig";
 
 // Periode-grenzen als concrete datums (JJJJ-MM-DD). null -> heel ver weg.
 function bounds(period: Period): { from: string; to: string } {
@@ -136,30 +136,37 @@ export function getAdsCampaigns(period: Period, accountKey = "unabo"): AdCampaig
   });
 }
 
-// Telt UNABO-leads/gewonnen voor een dienst via thema-match op de productnamen.
-// Gebruikt dezelfde logica als de rest van het dashboard (themes.json).
-function pipedriveLeadsForTheme(
-  themeKey: string | null,
-  period: Period,
-  accountKey: string
-): { leads: number; won: number } {
-  if (!themeKey) return { leads: 0, won: 0 };
-  const theme = getTheme(themeKey);
-  if (!theme || !theme.match.length) return { leads: 0, won: 0 };
+// Telt UNABO-leads/gewonnen voor een dienst. 'pipelineMatch' heeft voorrang
+// (gedeeltelijke match op de Pipedrive pipeline-naam — betrouwbaarder dan
+// producten); bij afwezigheid valt hij terug op thema-match op de productnamen.
+function pipedriveLeadsForService(service: AdService, period: Period, accountKey: string): { leads: number; won: number } {
   const db = getDb();
   const { from, to } = bounds(period);
-  const likes = theme.match.map(() => "lower(dp.name) LIKE ?").join(" OR ");
-  const likeParams = theme.match.map((m) => `%${m.toLowerCase()}%`);
-  const exists = `d.id IN (SELECT dp.deal_id FROM deal_products dp WHERE dp.account_key = d.account_key AND (${likes}))`;
+
+  // condition + params bouwen op basis van de gekozen matchmethode
+  let cond: string;
+  let condParams: string[];
+  if (service.pipelineMatch.length > 0) {
+    const likes = service.pipelineMatch.map(() => "lower(d.pipeline_name) LIKE ?").join(" OR ");
+    cond = `(${likes})`;
+    condParams = service.pipelineMatch.map((m) => `%${m}%`);
+  } else {
+    const theme = service.themeKey ? getTheme(service.themeKey) : undefined;
+    if (!theme || !theme.match.length) return { leads: 0, won: 0 };
+    const likes = theme.match.map(() => "lower(dp.name) LIKE ?").join(" OR ");
+    cond = `d.id IN (SELECT dp.deal_id FROM deal_products dp WHERE dp.account_key = d.account_key AND (${likes}))`;
+    condParams = theme.match.map((m) => `%${m.toLowerCase()}%`);
+  }
+
   const row = db
     .prepare(
       `SELECT
          SUM(CASE WHEN d.add_time >= ? AND d.add_time < ? THEN 1 ELSE 0 END) AS leads,
          SUM(CASE WHEN d.status='won' AND d.won_time >= ? AND d.won_time < ? THEN 1 ELSE 0 END) AS won
        FROM deals d
-       WHERE d.account_key = ? AND ${exists}`
+       WHERE d.account_key = ? AND ${cond}`
     )
-    .get(from, to, from, to, accountKey, ...likeParams) as any;
+    .get(from, to, from, to, accountKey, ...condParams) as any;
   return { leads: row?.leads || 0, won: row?.won || 0 };
 }
 
@@ -202,7 +209,7 @@ export function getServiceCoverage(period: Period, accountKey = "unabo"): Servic
       .get({ acc: accountKey, svc: s.key, from, to }) as any;
 
     const spend = (metrics.cost || 0) / 1e6;
-    const { leads, won } = pipedriveLeadsForTheme(s.themeKey, period, accountKey);
+    const { leads, won } = pipedriveLeadsForService(s, period, accountKey);
     return {
       key: s.key,
       label: s.label,
