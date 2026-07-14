@@ -101,6 +101,36 @@ function initSchema(db: Database.Database) {
       status      TEXT,
       message     TEXT
     );
+
+    -- Google Ads: campagne-dimensies (per Pipedrive-account gekoppeld)
+    CREATE TABLE IF NOT EXISTS ad_campaigns (
+      account_key   TEXT NOT NULL,   -- gekoppelde Pipedrive-account (bv. 'unabo')
+      customer_id   TEXT NOT NULL,   -- Google Ads customer-id
+      campaign_id   TEXT NOT NULL,
+      name          TEXT,
+      status        TEXT,            -- ENABLED / PAUSED / REMOVED
+      channel_type  TEXT,            -- SEARCH / PERFORMANCE_MAX / ...
+      final_url     TEXT,            -- representatieve landingspagina
+      service_key   TEXT,            -- gekoppelde dienst (config/ads.json), of NULL
+      PRIMARY KEY (account_key, campaign_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_adc_account ON ad_campaigns(account_key);
+    CREATE INDEX IF NOT EXISTS idx_adc_service ON ad_campaigns(service_key);
+
+    -- Google Ads: per-campagne, per-dag prestatiecijfers
+    CREATE TABLE IF NOT EXISTS ad_metrics_daily (
+      account_key TEXT NOT NULL,
+      campaign_id TEXT NOT NULL,
+      date        TEXT NOT NULL,     -- JJJJ-MM-DD
+      cost_micros INTEGER,           -- kosten in micro's (÷ 1.000.000 = euro)
+      clicks      INTEGER,
+      impressions INTEGER,
+      conversions REAL,
+      conv_value  REAL,
+      PRIMARY KEY (account_key, campaign_id, date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_adm_account ON ad_metrics_daily(account_key);
+    CREATE INDEX IF NOT EXISTS idx_adm_date    ON ad_metrics_daily(date);
   `);
 
   // migratie: voeg ontbrekende kolommen toe aan bestaande databases
