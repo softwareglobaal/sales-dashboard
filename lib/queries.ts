@@ -7,7 +7,7 @@ import { normalizeLossReason } from "./lossReasons";
 import { parseProjectLocation } from "./regio";
 import { POSTCODE_COORDS } from "./postcodeCoords";
 
-const nameByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.name]));
+export const nameByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.name]));
 const colorByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.color]));
 
 // ---------- Periode ----------
@@ -21,7 +21,9 @@ export const PERIOD_OPTIONS: { key: Period; label: string }[] = [
   { key: "all", label: "Alle tijd" },
 ];
 
-const MONTH_NAMES = [
+// Geëxporteerd zodat afdelings-querymodules (bv. lib/energyQueries.ts) dezelfde
+// maandnamen/tijd-helpers hergebruiken zonder Engineering-logica te dupliceren.
+export const MONTH_NAMES = [
   "januari", "februari", "maart", "april", "mei", "juni",
   "juli", "augustus", "september", "oktober", "november", "december",
 ];
@@ -45,14 +47,14 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function mondayOf(d: Date): Date {
+export function mondayOf(d: Date): Date {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const day = (x.getDay() + 6) % 7; // 0 = maandag
   x.setDate(x.getDate() - day);
   return x;
 }
 
-function isoWeek(d: Date): number {
+export function isoWeek(d: Date): number {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = (date.getUTCDay() + 6) % 7;
   date.setUTCDate(date.getUTCDate() - dayNum + 3); // donderdag van deze week
@@ -149,7 +151,7 @@ function baseFilter(period: Period): { clause: string; params: (string | number)
 }
 
 // Periode-grenzen als concrete datums (null -> heel ver weg) voor SQL-vergelijking.
-function periodBounds(period: Period): { from: string; to: string } {
+export function periodBounds(period: Period): { from: string; to: string } {
   const { from, to } = periodRange(period);
   return { from: from ?? "0000-01-01", to: to ?? "9999-12-31" };
 }
@@ -695,7 +697,7 @@ export type ActivityRow = {
   lostDeals: DealMini[]; // deals achter 'verloren'
 };
 
-function parseYmd(s: string): Date {
+export function parseYmd(s: string): Date {
   return new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
 }
 
@@ -871,7 +873,7 @@ export type EngLostReasons = {
   outside2026: boolean; // gekozen periode valt (deels) buiten 2026 -> dan tonen we niets
 };
 
-const domainByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.domain]));
+export const domainByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.domain]));
 
 export function getEngineeringLostReasons(period: Period, themeKey?: string, scope: EngScope = "all"): EngLostReasons {
   const db = getDb();

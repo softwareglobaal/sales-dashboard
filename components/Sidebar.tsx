@@ -13,7 +13,7 @@ const OVERZICHT: Item[] = [
 ];
 const AFDELINGEN: Item[] = [
   { href: "/engineering", label: "Engineering", dot: "#16a34a" },
-  { href: "/energy", label: "Energy", dot: "#3a4459", soon: true },
+  { href: "/energy", label: "Energy", dot: "#0891b2" },
   { href: "/3d-scanning", label: "3D Scanning", dot: "#3a4459", soon: true },
   { href: "/safety", label: "Safety", dot: "#3a4459", soon: true },
   { href: "/plaatsbeschrijving", label: "Plaatsbeschrijving", dot: "#3a4459", soon: true },
