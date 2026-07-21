@@ -13,11 +13,13 @@ voor SEO/SEA-advies.
 
 ## 2. Techniek & waar het staat
 
-- **Map:** `/Users/siyanopenclaw/claude code_siyan/pipedrive-dashboard`
 - **Stack:** Next.js 16 (React) + TypeScript + Tailwind CSS + Recharts (grafieken) + lokale SQLite-database (`better-sqlite3`).
-- **Starten:** in Terminal `npm run dev` in de projectmap → openen op **http://localhost:3000**.
-- **Data verversen:** knop "Data verversen" op de Algemeen-tab, of een sync-run via de API (`/api/sync`).
-- **Draait nu lokaal** op de Mac (nog niet online).
+- **Lokaal starten:** in Terminal `npm run dev` in de projectmap → openen op **http://localhost:3000**.
+- **Online (productie):** draait op een **VM** als docker-compose-service **`app-sales`** (map `~/appportal`).
+  Auto-deploy van de `main`-branch via `deploy.sh` + cron (elke 2 min: nieuwe commits → pull + herbouw container).
+- **Data verversen:** knop "Data verversen" (zijbalk / Algemeen-tab), of een sync-run via de API (`/api/sync`).
+  Dit ververst Pipedrive **en** Google Ads samen.
+- **Secrets:** lokaal in `.env.local`; op de VM in het env-bestand van de compose-stack (nooit in git).
 
 ## 3. Databronnen — 4 Pipedrive-accounts
 
@@ -32,10 +34,12 @@ voor SEO/SEA-advies.
 - HarmonieBOUW / Contrax Bv is bewust **niet** opgenomen (daar worden geen deals bijgehouden).
 - Alle bedragen in EUR.
 
-## 4. Structuur — twee dashboards (menu bovenaan)
+## 4. Structuur — dashboards (menu links)
 
 - **Algemeen** (`/`) — alle sales over de 4 accounts samen.
 - **Engineering** (`/engineering`) — enkel UNABO Engineering + TKN-Buro, met diepere analyse.
+- **SEO / SEA** (`/seo-sea`) — Google Ads-prestaties van UNABO + koppeling met de echte leads
+  (zie §11 en `docs/google-ads-koppeling.md`).
 - Opzet is voorbereid om later meer afdelings-dashboards toe te voegen (Energy, Safety, …).
 
 ---
@@ -122,6 +126,15 @@ Voorbeeld: een deal aangemaakt in mei maar gewonnen in juni telt bij **juni** al
 
 ---
 
+### SEO / SEA-tab (Google Ads)
+- **KPI's:** advertentiekosten, klikken (+ CTR & kost/klik), vertoningen, conversies (+ kost/conversie).
+- **Dekking & gap:** per dienst — draait er een ad, en welke diensten hebben er géén
+  (kandidaten voor een campagne). UNABO adverteert nu enkel **EPB (Energy)** en **Engineering (Stabiliteit)**.
+- **Rendement:** advertentiekosten & Google-conversies naast de **echte UNABO-leads** (Pipedrive),
+  met **kost per lead** per dienst. Enkel UNABO — TKN-Buro telt niet mee.
+- **Campagnes:** status, type, kosten, klikken, CTR, conversies + **klikbare landingspagina**.
+- Volledige technische documentatie: **`docs/google-ads-koppeling.md`**.
+
 ## 7. Belangrijke data-inzichten / aandachtspunten
 
 - **Open deals hebben vaak geen bedrag ingevuld** → "open waarde" oogt laag; de meeste waarde zit in gewonnen/verloren deals.
@@ -142,17 +155,23 @@ Doel: kunnen we het projecttype afleiden (eengezins vs. meergezins; nieuwbouw vs
 ## 9. Roadmap / openstaande fases
 
 1. ✅ **Pipedrive-dashboard** — gebouwd, verfijnd, gesplitst in Algemeen + Engineering, met diepe Engineering-analyse.
-2. ⏳ **Google Ads koppelen** — vereist een Google Ads developer-token (goedkeuring duurt dagen); interim via CSV.
-3. ⏳ **Online zetten + login** — zodat het overal bereikbaar is en je **toegang per dashboard** kan geven
-   (iemand ziet enkel bv. Engineering). Toegangscontrole heeft pas zin zodra het online staat.
-4. ⏳ **Claude-"brein" (SEO/SEA)** — advies op basis van de gecombineerde data.
+2. ✅ **Google Ads koppelen** — SEO/SEA-tab live met echte UNABO-campagnedata (developer-token,
+   OAuth-refresh-token, dekking/rendement/campagnes). Zie `docs/google-ads-koppeling.md`.
+   *Openstaand:* pipeline-matching valideren tegen echte pipelinenamen; H-Architects later koppelen.
+3. ✅ **Online + auto-deploy** — draait op een VM (docker-compose service `app-sales`), auto-deploy
+   van `main` via `deploy.sh` + cron. *Openstaand:* login/toegang-per-dashboard.
+4. ⏳ **Claude-"brein" (SEO/SEA-advies)** — advies op basis van de gecombineerde ads- + Pipedrive-data
+   (het AI-analysepaneel bestaat al voor Engineering; uitbreiden naar SEO/SEA).
 5. ⏳ **Projecttype-analyse** — zodra de velden uit §8 ingevuld worden.
 
 ## 10. Waar pas je wat aan (config, zonder diep in de code)
 
 - `config/engineering.json` — label→kanaal-mapping, genegeerde labels, genegeerde pipelines (Engineering).
+- `config/themes.json` — thema's (match-woorden op productnaam), o.a. gebruikt door de SEO/SEA lead-matching.
+- `config/ads.json` — Google Ads: account-koppeling, dienstencatalogus, campagne↔dienst en dienst↔lead-matching.
 - `lib/hiddenPipelines.ts` — verborgen/oude pipelines (Algemeen).
-- `.env.local` — de 4 API-tokens.
+- `.env.local` (lokaal) / env-bestand op de VM — de 4 Pipedrive-tokens, `ANTHROPIC_API_KEY` en de
+  5 `GOOGLE_ADS_*`-variabelen (zie `docs/google-ads-koppeling.md`).
 
 ---
 
