@@ -2,7 +2,12 @@
 // Auth: OAuth2 refresh-token -> access-token; developer-token in de header.
 // Alle geheimen komen uit .env(.local) — nooit in de code of in git.
 
-const API_VERSION = process.env.GOOGLE_ADS_API_VERSION || "v21";
+// Let op: Google trekt API-versies na ~1 jaar in. Een ingetrokken versie geeft
+// geen JSON maar een HTML-404, wat in de sync opdook als
+// "Unexpected token '<'". v21 is zo stilgevallen op 2026-08-12; sindsdien
+// liep de advertentie-sync dood terwijl de campagnes gewoon doordraaiden.
+// Bij een volgende sunset: hier ophogen (of GOOGLE_ADS_API_VERSION zetten).
+const API_VERSION = process.env.GOOGLE_ADS_API_VERSION || "v23";
 const BASE = `https://googleads.googleapis.com/${API_VERSION}`;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
