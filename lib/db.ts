@@ -131,6 +131,92 @@ function initSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_adm_account ON ad_metrics_daily(account_key);
     CREATE INDEX IF NOT EXISTS idx_adm_date    ON ad_metrics_daily(date);
+
+    -- ---------------------------------------------------------------
+    -- Concurrentiemonitor Energie (EPB / ventilatie)
+    -- ---------------------------------------------------------------
+
+    -- Erkende verslaggevers, bron: VEKA-register via energiesparen.be.
+    -- Persoonsgegevens uit een openbaar register: enkel intern gebruik.
+    CREATE TABLE IF NOT EXISTS verslaggevers (
+      ep_code     TEXT PRIMARY KEY,
+      naam        TEXT,
+      bedrijf     TEXT,
+      postcode    TEXT,
+      gemeente    TEXT,
+      provincie   TEXT,
+      telefoon    TEXT,
+      email       TEXT,
+      domein      TEXT,             -- afgeleid uit het e-mailadres, leeg bij gratis provider
+      bron_datum  TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_vsl_domein ON verslaggevers(domein);
+    CREATE INDEX IF NOT EXISTS idx_vsl_prov   ON verslaggevers(provincie);
+
+    -- Eén rij per gevolgd domein.
+    CREATE TABLE IF NOT EXISTS concurrenten (
+      domein        TEXT PRIMARY KEY,
+      naam          TEXT,
+      bron          TEXT,            -- register / serp / handmatig
+      volgen        INTEGER DEFAULT 1,
+      categorie     TEXT,            -- concurrent / prospect / portaal / onbekend
+      verslaggevers INTEGER DEFAULT 0,
+      provincie     TEXT,
+      gemeente      TEXT,
+      notitie       TEXT,
+      eerste_zien   TEXT,
+      laatste_check TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_conc_cat ON concurrenten(categorie);
+
+    -- Momentopname per domein per crawl. Verschil tussen twee snapshots = signaal.
+    CREATE TABLE IF NOT EXISTS site_snapshots (
+      domein          TEXT NOT NULL,
+      datum           TEXT NOT NULL,   -- JJJJ-MM-DD
+      bereikbaar      INTEGER,
+      http_status     INTEGER,
+      ttfb_ms         INTEGER,
+      eind_url        TEXT,
+      titel           TEXT,
+      meta_desc       TEXT,
+      cms             TEXT,
+      paginas         INTEGER,         -- indexeerbare URL's in de sitemap
+      blog_paginas    INTEGER,
+      laatste_blog    TEXT,            -- lastmod van de nieuwste blog-URL
+      blog_per_maand  REAL,            -- publicatietempo laatste 12 maanden
+      diensten        TEXT,            -- JSON-array van herkende diensten
+      heeft_schema    INTEGER,
+      heeft_localbiz  INTEGER,
+      woorden_home    INTEGER,
+      heeft_sitemap   INTEGER,        -- 0 = geen sitemap gevonden; paginas is dan onbekend, niet nul
+      fout            TEXT,
+      PRIMARY KEY (domein, datum)
+    );
+    CREATE INDEX IF NOT EXISTS idx_snap_datum ON site_snapshots(datum);
+
+    -- URL-niveau, om nieuwe pagina's en nieuwe blogartikels te kunnen zien.
+    CREATE TABLE IF NOT EXISTS site_urls (
+      domein      TEXT NOT NULL,
+      url         TEXT NOT NULL,
+      soort       TEXT,              -- blog / pagina / overig
+      lastmod     TEXT,
+      eerste_zien TEXT,
+      laatste_zien TEXT,
+      PRIMARY KEY (domein, url)
+    );
+    CREATE INDEX IF NOT EXISTS idx_surl_domein ON site_urls(domein);
+
+    -- Wat er veranderd is. Dit voedt de meldingen.
+    CREATE TABLE IF NOT EXISTS signalen (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      domein       TEXT NOT NULL,
+      datum        TEXT NOT NULL,
+      soort        TEXT NOT NULL,    -- nieuwe-blog / nieuwe-pagina / site-weg / dienst-erbij
+      omschrijving TEXT,
+      url          TEXT,
+      gezien       INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_sig_datum ON signalen(datum);
   `);
 
   // migratie: voeg ontbrekende kolommen toe aan bestaande databases

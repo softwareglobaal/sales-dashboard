@@ -104,6 +104,44 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
 - Sync-status (laatste ververs-moment) op elke pagina.
 - Klein lokaal notities/to-do-paneel (samen bijhouden), lokaal opgeslagen.
 
+## 10. Concurrentiemonitor Energie (augustus 2026)
+
+Aparte module onder `/energy/concurrentie`, gevraagd in de salesmeeting van 25/08/2026.
+Doel: weten wie de markt van EPB- en ventilatieverslaggeving bezet, wat zij aanbieden,
+en wat er verandert — zonder dat iemand daarvoor handmatig websites moet openen.
+
+**Bronnen**
+- `data-bronnen/verslaggevers-2026-08.json` — export van het VEKA-register
+  (energiesparen.be/energiekaart), 792 erkenningen, 613 personen. Handmatig ververst.
+- Eigen crawl van de bedrijfssites: alleen `robots.txt`, sitemap en homepage. Publiek
+  materiaal, uitsluitend lezen.
+
+**Harde regels voor deze module**
+- **Alleen lezen.** Geen formulieren, geen accounts, geen contact via de site van een ander.
+- **Eerlijke crawler.** Eigen User-Agent, geen omzeiling van blokkades. Een site die met
+  403 antwoordt wordt geregistreerd als "blokkeert crawlers", niet alsnog binnengedrongen.
+- **Feit en schatting uit elkaar houden.** `lastmod` uit een sitemap is géén publicatiedatum;
+  bij een sitemigratie krijgen alle artikels dezelfde datum. De kolom heet daarom
+  "laatste post" met een expliciete waarschuwing eronder. Uitgaven aan SEA schatten we niet.
+- **Geen sitemap = onbekend, niet nul.** `heeft_sitemap = 0` toont "geen sitemap" in plaats
+  van "0 pagina's", anders lijkt een site kleiner dan hij is.
+- **Eerste meting geeft geen signalen.** Anders levert de startcrawl honderden meldingen op
+  over pagina's die al jaren bestaan.
+- **Persoonsgegevens.** Naam, e-mail en telefoon komen uit een openbaar register, maar blijven
+  persoonsgegevens: intern gebruik achter Authentik, niet exporteren, niet doorverkopen,
+  niet verrijken met gegevens van buiten dat register.
+
+**Indeling**
+- `categorie = concurrent` bij twee of meer erkende verslaggevers op hetzelfde e-maildomein;
+  bij één verslaggever `prospect`. Dat is een vuistregel, geen waarheid — handmatig te corrigeren
+  in de tabel `concurrenten`.
+- Wie erkend is maar nauwelijks online staat, is geen bedreiging maar een kandidaat voor
+  onderaanneming. Die lijst voedt de Onderaanneming-tab van energie-efficient.be.
+
+**Ritme**
+`scripts/concurrentie-cron.sh` controleert dagelijks de 90 langst niet gemeten domeinen;
+de volledige lijst is zo elke vier dagen rond. Nieuwe URL's worden signalen.
+
 ## Aanvullingen (feedback-ronde)
 - **Grafiek "aanvragen vs. direct gewonnen omzet (zelfde maand)"**: SAME-MONTH cohort — balken = leads
   binnengekomen die maand (add_time); lijn = omzet uit deals die in DIEZELFDE maand zijn aangemaakt ÉN gewonnen
