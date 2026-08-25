@@ -42,8 +42,10 @@ en het is gratis. Beperking: alleen onze eigen domeinen.
 **Voorwaarden:**
 1. Eigenaarschap van `energie-efficient.be` en `unabo.be` bevestigd in Search Console.
 2. De Search Console API aan in hetzelfde Google Cloud-project als de Ads-koppeling.
-3. Bij de OAuth-client moet `urn:ietf:wg:oauth:2.0:oob` of `http://localhost` als
-   redirect toegestaan zijn.
+3. Bij de OAuth-client in Google Cloud (APIs & Services → Credentials):
+   - is de client van het type **Desktop app**, dan werkt elke localhost-poort meteen;
+   - is het een **Web application**, voeg dan deze exacte redirect-URI toe:
+     `http://localhost:53682/oauth2callback`
 
 **Toegang verlenen** (eenmalig, duurt een minuut):
 
@@ -51,9 +53,15 @@ en het is gratis. Beperking: alleen onze eigen domeinen.
 node scripts/gsc-auth.mjs
 ```
 
-Het script toont een link, jij logt in bij Google en plakt de code terug. Je krijgt
-een `GSC_REFRESH_TOKEN`. Zet die zelf in `.env.local` en in `~/appportal/.env` op de
-server. **Geef dat token aan niemand door, ook niet in een chat.**
+Het script start kort een webservertje op localhost, toont een Google-link en vangt de
+code zelf op zodra je bevestigt — je hoeft niets over te typen. Je krijgt een
+`GSC_REFRESH_TOKEN`. Zet die zelf in `.env.local` en in `~/appportal/.env` op de server.
+**Geef dat token aan niemand door, ook niet in een chat.**
+
+> Werkte dit eerder niet? Google heeft de oude methode waarbij je een code moest
+> overtypen (`urn:ietf:wg:oauth:2.0:oob`) op 31 januari 2023 uitgeschakeld. Die geeft
+> sindsdien altijd "Error 400: invalid_request". Het script gebruikt nu de
+> loopback-methode die Google wél ondersteunt.
 
 **Controleren:**
 

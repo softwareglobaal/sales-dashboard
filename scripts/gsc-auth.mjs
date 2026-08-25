@@ -3,31 +3,37 @@
  * Haalt eenmalig een refresh-token op voor Google Search Console.
  *
  * Search Console vraagt een andere scope dan Google Ads, dus het bestaande
- * GOOGLE_ADS_REFRESH_TOKEN werkt hier niet. De OAuth-client mag wel dezelfde zijn.
+ * GOOGLE_ADS_REFRESH_TOKEN werkt hier niet. De OAuth-client mag dezelfde zijn.
  *
  * Gebruik:
  *   node scripts/gsc-auth.mjs
  *
- * Het script toont een link, jij logt in bij Google en plakt de code terug.
- * Het token dat eruit komt zet je zelf in .env.local als GSC_REFRESH_TOKEN --
- * geef het aan niemand door, ook niet in een chat.
+ * Het script start kort een webserver op localhost, toont een Google-link, en
+ * vangt de code automatisch op zodra je bent ingelogd. Je hoeft niets te plakken.
  *
- * Voorwaarde in Google Cloud: bij de OAuth-client moet
- * "http://localhost" als toegestane redirect-URI staan, en de
- * Search Console API moet aan staan voor het project.
+ * Google heeft de oude "out-of-band"-methode (code overtypen) op 31 januari 2023
+ * uitgeschakeld; die geeft nu altijd "Error 400: invalid_request". Vandaar deze
+ * loopback-variant, die Google wél ondersteunt.
+ *
+ * Voorwaarde in Google Cloud (APIs & Services -> Credentials -> jouw OAuth-client):
+ *   - is de client van het type "Desktop app", dan werkt elke localhost-poort meteen;
+ *   - is het een "Web application", voeg dan deze exacte redirect-URI toe:
+ *         http://localhost:53682/oauth2callback
+ * Zet daarnaast de Search Console API aan voor hetzelfde project.
  */
 
-import { createInterface } from "node:readline/promises";
+import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 
 const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
-const REDIRECT = "urn:ietf:wg:oauth:2.0:oob";
+const POORT = Number(process.env.GSC_OAUTH_PORT || 53682);
+const REDIRECT = `http://localhost:${POORT}/oauth2callback`;
 
 function envUit(bestand) {
   if (!existsSync(bestand)) return {};
   const uit = {};
   for (const regel of readFileSync(bestand, "utf8").split("\n")) {
-    const m = regel.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    const m = regel.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
     if (m) uit[m[1]] = m[2].replace(/^["']|["']$/g, "");
   }
   return uit;
@@ -51,14 +57,62 @@ auth.searchParams.set("scope", SCOPE);
 auth.searchParams.set("access_type", "offline");
 auth.searchParams.set("prompt", "consent");
 
-console.log("\n1. Open deze link en log in met het Google-account dat toegang heeft");
-console.log("   tot de Search Console van energie-efficient.be en unabo.be:\n");
-console.log(auth.toString());
-console.log("\n2. Google toont een code. Plak die hieronder.\n");
+function pagina(titel, tekst) {
+  return `<!doctype html><meta charset="utf-8"><title>${titel}</title>
+<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;line-height:1.5;color:#18181b">
+<h1 style="font-size:1.25rem">${titel}</h1><p>${tekst}</p></body>`;
+}
 
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const code = (await rl.question("Code: ")).trim();
-rl.close();
+async function haalCode() {
+ return await new Promise((klaar, mislukt) => {
+  const server = createServer((req, res) => {
+    const url = new URL(req.url, `http://localhost:${POORT}`);
+    if (url.pathname !== "/oauth2callback") {
+      res.writeHead(404).end();
+      return;
+    }
+    const fout = url.searchParams.get("error");
+    const c = url.searchParams.get("code");
+
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(
+      fout
+        ? pagina("Toegang geweigerd", `Google gaf terug: <code>${fout}</code>. Je kan dit tabblad sluiten.`)
+        : pagina("Gelukt", "De toegang is verleend. Je kan dit tabblad sluiten en terug naar de terminal gaan.")
+    );
+
+    server.close();
+    fout ? mislukt(new Error(fout)) : klaar(c);
+  });
+
+  server.on("error", (e) => {
+    if (e.code === "EADDRINUSE") {
+      mislukt(new Error(`Poort ${POORT} is bezet. Draai opnieuw met een andere poort:\n` +
+        `  GSC_OAUTH_PORT=53683 node scripts/gsc-auth.mjs\n` +
+        `(voeg die poort dan ook toe bij de redirect-URI's in Google Cloud)`));
+    } else mislukt(e);
+  });
+
+  server.listen(POORT, "127.0.0.1", () => {
+    console.log("\nOpen deze link en log in met het Google-account dat toegang heeft");
+    console.log("tot de Search Console van energie-efficient.be en unabo.be:\n");
+    console.log(auth.toString());
+    console.log("\nZodra je bevestigt, vangt dit script de code zelf op. Wachten...\n");
+  });
+ });
+}
+
+let code;
+try {
+  code = await haalCode();
+} catch (e) {
+  console.error(`\nGestopt: ${e.message}`);
+  if (e.message === "access_denied") {
+    console.error("Je hebt de toegang geweigerd, of het account heeft geen rechten op");
+    console.error("de Search Console-properties. Probeer opnieuw met het juiste account.");
+  }
+  process.exit(1);
+}
 
 const res = await fetch("https://oauth2.googleapis.com/token", {
   method: "POST",
@@ -75,12 +129,13 @@ const json = await res.json();
 
 if (!json.refresh_token) {
   console.error("\nGeen refresh-token gekregen:", JSON.stringify(json, null, 2));
-  console.error("\nMeestal betekent dit dat de code verlopen is, of dat je eerder al");
-  console.error("toestemming gaf. Probeer opnieuw; het script vraagt expliciet om");
-  console.error("hernieuwde toestemming, dus dan hoort er wel een token te komen.");
+  if (json.error === "redirect_uri_mismatch") {
+    console.error(`\nVoeg in Google Cloud bij deze OAuth-client de redirect-URI toe:\n  ${REDIRECT}`);
+  }
   process.exit(1);
 }
 
-console.log("\nGelukt. Zet deze regel in .env.local (en op de server in ~/appportal/.env):\n");
+console.log("\nGelukt. Zet deze regel in .env.local en op de server in ~/appportal/.env:\n");
 console.log(`GSC_REFRESH_TOKEN=${json.refresh_token}`);
-console.log("\nControleer daarna met: curl 'http://localhost:3000/api/searchconsole?check=1'\n");
+console.log("\nDeel dit token met niemand. Controleer daarna met:");
+console.log("  curl 'http://localhost:3008/api/searchconsole?check=1'\n");
