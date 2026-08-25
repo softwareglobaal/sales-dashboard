@@ -587,10 +587,16 @@ function engScope(scope: EngScope = "all"): { clause: string; named: Record<stri
 // Deal-niveau LEAD-scope voor Engineering: TKN-Buro + UNABO (eng-product ÓF UNABO-Engineering pipeline).
 // Zo tellen ook 'plannen op aanvraag' zonder product mee als lead. Scope beperkt tot één firma indien gevraagd.
 function engLeadScope(scope: EngScope = "all"): string {
+  // De pipeline heet in Pipedrive "UNABO - Engineering", met spaties rond het
+  // streepje. De vergelijking stond op "UNABO-Engineering" en matchte dus nooit,
+  // waardoor de leads zonder product ("plannen op aanvraag") stilzwijgend
+  // wegvielen - precies wat deze regel volgens DASHBOARD-SPEC.md moest opvangen.
+  // Spaties worden nu weggenormaliseerd, zodat een herbenoeming in Pipedrive
+  // dit niet opnieuw kan breken.
   const unabo =
     "(account_key='unabo' AND (" +
     "id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='ENGINEERING') " +
-    "OR pipeline_name='UNABO-Engineering'))";
+    "OR REPLACE(pipeline_name, ' ', '')='UNABO-Engineering'))";
   const tkn = "(account_key='tknburo')";
   if (scope === "unabo") return unabo;
   if (scope === "tkn") return tkn;
@@ -1062,7 +1068,7 @@ export function getEngineeringBundleSplit(period: Period, themeKey?: string, sco
 
 // UNABO-only engineering lead-scope (custom-veld-analyses: enkel UNABO heeft die velden)
 const ENG_UNABO_SCOPE =
-  "account_key='unabo' AND (id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='ENGINEERING') OR pipeline_name='UNABO-Engineering')";
+  "account_key='unabo' AND (id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='ENGINEERING') OR REPLACE(pipeline_name, ' ', '')='UNABO-Engineering')";
 
 // ---------- Engineering: motivatie bij verlies (UNABO custom fields, enkel 2026) ----------
 export type EngMotivation = {

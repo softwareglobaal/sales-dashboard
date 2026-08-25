@@ -102,7 +102,7 @@ async function syncDealFlow(account: Account, stageMap: Map<number, string>) {
       ? (db
           .prepare(
             `SELECT id FROM deals WHERE account_key='unabo'
-             AND (id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='ENGINEERING') OR pipeline_name='UNABO-Engineering')`
+             AND (id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='ENGINEERING') OR REPLACE(pipeline_name, ' ', '')='UNABO-Engineering')`
           )
           .all() as any[])
       : (db.prepare("SELECT id FROM deals WHERE account_key=?").all(account.key) as any[]);

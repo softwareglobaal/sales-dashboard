@@ -59,7 +59,9 @@ const LEAD_SCOPE =
   "(account_key='unabo' AND (" +
   "id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='" +
   DEPT +
-  "') OR pipeline_name='" +
+  // Spaties wegnormaliseren: de pipeline heet "UNABO - Energy" in Pipedrive,
+  // niet "UNABO-Energy". Zonder dit vielen de leads zonder product weg.
+  "') OR REPLACE(pipeline_name, ' ', '')='" +
   PIPELINE +
   "'))";
 
