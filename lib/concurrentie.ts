@@ -51,10 +51,24 @@ const ARCHIEF =
 const EPB_RELEVANT =
   /(epb|epc|energie|energy|ventilatie|luchtdicht|blower|isolat|s-?peil|e-?peil|k-?peil|verslaggev|premie|renovat|epw|ben-?woning|energieprestatie)/i;
 
-// Wijst op een gehackte site: gokreclame, adult, farma. Dat is geen concurrentie
-// maar een waarschuwing dat de meting van die site niets voorstelt.
-const SPAM =
-  /(onlyfans|mostbet|bahis|casino|slot(s)?-|bet-?win|porn|escort|viagra|cialis|kumar|pinup|1xbet|parimatch)/i;
+// Wijst op een gehackte site: gok- en adultspam. Dat is geen concurrentie maar een
+// waarschuwing dat de meting van die site niets voorstelt.
+//
+// Losse deelwoorden zijn hier gevaarlijk: "spe-CIALIS-t" en "amit-KUMAR" zijn geen spam,
+// en het casino van Middelkerke is een echt architectuurproject van Sweco en B2Ai.
+// Daarom matchen we op hele woorden binnen een URL-segment, en vraagt "casino" een
+// tweede gokaanwijzing.
+const SPAM_WOORDEN =
+  /(^|[^a-z])(onlyfans|mostbet|1xbet|parimatch|marsbahis|bahis|bettilt|pinup|porn|xxx|escort|viagra|cialis|tadalafil|betting|gambling)([^a-z]|$)/i;
+// "bonus" en "slot" zijn gewone Nederlandse woorden — totaalrenovatiebonus, slotverklaring.
+// Ze mogen dus geen context zijn, alleen bevestiging, en nooit zichzelf bevestigen.
+const GOK_CONTEXT = /(casino|jackpot|gokkast|slot-?machine|betting-?site)/i;
+const GOK_BEVESTIGING = /(online|siteleri|giris|guncel|deneme|no-?deposit|gokken|bonus)/i;
+
+function isSpam(pad: string): boolean {
+  if (SPAM_WOORDEN.test(pad)) return true;
+  return GOK_CONTEXT.test(pad) && GOK_BEVESTIGING.test(pad);
+}
 
 const BLOG_PAD =
   /\/(blog|nieuws|actua|actualiteit|artikel|artikels|kennis|kennisbank|tips|inzicht|publicatie|post|weetjes|updates?)(\/|$)/i;
@@ -168,7 +182,7 @@ export function classificeer(url: string, lastmod = "", bron = "") {
     bron,
     soort: isBlog ? "blog" : "pagina",
     archief: ARCHIEF.test(pad) || (!isPost && kortPadOnderBlogroot),
-    spam: SPAM.test(pad),
+    spam: isSpam(pad),
     epb: EPB_RELEVANT.test(pad),
   };
 }
@@ -337,7 +351,10 @@ function bewaarSnapshot(s: Snapshot) {
         );
       }
     }
-    db.prepare("UPDATE concurrenten SET laatste_check = ? WHERE domein = ?").run(s.datum, s.domein);
+    // Volledig tijdstip, niet enkel de datum: anders draaien twee runs op dezelfde
+    // dag allebei over exact dezelfde 90 domeinen en blijft de rest onaangeroerd.
+    db.prepare("UPDATE concurrenten SET laatste_check = ? WHERE domein = ?")
+      .run(new Date().toISOString(), s.domein);
   })();
 }
 

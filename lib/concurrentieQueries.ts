@@ -187,9 +187,13 @@ export function getCrawlStatus() {
   return db.prepare(`
     SELECT (SELECT MAX(datum) FROM site_snapshots)                        AS laatste_crawl,
            (SELECT COUNT(*) FROM concurrenten WHERE laatste_check IS NULL) AS nooit_gecrawld,
+           (SELECT COUNT(*) FROM concurrenten WHERE substr(COALESCE(laatste_check,''),1,10) < date('now','-7 days')) AS ouder_dan_week,
            (SELECT COUNT(*) FROM site_snapshots WHERE datum = (SELECT MAX(datum) FROM site_snapshots)) AS gisteren_gemeten,
            (SELECT COUNT(*) FROM (${LAATSTE_SNAPSHOT}) WHERE fout <> '' AND fout IS NOT NULL) AS met_fout
-  `).get() as { laatste_crawl: string | null; nooit_gecrawld: number; gisteren_gemeten: number; met_fout: number };
+  `).get() as {
+    laatste_crawl: string | null; nooit_gecrawld: number; ouder_dan_week: number;
+    gisteren_gemeten: number; met_fout: number;
+  };
 }
 
 // ---------------------------------------------------------------------------

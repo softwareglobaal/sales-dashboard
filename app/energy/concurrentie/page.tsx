@@ -136,9 +136,9 @@ export default async function ConcurrentiePage() {
                         <a href={`https://${b.domein}`} target="_blank" rel="noreferrer noopener"
                            className="font-medium text-zinc-800 hover:text-blue-700 hover:underline">{b.domein}</a>
                         <div className="text-xs text-zinc-500">{b.naam}</div>
-                        {!!b.spam_verdacht && (
+                        {(b.spam_verdacht || 0) >= 3 && (
                           <div className="text-[11px] text-red-600">
-                            {num(b.spam_verdacht)} spam-URL's — site vermoedelijk gehackt
+                            {num(b.spam_verdacht || 0)} spam-URL's — site vermoedelijk gehackt
                           </div>
                         )}
                       </td>
@@ -259,8 +259,8 @@ export default async function ConcurrentiePage() {
                       <a href={`https://${c.domein}`} target="_blank" rel="noreferrer noopener"
                          className="text-xs text-blue-600 hover:underline">{c.domein}</a>
                       {c.bereikbaar === 0 && <div className="text-[11px] text-red-500">{c.fout || "site onbereikbaar"}</div>}
-                      {!!c.spam_verdacht && (
-                        <div className="text-[11px] text-red-600">{num(c.spam_verdacht)} spam-URL's — vermoedelijk gehackt</div>
+                      {(c.spam_verdacht || 0) >= 3 && (
+                        <div className="text-[11px] text-red-600">{num(c.spam_verdacht || 0)} spam-URL's — vermoedelijk gehackt</div>
                       )}
                     </td>
                     <td className="py-2 text-right font-semibold text-zinc-800">{num(c.epb_paginas || 0)}</td>
