@@ -24,6 +24,7 @@ export const dynamic = "force-dynamic";
 const ONS_DOMEIN = "energie-efficient.be";
 
 const TABS = [
+  { id: "leaders", label: "Leaders" },
   { id: "markt", label: "De markt" },
   { id: "concurrenten", label: "Concurrenten" },
   { id: "diensten", label: "Diensten" },
@@ -32,9 +33,22 @@ const TABS = [
   { id: "prospects", label: "Onderaanneming" },
 ];
 
-function Datum({ d }: { d: string | null }) {
+/**
+ * Bij een gehackte site is de nieuwste "publicatie" spam, in wisselende talen.
+ * Die datum als publicatietempo tonen is misleidend, dus die onderdrukken we —
+ * dat is betrouwbaarder dan elke taalvariant van gokspam willen herkennen.
+ */
+function Datum({ d, href, verdacht }: { d: string | null; href?: string | null; verdacht?: boolean }) {
+  if (verdacht) return <span className="text-zinc-400" title="Site gehackt — datum onbetrouwbaar">n.v.t.</span>;
   if (!d) return <span className="text-zinc-300">—</span>;
-  return <span>{d.split("-").reverse().join("/")}</span>;
+  const tekst = d.split("-").reverse().join("/");
+  if (!href) return <span>{tekst}</span>;
+  return (
+    <a href={href} target="_blank" rel="noreferrer noopener"
+       className="text-blue-600 hover:underline" title="Open het laatste artikel">
+      {tekst}
+    </a>
+  );
 }
 
 /** Pagina-aantal: 0 uit een sitemap is iets anders dan geen sitemap gevonden. */
@@ -108,7 +122,99 @@ export default async function ConcurrentiePage() {
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      <section id="markt" className="scroll-mt-36 pt-8">
+      <section id="leaders" className="scroll-mt-36 pt-8">
+        <Card title="Wie leidt er online">
+          {leaderboard.length > 0 ? (
+            <>
+              <div className="mb-2 text-xs text-zinc-500">
+                Top 5 in Google per zoekterm — stand van{" "}
+                {zwStatus.positie_datum?.split("-").reverse().join("/")}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {Object.entries(perTerm).map(([term, rijen]) => (
+                  <div key={term} className="rounded-lg border border-zinc-200 p-3">
+                    <div className="truncate text-sm font-medium text-zinc-800" title={term}>{term}</div>
+                    <div className="mb-2 text-[11px] text-zinc-400">
+                      {rijen[0].volume ? `${num(rijen[0].volume)} zoekopdrachten/maand` : rijen[0].thema}
+                    </div>
+                    <ol className="space-y-1">
+                      {rijen.map((r) => (
+                        <li key={r.positie} className="flex items-baseline gap-2 text-xs">
+                          <span className={
+                            "w-4 shrink-0 text-right tabular-nums " +
+                            (r.positie <= 3 ? "font-semibold text-zinc-700" : "text-zinc-400")
+                          }>{r.positie}</span>
+                          <span className={
+                            "truncate " + (r.van_ons ? "font-semibold text-cyan-700" : "text-zinc-600")
+                          } title={r.naam || r.domein}>
+                            {r.domein}{r.van_ons ? " ← wij" : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-3 text-xs text-zinc-500">
+                Google-posities zijn nog niet gekoppeld. Dit is de rangorde op wat we zelf meten:
+                omvang in onze markt, hoeveel er gepubliceerd wordt en hoe recent.
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                {sterkste.slice(0, 5).map((b, i) => (
+                  <div key={b.domein} className="rounded-lg border border-zinc-200 p-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className={
+                        "text-lg font-bold tabular-nums " + (i === 0 ? "text-cyan-700" : "text-zinc-300")
+                      }>{i + 1}</span>
+                      <a href={`https://${b.domein}`} target="_blank" rel="noreferrer noopener"
+                         className="truncate text-sm font-medium text-zinc-800 hover:text-blue-700 hover:underline"
+                         title={b.domein}>{b.domein}</a>
+                    </div>
+                    <div className="mt-2 space-y-0.5 text-xs text-zinc-500">
+                      <div>
+                        <span className="font-semibold text-zinc-700">{num(b.epb_paginas || 0)}</span>{" "}
+                        {b.epb_paginas === 1 ? "EPB-pagina" : "EPB-pagina's"}
+                      </div>
+                      <div>
+                        <span className="font-semibold text-zinc-700">{num(b.blog_artikels || 0)}</span>{" "}
+                        {b.blog_artikels === 1 ? "artikel" : "artikels"}
+                      </div>
+                      <div>
+                        {(b.spam_verdacht || 0) >= 3 ? (
+                          <span className="text-red-600">site gehackt</span>
+                        ) : b.laatste_blog_url && b.laatste_blog ? (
+                          <a href={b.laatste_blog_url} target="_blank" rel="noreferrer noopener"
+                             className="text-blue-600 hover:underline">
+                            laatste post {b.laatste_blog.split("-").reverse().join("/")}
+                          </a>
+                        ) : (
+                          <span className="text-zinc-400">geen recente post</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-baseline gap-2 rounded-lg bg-zinc-50 p-3 text-xs text-zinc-600">
+                <span className="font-medium text-zinc-700">Wij:</span>
+                <span>
+                  {wij
+                    ? `${num(wij.epb_paginas || 0)} ${wij.epb_paginas === 1 ? "EPB-pagina" : "EPB-pagina's"}, ` +
+                      `${num(wij.blog_artikels || 0)} ${wij.blog_artikels === 1 ? "artikel" : "artikels"}`
+                    : "nog niet gemeten"}
+                  {" "}op energie-efficient.be
+                </span>
+              </div>
+            </>
+          )}
+        </Card>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      <section id="markt" className="scroll-mt-36 pt-0">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           <Kpi label="Erkenningen" value={num(k.erkenningen)} sub={`${num(k.personen)} personen`} />
           <Kpi label="Bedrijven" value={num(k.bedrijven)} sub="met eigen domein" />
@@ -154,7 +260,9 @@ export default async function ConcurrentiePage() {
                         <Paginas n={b.paginas} sitemap={b.heeft_sitemap} />
                       </td>
                       <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-600">{num(b.blog_artikels || 0)}</td>
-                      <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-zinc-600"><Datum d={b.laatste_blog} /></td>
+                      <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-zinc-600">
+                        <Datum d={b.laatste_blog} href={b.laatste_blog_url} verdacht={(b.spam_verdacht || 0) >= 3} />
+                      </td>
                       <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-500">{b.verslaggevers || "—"}</td>
                     </tr>
                   ))}
@@ -229,7 +337,7 @@ export default async function ConcurrentiePage() {
                   <div className="flex justify-between"><dt className="text-zinc-500">Blogartikels</dt>
                     <dd className="font-medium">{num(wij.blog_artikels || 0)}</dd></div>
                   <div className="flex justify-between"><dt className="text-zinc-500">Laatste publicatie</dt>
-                    <dd className="font-medium"><Datum d={wij.laatste_blog} /></dd></div>
+                    <dd className="font-medium"><Datum d={wij.laatste_blog} href={wij.laatste_blog_url} /></dd></div>
                   <div className="flex justify-between"><dt className="text-zinc-500">Laadtijd</dt>
                     <dd className="font-medium">{wij.ttfb_ms ? `${num(wij.ttfb_ms)} ms` : "—"}</dd></div>
                 </dl>
@@ -279,7 +387,9 @@ export default async function ConcurrentiePage() {
                       {c.bereikbaar === null ? <span className="text-zinc-300">—</span> : num(c.blog_artikels || 0)}
                     </td>
                     <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-500">{c.verslaggevers}</td>
-                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-zinc-600"><Datum d={c.laatste_blog} /></td>
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-zinc-600">
+                      <Datum d={c.laatste_blog} href={c.laatste_blog_url} verdacht={(c.spam_verdacht || 0) >= 3} />
+                    </td>
                     <td className="py-2 pr-4 last:pr-0"><Diensten json={c.diensten} /></td>
                     <td className="py-2 pr-4 last:pr-0 text-xs text-zinc-500">{c.cms || "—"}</td>
                   </tr>
@@ -345,39 +455,6 @@ export default async function ConcurrentiePage() {
                 <code className="rounded bg-white px-1.5 py-0.5">/api/zoekwoorden?volumes=1</code>{" "}
                 op de server, waar de Google-sleutels staan.
               </p>
-            </div>
-          )}
-
-          {leaderboard.length > 0 && (
-            <div className="mb-5">
-              <div className="mb-2 text-sm font-semibold text-zinc-700">
-                Top 5 per zoekterm — stand van {zwStatus.positie_datum?.split("-").reverse().join("/")}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {Object.entries(perTerm).map(([term, rijen]) => (
-                  <div key={term} className="rounded-lg border border-zinc-200 p-3">
-                    <div className="truncate text-sm font-medium text-zinc-800" title={term}>{term}</div>
-                    <div className="mb-2 text-[11px] text-zinc-400">
-                      {rijen[0].volume ? `${num(rijen[0].volume)} zoekopdrachten/maand` : rijen[0].thema}
-                    </div>
-                    <ol className="space-y-1">
-                      {rijen.map((r) => (
-                        <li key={r.positie} className="flex items-baseline gap-2 text-xs">
-                          <span className={
-                            "w-4 shrink-0 text-right tabular-nums " +
-                            (r.positie <= 3 ? "font-semibold text-zinc-700" : "text-zinc-400")
-                          }>{r.positie}</span>
-                          <span className={
-                            "truncate " + (r.van_ons ? "font-semibold text-cyan-700" : "text-zinc-600")
-                          } title={r.naam || r.domein}>
-                            {r.domein}{r.van_ons ? " ← wij" : ""}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 

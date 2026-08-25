@@ -182,7 +182,8 @@ function initSchema(db: Database.Database) {
       cms             TEXT,
       paginas         INTEGER,         -- indexeerbare URL's in de sitemap
       blog_paginas    INTEGER,
-      laatste_blog    TEXT,            -- lastmod van de nieuwste blog-URL
+      laatste_blog    TEXT,            -- lastmod van het nieuwste artikel
+      laatste_blog_url TEXT,           -- en de bijbehorende link, om te kunnen doorklikken
       blog_per_maand  REAL,            -- publicatietempo laatste 12 maanden
       diensten        TEXT,            -- JSON-array van herkende diensten
       heeft_schema    INTEGER,
@@ -204,6 +205,7 @@ function initSchema(db: Database.Database) {
       soort       TEXT,              -- blog / pagina / overig
       lastmod     TEXT,
       sitemap_bron TEXT,             -- uit welke deel-sitemap de URL kwam
+      artikel     INTEGER,           -- 1 = echt blogartikel (geen archief, geen spam)
       eerste_zien TEXT,
       laatste_zien TEXT,
       PRIMARY KEY (domein, url)
@@ -265,6 +267,7 @@ function initSchema(db: Database.Database) {
   // idem voor de concurrentiemonitor: kolommen die later zijn toegevoegd
   const urlCols = (db.prepare("PRAGMA table_info(site_urls)").all() as any[]).map((c) => c.name);
   if (!urlCols.includes("sitemap_bron")) db.exec("ALTER TABLE site_urls ADD COLUMN sitemap_bron TEXT");
+  if (!urlCols.includes("artikel")) db.exec("ALTER TABLE site_urls ADD COLUMN artikel INTEGER");
 
   const snapCols = (db.prepare("PRAGMA table_info(site_snapshots)").all() as any[]).map((c) => c.name);
   for (const [naam, type] of [
@@ -272,6 +275,7 @@ function initSchema(db: Database.Database) {
     ["blog_artikels", "INTEGER"],
     ["epb_paginas", "INTEGER"],
     ["spam_verdacht", "INTEGER"],
+    ["laatste_blog_url", "TEXT"],
   ] as const) {
     if (!snapCols.includes(naam)) db.exec(`ALTER TABLE site_snapshots ADD COLUMN ${naam} ${type}`);
   }

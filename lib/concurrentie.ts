@@ -63,7 +63,8 @@ const SPAM_WOORDEN =
 // "bonus" en "slot" zijn gewone Nederlandse woorden — totaalrenovatiebonus, slotverklaring.
 // Ze mogen dus geen context zijn, alleen bevestiging, en nooit zichzelf bevestigen.
 const GOK_CONTEXT = /(casino|jackpot|gokkast|slot-?machine|betting-?site)/i;
-const GOK_BEVESTIGING = /(online|siteleri|giris|guncel|deneme|no-?deposit|gokken|bonus)/i;
+const GOK_BEVESTIGING =
+  /(online|siteleri|giris|guncel|deneme|no-?deposit|gokken|gokkast|cruks|wedden|weddenschap|bonus|games)/i;
 
 function isSpam(pad: string): boolean {
   if (SPAM_WOORDEN.test(pad)) return true;
@@ -203,6 +204,7 @@ export type Snapshot = {
   paginas: number;
   blog_paginas: number;
   laatste_blog: string;
+  laatste_blog_url: string;
   blog_per_maand: number;
   diensten: string;
   heeft_schema: number;
@@ -220,7 +222,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
   const datum = vandaag();
   const leeg: Snapshot = {
     domein, datum, bereikbaar: 0, http_status: 0, ttfb_ms: 0, eind_url: "", titel: "",
-    meta_desc: "", cms: "", paginas: 0, blog_paginas: 0, laatste_blog: "", blog_per_maand: 0,
+    meta_desc: "", cms: "", paginas: 0, blog_paginas: 0, laatste_blog: "", laatste_blog_url: "", blog_per_maand: 0,
     diensten: "[]", heeft_schema: 0, heeft_localbiz: 0, woorden_home: 0, heeft_sitemap: 0, blog_artikels: 0, epb_paginas: 0, spam_verdacht: 0, fout: "", urls: [],
   };
 
@@ -262,7 +264,9 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
   const artikels = blogs.filter((u) => !u.archief && !u.spam);
   const spam = gerangschikt.filter((u) => u.spam);
   const epbPaginas = gerangschikt.filter((u) => u.epb && !u.spam);
-  const blogDatums = artikels.map((b) => b.lastmod).filter(Boolean).sort();
+  const metDatum = artikels.filter((a) => a.lastmod).sort((a, b) => a.lastmod.localeCompare(b.lastmod));
+  const nieuwste = metDatum[metDatum.length - 1];
+  const blogDatums = metDatum.map((b) => b.lastmod);
   const laatsteBlog = blogDatums.length ? blogDatums[blogDatums.length - 1] : "";
   const grens = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
   const recent = blogDatums.filter((d) => d >= grens).length;
@@ -288,6 +292,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
     epb_paginas: epbPaginas.length,
     spam_verdacht: spam.length,
     laatste_blog: laatsteBlog,
+    laatste_blog_url: nieuwste?.url || "",
     blog_per_maand: Math.round((recent / 12) * 10) / 10,
     diensten: JSON.stringify(diensten),
     heeft_schema: /application\/ld\+json/i.test(html) ? 1 : 0,
@@ -307,12 +312,12 @@ function bewaarSnapshot(s: Snapshot) {
   db.prepare(
     `INSERT OR REPLACE INTO site_snapshots
      (domein,datum,bereikbaar,http_status,ttfb_ms,eind_url,titel,meta_desc,cms,paginas,
-      blog_paginas,laatste_blog,blog_per_maand,diensten,heeft_schema,heeft_localbiz,woorden_home,heeft_sitemap,
+      blog_paginas,laatste_blog,laatste_blog_url,blog_per_maand,diensten,heeft_schema,heeft_localbiz,woorden_home,heeft_sitemap,
       blog_artikels,epb_paginas,spam_verdacht,fout)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run(
     s.domein, s.datum, s.bereikbaar, s.http_status, s.ttfb_ms, s.eind_url, s.titel, s.meta_desc,
-    s.cms, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand, s.diensten,
+    s.cms, s.paginas, s.blog_paginas, s.laatste_blog, s.laatste_blog_url, s.blog_per_maand, s.diensten,
     s.heeft_schema, s.heeft_localbiz, s.woorden_home, s.heeft_sitemap,
     s.blog_artikels, s.epb_paginas, s.spam_verdacht, s.fout
   );
@@ -328,10 +333,10 @@ function bewaarSnapshot(s: Snapshot) {
   const bekend = new Set(bestaat.map((r) => r.url));
 
   const upsert = db.prepare(
-    `INSERT INTO site_urls (domein,url,soort,lastmod,sitemap_bron,eerste_zien,laatste_zien)
-     VALUES (?,?,?,?,?,?,?)
+    `INSERT INTO site_urls (domein,url,soort,lastmod,sitemap_bron,artikel,eerste_zien,laatste_zien)
+     VALUES (?,?,?,?,?,?,?,?)
      ON CONFLICT(domein,url) DO UPDATE SET
-       lastmod=excluded.lastmod, soort=excluded.soort,
+       lastmod=excluded.lastmod, soort=excluded.soort, artikel=excluded.artikel,
        sitemap_bron=excluded.sitemap_bron, laatste_zien=excluded.laatste_zien`
   );
   const signaal = db.prepare(
@@ -340,7 +345,8 @@ function bewaarSnapshot(s: Snapshot) {
 
   db.transaction(() => {
     for (const u of s.urls) {
-      upsert.run(s.domein, u.url, u.soort, u.lastmod, u.bron || "", s.datum, s.datum);
+      const isArtikel = u.soort === "blog" && !u.archief && !u.spam ? 1 : 0;
+      upsert.run(s.domein, u.url, u.soort, u.lastmod, u.bron || "", isArtikel, s.datum, s.datum);
       if (!isEersteKeer && !bekend.has(u.url) && !u.spam) {
         signaal.run(
           s.domein,
@@ -465,9 +471,11 @@ export function herberekenAfleidingen() {
   const db = getDb();
   const domeinen = db.prepare("SELECT DISTINCT domein FROM site_urls").all() as { domein: string }[];
   const upd = db.prepare(
-    `UPDATE site_snapshots SET blog_artikels = ?, epb_paginas = ?, spam_verdacht = ?, laatste_blog = ?
-     WHERE domein = ? AND datum = (SELECT MAX(datum) FROM site_snapshots WHERE domein = ?)`
+    `UPDATE site_snapshots
+        SET blog_artikels = ?, epb_paginas = ?, spam_verdacht = ?, laatste_blog = ?, laatste_blog_url = ?
+      WHERE domein = ? AND datum = (SELECT MAX(datum) FROM site_snapshots WHERE domein = ?)`
   );
+  const updUrl = db.prepare("UPDATE site_urls SET artikel = ? WHERE domein = ? AND url = ?");
   let n = 0;
   db.transaction(() => {
     for (const d of domeinen) {
@@ -475,12 +483,17 @@ export function herberekenAfleidingen() {
         { url: string; lastmod: string; sitemap_bron: string }[];
       const ingedeeld = urls.map((u) => classificeer(u.url, u.lastmod || "", u.sitemap_bron || ""));
       const artikels = ingedeeld.filter((u) => u.soort === "blog" && !u.archief && !u.spam);
-      const datums = artikels.map((a) => a.lastmod).filter(Boolean).sort();
+      for (const u of ingedeeld) {
+        updUrl.run(u.soort === "blog" && !u.archief && !u.spam ? 1 : 0, d.domein, u.url);
+      }
+      const metDatum = artikels.filter((a) => a.lastmod).sort((a, b) => a.lastmod.localeCompare(b.lastmod));
+      const nieuwste = metDatum[metDatum.length - 1];
       upd.run(
         artikels.length,
         ingedeeld.filter((u) => u.epb && !u.spam).length,
         ingedeeld.filter((u) => u.spam).length,
-        datums.length ? datums[datums.length - 1] : "",
+        nieuwste?.lastmod || "",
+        nieuwste?.url || "",
         d.domein, d.domein
       );
       n++;

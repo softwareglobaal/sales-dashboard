@@ -23,6 +23,7 @@ export type ConcurrentRij = {
   heeft_localbiz: number | null;
   heeft_sitemap: number | null;
   blog_artikels: number | null;
+  laatste_blog_url: string | null;
   epb_paginas: number | null;
   spam_verdacht: number | null;
   laatste_check: string | null;
@@ -74,7 +75,7 @@ export function getConcurrenten(categorie?: string): ConcurrentRij[] {
     SELECT c.domein, c.naam, c.categorie, c.verslaggevers, c.provincie, c.gemeente, c.laatste_check,
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
            s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
-           s.blog_artikels, s.epb_paginas, s.spam_verdacht, s.fout
+           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.spam_verdacht, s.fout
     FROM concurrenten c
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
     ${waar}
@@ -86,13 +87,13 @@ export function getConcurrenten(categorie?: string): ConcurrentRij[] {
 export type BureauRij = {
   naam: string; domein: string; verslaggevers: number; provincie: string;
   paginas: number | null; epb_paginas: number | null; blog_artikels: number | null;
-  laatste_blog: string | null; bereikbaar: number | null; heeft_sitemap: number | null;
-  spam_verdacht: number | null;
+  laatste_blog: string | null; laatste_blog_url: string | null;
+  bereikbaar: number | null; heeft_sitemap: number | null; spam_verdacht: number | null;
 };
 
 const BUREAU_KOLOMMEN = `
   c.naam, c.domein, c.verslaggevers, c.provincie,
-  s.paginas, s.epb_paginas, s.blog_artikels, s.laatste_blog,
+  s.paginas, s.epb_paginas, s.blog_artikels, s.laatste_blog, s.laatste_blog_url,
   s.bereikbaar, s.heeft_sitemap, s.spam_verdacht
 `;
 
