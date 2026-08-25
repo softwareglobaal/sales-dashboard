@@ -59,6 +59,9 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
 ## 6. Engineering-afbakening
 - **Lead-scope (aantallen: aanvragen/gewonnen/verloren/open)** = alle TKN-Buro-deals **+** UNABO-deals
   die een ENGINEERING-product hebben **óf** in de pipeline `UNABO-Engineering` zitten.
+  (In Pipedrive heet die pipeline `UNABO - Engineering`, mét spaties. De code vergelijkt daarom
+  met de spaties weggenormaliseerd — een letterlijke vergelijking matchte nooit en liet de
+  productloze leads stilzwijgend wegvallen. Zelfde verhaal voor `UNABO - Energy`.)
   (Reden: 134 UNABO-Engineering-leads hebben nog géén product — dit zijn "plannen op aanvraag" en
   MOETEN als lead meetellen.)
 - **Omzet-scope (waarde/diensten/afdelingen)** = product-gebaseerd: UNABO ENGINEERING-productregels
