@@ -250,6 +250,23 @@ function initSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_pos_datum ON posities(datum);
     CREATE INDEX IF NOT EXISTS idx_pos_term  ON posities(term);
+
+    -- Echte Google-cijfers voor onze eigen sites, uit Search Console.
+    -- Gratis, en nauwkeuriger dan welke externe schatting ook: dit is wat Google
+    -- zelf registreert. Alleen voor domeinen waarvan we eigenaar zijn.
+    CREATE TABLE IF NOT EXISTS gsc_metingen (
+      site        TEXT NOT NULL,     -- de property in Search Console
+      term        TEXT NOT NULL,
+      datum       TEXT NOT NULL,     -- laatste dag van de gemeten periode
+      positie     REAL,              -- gemiddelde positie
+      vertoningen INTEGER,
+      klikken     INTEGER,
+      ctr         REAL,
+      url         TEXT,              -- best scorende pagina voor die term
+      PRIMARY KEY (site, term, datum)
+    );
+    CREATE INDEX IF NOT EXISTS idx_gsc_datum ON gsc_metingen(datum);
+    CREATE INDEX IF NOT EXISTS idx_gsc_term  ON gsc_metingen(term);
   `);
 
   // migratie: voeg ontbrekende kolommen toe aan bestaande databases

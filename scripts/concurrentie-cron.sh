@@ -22,4 +22,9 @@ echo "$antwoord" | grep -q '"ok":true' || exit 1
 BASIS="${DASHBOARD_URL:-http://localhost:3008}/api/zoekwoorden"
 [ "$(date +%u)" = "1" ] && echo "$(date -Is) $(curl -sS --max-time 1800 "$BASIS?posities=1" || echo mislukt)"
 [ "$(date +%d)" = "01" ] && echo "$(date -Is) $(curl -sS --max-time 300 "$BASIS?volumes=1" || echo mislukt)"
+
+# Search Console: dagelijks. Gratis, en het is de enige bron die geen schatting is.
+GSC="${DASHBOARD_URL:-http://localhost:3008}/api/searchconsole?dagen=28"
+echo "$(date -Is) $(curl -sS --max-time 300 "$GSC" || echo mislukt)"
+
 exit 0

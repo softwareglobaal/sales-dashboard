@@ -165,6 +165,12 @@ de actiefste blogger van de markt.
   zetten met `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD`). Google rechtstreeks uitlezen
   doen we niet. Zonder bron blijven de positiekolommen leeg — geen geraden getallen.
 - **Advertenties**: we tonen wél wie er adverteert, **nooit** een geschat budget.
+- **Onze eigen posities** via Google Search Console (`lib/searchConsole.ts`): gratis, en de
+  enige bron die geen schatting is — het is wat Google zelf registreert. Vraagt een eigen
+  refresh-token, want Search Console gebruikt een andere scope dan Google Ads; op te halen
+  met `scripts/gsc-auth.mjs`. Werkt alleen voor domeinen waarvan het eigenaarschap bevestigd is.
+- Bovenaan de pagina staat een **bronnenstatus**: welke koppeling leeft, en wat er ontbreekt.
+  Zie `SETUP-CONCURRENTIE.md` voor de stappen.
 
 **Ritme**
 `scripts/concurrentie-cron.sh` controleert dagelijks de 90 langst niet gemeten domeinen;

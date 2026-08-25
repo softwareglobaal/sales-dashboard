@@ -13,8 +13,11 @@ import {
   getZoekwoordStatus,
   getAdverteerders,
   getLeaderboard,
+  getOnzeGscPosities,
+  gscStatus,
 } from "@/lib/concurrentieQueries";
 import { serpBron } from "@/lib/zoekwoorden";
+import { gscBeschikbaar } from "@/lib/searchConsole";
 import { num } from "@/lib/format";
 import { Kpi, Card } from "@/components/ui";
 import { SubNav } from "@/components/SubNav";
@@ -104,6 +107,19 @@ export default async function ConcurrentiePage() {
     return acc;
   }, {});
   const bron = serpBron();
+  const gsc = gscBeschikbaar();
+  const gscCijfers = gscStatus();
+  const onzePosities = getOnzeGscPosities(12);
+  const bronnen = [
+    { naam: "Sitecrawl concurrenten", klaar: true, uitleg: `${num(status.gisteren_gemeten || 0)} sites vandaag gemeten` },
+    { naam: "Zoekvolume (Google Ads)", klaar: zwStatus.met_volume > 0,
+      uitleg: zwStatus.met_volume > 0 ? `${num(zwStatus.met_volume)} termen` : "draai /api/zoekwoorden?volumes=1 op de server" },
+    { naam: "Onze posities (Search Console)", klaar: gsc.klaar && gscCijfers.metingen > 0,
+      uitleg: gscCijfers.metingen > 0 ? `${num(gscCijfers.metingen)} termen, ${num(gscCijfers.vertoningen || 0)} vertoningen`
+        : gsc.reden || "nog niet opgehaald" },
+    { naam: "Posities concurrenten (SerpApi)", klaar: bron.klaar,
+      uitleg: bron.klaar ? `via ${bron.naam}` : "gratis SERPAPI_KEY instellen" },
+  ];
 
   const totaalErkenningen = k.erkenningen || 1;
 
@@ -123,6 +139,20 @@ export default async function ConcurrentiePage() {
 
       {/* ------------------------------------------------------------------ */}
       <section id="leaders" className="scroll-mt-36 pt-8">
+        <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {bronnen.map((b) => (
+            <div key={b.naam} className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-white p-3">
+              <span className={
+                "mt-1 h-2 w-2 shrink-0 rounded-full " + (b.klaar ? "bg-emerald-500" : "bg-zinc-300")
+              } />
+              <div className="min-w-0">
+                <div className="text-xs font-medium text-zinc-700">{b.naam}</div>
+                <div className="truncate text-[11px] text-zinc-500" title={b.uitleg}>{b.uitleg}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <Card title="Wie leidt er online">
           {leaderboard.length > 0 ? (
             <>
@@ -198,6 +228,39 @@ export default async function ConcurrentiePage() {
                   </div>
                 ))}
               </div>
+              {onzePosities.length > 0 && (
+                <div className="mt-4 rounded-lg border border-zinc-200 p-3">
+                  <div className="mb-2 text-xs font-medium text-zinc-700">
+                    Onze eigen posities volgens Google — Search Console,{" "}
+                    {gscCijfers.datum?.split("-").reverse().join("/")}
+                  </div>
+                  <table className="w-full text-xs">
+                    <tbody>
+                      {onzePosities.map((r) => (
+                        <tr key={r.site + r.term} className="border-b border-zinc-100 last:border-0">
+                          <td className="py-1 pr-4">
+                            <a href={r.url} target="_blank" rel="noreferrer noopener"
+                               className="text-zinc-700 hover:text-blue-700 hover:underline">{r.term}</a>
+                            {!r.in_lijst && (
+                              <span className="ml-2 rounded bg-amber-50 px-1 text-[10px] text-amber-700"
+                                    title="Google toont ons hierop, maar de term staat niet in onze lijst">
+                                niet in lijst
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-1 pr-4 whitespace-nowrap text-right tabular-nums text-zinc-500">
+                            {num(r.vertoningen)} vert.
+                          </td>
+                          <td className="py-1 whitespace-nowrap text-right tabular-nums font-semibold text-zinc-800">
+                            #{r.positie.toFixed(1)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               <div className="mt-3 flex items-baseline gap-2 rounded-lg bg-zinc-50 p-3 text-xs text-zinc-600">
                 <span className="font-medium text-zinc-700">Wij:</span>
                 <span>

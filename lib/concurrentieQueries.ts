@@ -311,3 +311,54 @@ export function getLeaderboard(aantalTermen = 8, diepte = 5): LeaderboardRij[] {
     ORDER BY COALESCE(t.volume,-1) DESC, t.term, top.positie
   `).all(laatste, aantalTermen, ...ONZE_DOMEINEN, diepte) as LeaderboardRij[];
 }
+
+// ---------------------------------------------------------------------------
+// Search Console: echte Google-cijfers voor onze eigen sites
+// ---------------------------------------------------------------------------
+
+export type GscRij = {
+  term: string;
+  thema: string | null;
+  site: string;
+  positie: number;
+  vertoningen: number;
+  klikken: number;
+  url: string;
+  in_lijst: number;
+};
+
+/**
+ * Onze eigen posities volgens Google zelf. Alleen de laatste meting.
+ * `in_lijst` zegt of de term ook in onze zoekwoordenlijst staat — termen die
+ * Google wél oppikt maar wij niet volgen, zijn juist interessant.
+ */
+export function getOnzeGscPosities(limiet = 50): GscRij[] {
+  const db = getDb();
+  const laatste = (db.prepare("SELECT MAX(datum) d FROM gsc_metingen").get() as { d: string | null }).d;
+  if (!laatste) return [];
+  return db.prepare(`
+    SELECT g.term, z.thema, g.site, g.positie, g.vertoningen, g.klikken, g.url,
+           CASE WHEN z.term IS NULL THEN 0 ELSE 1 END AS in_lijst
+    FROM gsc_metingen g
+    LEFT JOIN zoekwoorden z ON lower(z.term) = lower(g.term)
+    WHERE g.datum = ?
+    ORDER BY g.vertoningen DESC, g.positie
+    LIMIT ?
+  `).all(laatste, limiet) as GscRij[];
+}
+
+export function gscStatus() {
+  const db = getDb();
+  return db.prepare(`
+    SELECT (SELECT COUNT(*) FROM gsc_metingen)                  AS metingen,
+           (SELECT MAX(datum) FROM gsc_metingen)                AS datum,
+           (SELECT COUNT(DISTINCT site) FROM gsc_metingen)      AS sites,
+           (SELECT SUM(vertoningen) FROM gsc_metingen
+             WHERE datum = (SELECT MAX(datum) FROM gsc_metingen)) AS vertoningen,
+           (SELECT SUM(klikken) FROM gsc_metingen
+             WHERE datum = (SELECT MAX(datum) FROM gsc_metingen)) AS klikken
+  `).get() as {
+    metingen: number; datum: string | null; sites: number;
+    vertoningen: number | null; klikken: number | null;
+  };
+}
