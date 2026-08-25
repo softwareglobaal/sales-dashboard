@@ -225,6 +225,7 @@ export async function meetPosities(limiet?: number) {
 
   let gemeten = 0;
   let opgeslagen = 0;
+  const ontdekt = new Set<string>();
   const fouten: { term: string; fout: string }[] = [];
 
   for (const t of termen) {
@@ -234,16 +235,36 @@ export async function meetPosities(limiet?: number) {
       db.transaction(() => {
         for (const r of rijen) {
           const kaal = r.domein.replace(/^www\./, "");
-          // Ook domeinen die we nog niet volgen zijn interessant als ze in de top 10 staan:
-          // zo vinden we concurrenten die niet in het verslaggeversregister zitten.
-          if (!gevolgd.has(kaal) && !gevolgd.has(r.domein) && r.positie > 10) continue;
+          const volgenWij = gevolgd.has(kaal) || gevolgd.has(r.domein);
+          // De hele top 10 bewaren we altijd — dat is het leaderboard, en het is
+          // meteen de manier waarop we spelers vinden die niet in het register staan.
+          // Daarbuiten alleen onze eigen sites en bekende concurrenten.
+          if (r.positie > 10 && !volgenWij) continue;
           ins.run(t.term, kaal, datum, r.soort, r.positie, r.url, bron.naam);
           opgeslagen++;
+          if (!volgenWij && r.soort === "organisch" && r.positie <= 10) ontdekt.add(kaal);
         }
       })();
     } catch (e) {
       fouten.push({ term: t.term, fout: String((e as Error)?.message || e) });
     }
   }
-  return { ok: true, bron: bron.naam, gemeten, opgeslagen, fouten };
+  // Nieuw ontdekte domeinen in de top 10 als concurrent registreren, zodat de
+  // crawler ze vanaf de volgende ronde meeneemt.
+  const nu = new Date().toISOString();
+  const insDom = db.prepare(
+    `INSERT INTO concurrenten (domein,naam,bron,volgen,categorie,verslaggevers,eerste_zien)
+     VALUES (?,?,'serp',1,'concurrent',0,?)
+     ON CONFLICT(domein) DO NOTHING`
+  );
+  let nieuw = 0;
+  db.transaction(() => {
+    for (const d of ontdekt) {
+      if (gevolgd.has(d)) continue;
+      insDom.run(d, d.replace(/\.(be|com|eu|nl)$/, ""), nu);
+      nieuw++;
+    }
+  })();
+
+  return { ok: true, bron: bron.naam, gemeten, opgeslagen, nieuweDomeinen: nieuw, fouten };
 }

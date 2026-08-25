@@ -266,3 +266,47 @@ export function getAdverteerders(limiet = 15) {
     GROUP BY p.domein ORDER BY termen DESC LIMIT ?
   `).all(laatste, limiet) as { domein: string; termen: number; beste: number; naam: string }[];
 }
+
+export type LeaderboardRij = {
+  term: string;
+  thema: string;
+  volume: number | null;
+  positie: number;
+  domein: string;
+  naam: string | null;
+  van_ons: number;
+};
+
+/**
+ * De top 5 per zoekterm, voor de termen met het meeste zoekvolume.
+ * Toont wie er werkelijk bovenaan staat — inclusief spelers die niet in het
+ * verslaggeversregister voorkomen.
+ */
+export function getLeaderboard(aantalTermen = 8, diepte = 5): LeaderboardRij[] {
+  const db = getDb();
+  const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
+  if (!laatste) return [];
+  const params = ONZE_DOMEINEN.map(() => "?").join(",");
+
+  return db.prepare(`
+    WITH top AS (
+      SELECT p.term, p.domein, p.positie,
+             ROW_NUMBER() OVER (PARTITION BY p.term ORDER BY p.positie) AS rang
+      FROM posities p
+      WHERE p.datum = ? AND p.soort = 'organisch'
+    ),
+    termen AS (
+      SELECT z.term, z.thema, z.volume FROM zoekwoorden z
+      WHERE z.term IN (SELECT DISTINCT term FROM top)
+      ORDER BY COALESCE(z.volume, -1) DESC, z.term
+      LIMIT ?
+    )
+    SELECT t.term, t.thema, t.volume, top.positie, top.domein,
+           NULLIF(c.naam,'') AS naam,
+           CASE WHEN top.domein IN (${params}) THEN 1 ELSE 0 END AS van_ons
+    FROM termen t
+    JOIN top ON top.term = t.term AND top.rang <= ?
+    LEFT JOIN concurrenten c ON c.domein = top.domein
+    ORDER BY COALESCE(t.volume,-1) DESC, t.term, top.positie
+  `).all(laatste, aantalTermen, ...ONZE_DOMEINEN, diepte) as LeaderboardRij[];
+}

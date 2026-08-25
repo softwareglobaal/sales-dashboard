@@ -12,6 +12,7 @@ import {
   getZoekwoorden,
   getZoekwoordStatus,
   getAdverteerders,
+  getLeaderboard,
 } from "@/lib/concurrentieQueries";
 import { serpBron } from "@/lib/zoekwoorden";
 import { num } from "@/lib/format";
@@ -83,6 +84,11 @@ export default async function ConcurrentiePage() {
   const zoekwoorden = getZoekwoorden();
   const zwStatus = getZoekwoordStatus();
   const adverteerders = getAdverteerders();
+  const leaderboard = getLeaderboard(8, 5);
+  const perTerm = leaderboard.reduce<Record<string, typeof leaderboard>>((acc, r) => {
+    (acc[r.term] ||= []).push(r);
+    return acc;
+  }, {});
   const bron = serpBron();
 
   const totaalErkenningen = k.erkenningen || 1;
@@ -118,21 +124,22 @@ export default async function ConcurrentiePage() {
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card title="Sterkst online in onze markt — naar aantal EPB- en energiepagina's">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
-                    <th className="pb-2 font-medium">Bedrijf</th>
-                    <th className="pb-2 text-right font-medium">EPB-pagina's</th>
-                    <th className="pb-2 text-right font-medium">Totaal</th>
-                    <th className="pb-2 text-right font-medium">Artikels</th>
-                    <th className="pb-2 font-medium">Laatste post</th>
-                    <th className="pb-2 text-right font-medium">Vslg.</th>
+                    <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Bedrijf</th>
+                    <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">EPB-pagina's</th>
+                    <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Totaal</th>
+                    <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Artikels</th>
+                    <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Laatste post</th>
+                    <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Vslg.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sterkste.map((b) => (
                     <tr key={b.domein} className="border-b border-zinc-100 last:border-0">
-                      <td className="py-2">
+                      <td className="py-2 pr-4 last:pr-0">
                         <a href={`https://${b.domein}`} target="_blank" rel="noreferrer noopener"
                            className="font-medium text-zinc-800 hover:text-blue-700 hover:underline">{b.domein}</a>
                         <div className="text-xs text-zinc-500">{b.naam}</div>
@@ -142,17 +149,18 @@ export default async function ConcurrentiePage() {
                           </div>
                         )}
                       </td>
-                      <td className="py-2 text-right font-semibold text-zinc-800">{num(b.epb_paginas || 0)}</td>
-                      <td className="py-2 text-right text-zinc-500">
+                      <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right font-semibold text-zinc-800">{num(b.epb_paginas || 0)}</td>
+                      <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-500">
                         <Paginas n={b.paginas} sitemap={b.heeft_sitemap} />
                       </td>
-                      <td className="py-2 text-right text-zinc-600">{num(b.blog_artikels || 0)}</td>
-                      <td className="py-2 text-zinc-600"><Datum d={b.laatste_blog} /></td>
-                      <td className="py-2 text-right text-zinc-500">{b.verslaggevers || "—"}</td>
+                      <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-600">{num(b.blog_artikels || 0)}</td>
+                      <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-zinc-600"><Datum d={b.laatste_blog} /></td>
+                      <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-500">{b.verslaggevers || "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
               <p className="mt-3 text-xs text-zinc-500">
                 Gerangschikt op pagina's die over EPB, energie of ventilatie gaan — niet op de
                 totale omvang van de site. Arcadis en Sweco hebben duizenden pagina's maar zijn
@@ -162,27 +170,29 @@ export default async function ConcurrentiePage() {
 
             <div className="mt-4">
               <Card title="Meeste mensen in dienst — de andere lens">
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <tbody>
                     {bureaus.map((b) => (
                       <tr key={b.domein} className="border-b border-zinc-100 last:border-0">
-                        <td className="py-1.5">
+                        <td className="py-1.5 pr-4 last:pr-0">
                           <span className="text-zinc-800">{b.naam}</span>{" "}
                           <a href={`https://${b.domein}`} target="_blank" rel="noreferrer noopener"
                              className="text-xs text-blue-600 hover:underline">{b.domein}</a>
                         </td>
-                        <td className="py-1.5 text-right text-zinc-500">{b.provincie || "—"}</td>
-                        <td className="py-1.5 w-24 text-right">
+                        <td className="py-1.5 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-500">{b.provincie || "—"}</td>
+                        <td className="py-1.5 pr-4 last:pr-0 whitespace-nowrap w-24 text-right">
                           <span className="font-semibold text-zinc-800">{b.verslaggevers}</span>
                           <span className="text-xs text-zinc-400"> verslaggevers</span>
                         </td>
-                        <td className="py-1.5 w-28 text-right text-xs text-zinc-500">
+                        <td className="py-1.5 pr-4 last:pr-0 whitespace-nowrap w-28 text-right text-xs text-zinc-500">
                           {b.bereikbaar === null ? "nog niet gemeten" : `${num(b.epb_paginas || 0)} EPB-pag.`}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
                 <p className="mt-3 text-xs text-zinc-500">
                   Veel mensen in dienst is niet hetzelfde als zichtbaar zijn. Egeon heeft de
                   grootste ploeg maar publiceerde voor het laatst in september 2025.
@@ -241,20 +251,20 @@ export default async function ConcurrentiePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
-                  <th className="pb-2 font-medium">Bedrijf</th>
-                  <th className="pb-2 text-right font-medium">EPB-pag.</th>
-                  <th className="pb-2 text-right font-medium">Totaal</th>
-                  <th className="pb-2 text-right font-medium">Artikels</th>
-                  <th className="pb-2 text-right font-medium">Vslg.</th>
-                  <th className="pb-2 font-medium">Laatste post</th>
-                  <th className="pb-2 font-medium">Diensten</th>
-                  <th className="pb-2 font-medium">CMS</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Bedrijf</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">EPB-pag.</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Totaal</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Artikels</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Vslg.</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Laatste post</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Diensten</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">CMS</th>
                 </tr>
               </thead>
               <tbody>
                 {concurrenten.map((c) => (
                   <tr key={c.domein} className="border-b border-zinc-100 last:border-0 align-top">
-                    <td className="py-2">
+                    <td className="py-2 pr-4 last:pr-0">
                       <div className="font-medium text-zinc-800">{c.naam}</div>
                       <a href={`https://${c.domein}`} target="_blank" rel="noreferrer noopener"
                          className="text-xs text-blue-600 hover:underline">{c.domein}</a>
@@ -263,15 +273,15 @@ export default async function ConcurrentiePage() {
                         <div className="text-[11px] text-red-600">{num(c.spam_verdacht || 0)} spam-URL's — vermoedelijk gehackt</div>
                       )}
                     </td>
-                    <td className="py-2 text-right font-semibold text-zinc-800">{num(c.epb_paginas || 0)}</td>
-                    <td className="py-2 text-right text-zinc-500"><Paginas n={c.paginas} sitemap={c.heeft_sitemap} /></td>
-                    <td className="py-2 text-right text-zinc-600">
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right font-semibold text-zinc-800">{num(c.epb_paginas || 0)}</td>
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-500"><Paginas n={c.paginas} sitemap={c.heeft_sitemap} /></td>
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-600">
                       {c.bereikbaar === null ? <span className="text-zinc-300">—</span> : num(c.blog_artikels || 0)}
                     </td>
-                    <td className="py-2 text-right text-zinc-500">{c.verslaggevers}</td>
-                    <td className="py-2 text-zinc-600"><Datum d={c.laatste_blog} /></td>
-                    <td className="py-2"><Diensten json={c.diensten} /></td>
-                    <td className="py-2 text-xs text-zinc-500">{c.cms || "—"}</td>
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-500">{c.verslaggevers}</td>
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-zinc-600"><Datum d={c.laatste_blog} /></td>
+                    <td className="py-2 pr-4 last:pr-0"><Diensten json={c.diensten} /></td>
+                    <td className="py-2 pr-4 last:pr-0 text-xs text-zinc-500">{c.cms || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -312,7 +322,7 @@ export default async function ConcurrentiePage() {
         <Card title={`Zoekwoorden — ${num(zwStatus.termen)} termen die deze markt afbakenen`}>
           {!bron.klaar && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              <div className="font-medium">Nog geen positiemeting</div>
+              <div className="font-medium">Nog geen positiemeting — leaderboard blijft leeg</div>
               <p className="mt-1">
                 Posities in Google zijn niet gratis en betrouwbaar te krijgen: Google zelf uitlezen
                 is precies wat de blokkades tegenhouden die we bij concurrenten ook tegenkomen.
@@ -338,25 +348,58 @@ export default async function ConcurrentiePage() {
             </div>
           )}
 
+          {leaderboard.length > 0 && (
+            <div className="mb-5">
+              <div className="mb-2 text-sm font-semibold text-zinc-700">
+                Top 5 per zoekterm — stand van {zwStatus.positie_datum?.split("-").reverse().join("/")}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {Object.entries(perTerm).map(([term, rijen]) => (
+                  <div key={term} className="rounded-lg border border-zinc-200 p-3">
+                    <div className="truncate text-sm font-medium text-zinc-800" title={term}>{term}</div>
+                    <div className="mb-2 text-[11px] text-zinc-400">
+                      {rijen[0].volume ? `${num(rijen[0].volume)} zoekopdrachten/maand` : rijen[0].thema}
+                    </div>
+                    <ol className="space-y-1">
+                      {rijen.map((r) => (
+                        <li key={r.positie} className="flex items-baseline gap-2 text-xs">
+                          <span className={
+                            "w-4 shrink-0 text-right tabular-nums " +
+                            (r.positie <= 3 ? "font-semibold text-zinc-700" : "text-zinc-400")
+                          }>{r.positie}</span>
+                          <span className={
+                            "truncate " + (r.van_ons ? "font-semibold text-cyan-700" : "text-zinc-600")
+                          } title={r.naam || r.domein}>
+                            {r.domein}{r.van_ons ? " ← wij" : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
-                  <th className="pb-2 font-medium">Zoekterm</th>
-                  <th className="pb-2 font-medium">Thema</th>
-                  <th className="pb-2 font-medium">Intentie</th>
-                  <th className="pb-2 text-right font-medium">Volume/mnd</th>
-                  <th className="pb-2 text-right font-medium">Wij</th>
-                  <th className="pb-2 font-medium">Beste concurrent</th>
-                  <th className="pb-2 text-right font-medium">Ads</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Zoekterm</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Thema</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Intentie</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Volume/mnd</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Wij</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Beste concurrent</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Ads</th>
                 </tr>
               </thead>
               <tbody>
                 {zoekwoorden.map((z) => (
                   <tr key={z.term} className="border-b border-zinc-100 last:border-0">
-                    <td className="py-2 text-zinc-800">{z.term}</td>
-                    <td className="py-2 text-zinc-500">{z.thema}</td>
-                    <td className="py-2">
+                    <td className="py-2 pr-4 last:pr-0 text-zinc-800">{z.term}</td>
+                    <td className="py-2 pr-4 last:pr-0 text-zinc-500">{z.thema}</td>
+                    <td className="py-2 pr-4 last:pr-0">
                       <span className={
                         "rounded px-1.5 py-0.5 text-[11px] " +
                         (z.intentie === "probleem" ? "bg-amber-100 text-amber-800"
@@ -364,19 +407,19 @@ export default async function ConcurrentiePage() {
                           : "bg-zinc-100 text-zinc-600")
                       }>{z.intentie}</span>
                     </td>
-                    <td className="py-2 text-right text-zinc-700">
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-700">
                       {z.volume === null ? <span className="text-zinc-300">—</span> : num(z.volume)}
                     </td>
-                    <td className="py-2 text-right font-medium">
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">
                       {z.onze_positie ? <span className="text-zinc-800">{z.onze_positie}</span>
                         : <span className="text-zinc-300">—</span>}
                     </td>
-                    <td className="py-2 text-zinc-600">
+                    <td className="py-2 pr-4 last:pr-0 text-zinc-600">
                       {z.beste_concurrent
                         ? <>{z.beste_concurrent} <span className="text-xs text-zinc-400">#{z.beste_positie}</span></>
                         : <span className="text-zinc-300">—</span>}
                     </td>
-                    <td className="py-2 text-right text-zinc-500">
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-500">
                       {z.adverteerders ? num(z.adverteerders) : <span className="text-zinc-300">—</span>}
                     </td>
                   </tr>
@@ -398,9 +441,9 @@ export default async function ConcurrentiePage() {
                 <tbody>
                   {adverteerders.map((a) => (
                     <tr key={a.domein} className="border-b border-zinc-100 last:border-0">
-                      <td className="py-1.5 text-zinc-800">{a.naam}</td>
-                      <td className="py-1.5 text-xs text-blue-600">{a.domein}</td>
-                      <td className="py-1.5 text-right text-zinc-600">{num(a.termen)} termen</td>
+                      <td className="py-1.5 pr-4 last:pr-0 text-zinc-800">{a.naam}</td>
+                      <td className="py-1.5 pr-4 last:pr-0 text-xs text-blue-600">{a.domein}</td>
+                      <td className="py-1.5 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-600">{num(a.termen)} termen</td>
                     </tr>
                   ))}
                 </tbody>
@@ -457,21 +500,21 @@ export default async function ConcurrentiePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
-                  <th className="pb-2 font-medium">Naam</th>
-                  <th className="pb-2 font-medium">Bedrijf</th>
-                  <th className="pb-2 font-medium">Gemeente</th>
-                  <th className="pb-2 font-medium">Provincie</th>
-                  <th className="pb-2 font-medium">Website</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Naam</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Bedrijf</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Gemeente</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Provincie</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Website</th>
                 </tr>
               </thead>
               <tbody>
                 {prospects.map((p, i) => (
                   <tr key={`${p.naam}-${i}`} className="border-b border-zinc-100 last:border-0">
-                    <td className="py-2 text-zinc-800">{p.naam}</td>
-                    <td className="py-2 text-zinc-600">{p.bedrijf || "—"}</td>
-                    <td className="py-2 text-zinc-600">{p.gemeente}</td>
-                    <td className="py-2 text-zinc-500">{p.provincie || "—"}</td>
-                    <td className="py-2 text-xs">
+                    <td className="py-2 pr-4 last:pr-0 text-zinc-800">{p.naam}</td>
+                    <td className="py-2 pr-4 last:pr-0 text-zinc-600">{p.bedrijf || "—"}</td>
+                    <td className="py-2 pr-4 last:pr-0 text-zinc-600">{p.gemeente}</td>
+                    <td className="py-2 pr-4 last:pr-0 text-zinc-500">{p.provincie || "—"}</td>
+                    <td className="py-2 pr-4 last:pr-0 text-xs">
                       {p.domein
                         ? <a href={`https://${p.domein}`} target="_blank" rel="noreferrer noopener" className="text-blue-600 hover:underline">{p.domein}</a>
                         : <span className="text-zinc-400">geen</span>}
