@@ -150,6 +150,8 @@ export async function haalZoekvolumes() {
 // ---------------------------------------------------------------------------
 
 export function serpBron(): { naam: string; klaar: boolean; reden?: string } {
+  // SerpApi eerst: die heeft een gratis maandquotum dat voor onze lijst volstaat.
+  if (process.env.SERPAPI_KEY) return { naam: "SerpApi", klaar: true };
   if (process.env.DATAFORSEO_LOGIN && process.env.DATAFORSEO_PASSWORD) {
     return { naam: "DataForSEO", klaar: true };
   }
@@ -157,11 +159,43 @@ export function serpBron(): { naam: string; klaar: boolean; reden?: string } {
     naam: "geen",
     klaar: false,
     reden:
-      "Geen SERP-bron gekoppeld. Zet DATAFORSEO_LOGIN en DATAFORSEO_PASSWORD in .env om posities te meten.",
+      "Geen SERP-bron gekoppeld. Zet SERPAPI_KEY (gratis quotum volstaat voor deze lijst) " +
+      "of DATAFORSEO_LOGIN en DATAFORSEO_PASSWORD in .env.",
   };
 }
 
 type SerpRij = { soort: "organisch" | "advertentie"; positie: number; domein: string; url: string };
+
+/** Eén zoekopdracht bij SerpApi, Google België / Nederlands. */
+async function serpSerpApi(term: string): Promise<SerpRij[]> {
+  const params = new URLSearchParams({
+    engine: "google",
+    q: term,
+    google_domain: "google.be",
+    gl: "be",
+    hl: "nl",
+    num: "20",
+    api_key: process.env.SERPAPI_KEY || "",
+  });
+  const res = await fetch(`https://serpapi.com/search.json?${params}`, { cache: "no-store" });
+  const json = await res.json();
+  if (json.error) throw new Error(`SerpApi: ${json.error}`);
+
+  const uit: SerpRij[] = [];
+  const domeinVan = (u: string) => { try { return new URL(u).hostname; } catch { return ""; } };
+
+  for (const r of json.organic_results || []) {
+    const d = domeinVan(r.link || "");
+    if (d) uit.push({ soort: "organisch", positie: r.position, domein: d, url: r.link || "" });
+  }
+  // SerpApi geeft advertenties zonder eigen rangnummer; we tellen ze in volgorde.
+  let advertentie = 0;
+  for (const a of json.ads || []) {
+    const d = domeinVan(a.link || a.tracking_link || "");
+    if (d) uit.push({ soort: "advertentie", positie: ++advertentie, domein: d, url: a.link || "" });
+  }
+  return uit;
+}
 
 /** Eén zoekopdracht bij DataForSEO, Google BE / Nederlands, desktop. */
 async function serpDataForSeo(term: string): Promise<SerpRij[]> {
@@ -230,7 +264,7 @@ export async function meetPosities(limiet?: number) {
 
   for (const t of termen) {
     try {
-      const rijen = await serpDataForSeo(t.term);
+      const rijen = bron.naam === "SerpApi" ? await serpSerpApi(t.term) : await serpDataForSeo(t.term);
       gemeten++;
       db.transaction(() => {
         for (const r of rijen) {

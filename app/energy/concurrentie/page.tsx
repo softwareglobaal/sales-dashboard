@@ -434,10 +434,10 @@ export default async function ConcurrentiePage() {
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               <div className="font-medium">Nog geen positiemeting — leaderboard blijft leeg</div>
               <p className="mt-1">
-                Posities in Google zijn niet gratis en betrouwbaar te krijgen: Google zelf uitlezen
-                is precies wat de blokkades tegenhouden die we bij concurrenten ook tegenkomen.
-                Daarvoor is een betaalde SERP-bron nodig. Voor deze lijst gaat het om enkele euro's
-                per maand bij een wekelijkse meting.
+                Google zelf automatisch uitlezen mag niet en wordt geblokkeerd — dezelfde muur waar
+                we bij Macobo en Impact-SB tegenaan lopen. Meten gaat dus via een tussenpartij.
+                Met een gratis SerpApi-sleutel (<code>SERPAPI_KEY</code>) volstaat het maandquotum
+                voor deze {num(zwStatus.termen)} termen bij een wekelijkse meting.
               </p>
               <p className="mt-2 text-xs">
                 Zolang die bron er niet is blijven de positiekolommen leeg. Liever leeg dan een
