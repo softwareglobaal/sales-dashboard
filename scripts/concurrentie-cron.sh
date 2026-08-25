@@ -16,3 +16,10 @@ echo "$(date -Is) $antwoord"
 
 # Niet-nul afsluiten als de run mislukt is, zodat cron-mail/log het opmerkt.
 echo "$antwoord" | grep -q '"ok":true' || exit 1
+
+# Zoekwoorden: posities wekelijks (maandag), volumes maandelijks (de 1e).
+# Beide zijn no-ops zolang de betreffende bron niet gekoppeld is.
+BASIS="${DASHBOARD_URL:-http://localhost:3008}/api/zoekwoorden"
+[ "$(date +%u)" = "1" ] && echo "$(date -Is) $(curl -sS --max-time 1800 "$BASIS?posities=1" || echo mislukt)"
+[ "$(date +%d)" = "01" ] && echo "$(date -Is) $(curl -sS --max-time 300 "$BASIS?volumes=1" || echo mislukt)"
+exit 0

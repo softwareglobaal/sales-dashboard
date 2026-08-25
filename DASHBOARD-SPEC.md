@@ -138,9 +138,38 @@ en wat er verandert — zonder dat iemand daarvoor handmatig websites moet opene
 - Wie erkend is maar nauwelijks online staat, is geen bedreiging maar een kandidaat voor
   onderaanneming. Die lijst voedt de Onderaanneming-tab van energie-efficient.be.
 
+**Classificatie van pagina's.** De deel-sitemap is leidend, niet het URL-pad: WordPress
+splitst `post-sitemap` van `page-sitemap`, en mijnepb.be publiceert artikels op
+`/artikel-titel/` zonder `/blog/` ervoor. Op het pad alleen telde die site 9 artikels
+in plaats van 356. Categorie-, tag- en paginatiepagina's tellen niet als artikel.
+
+**Omvang meten we in ONZE markt.** `epb_paginas` telt pagina's over EPB, energie of
+ventilatie. Rangschikken op het totale aantal pagina's zet Arcadis en Sweco bovenaan —
+reuzen met één EPB'er in dienst. Rangschikken op aantal verslaggevers zet mijnEPB
+onderaan, terwijl dat de sterkste speler is. Beide lenzen staan naast elkaar op de pagina.
+
+**Gehackte sites.** `spam_verdacht` telt URL's met gok-, adult- of farmatermen.
+vestingbvba.be bleek 2993 zulke pagina's te hebben. Zonder die telling lijkt zo'n site
+de actiefste blogger van de markt.
+
+## 11. Zoekwoorden en posities
+
+- Zoekwoordenlijst in `config/zoekwoorden-energie.json` — aanpasbaar zonder code, zodat
+  Mukesh en Jean termen kunnen toevoegen. Per term: thema en intentie
+  (dienst / probleem / kennis / lokaal).
+- **Zoekvolume** via Google Ads Keyword Planner, op dezelfde OAuth-koppeling als de
+  advertentiesync. Vraagt `GOOGLE_ADS_KEYWORD_CUSTOMER_ID` of een gevulde
+  `GOOGLE_ADS_LOGIN_CUSTOMER_ID`. Let op dezelfde valkuil als bij de advertentiesync:
+  een ingetrokken API-versie geeft HTML in plaats van JSON.
+- **Posities** via een betaalde SERP-bron (DataForSEO-implementatie aanwezig, aan te
+  zetten met `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD`). Google rechtstreeks uitlezen
+  doen we niet. Zonder bron blijven de positiekolommen leeg — geen geraden getallen.
+- **Advertenties**: we tonen wél wie er adverteert, **nooit** een geschat budget.
+
 **Ritme**
 `scripts/concurrentie-cron.sh` controleert dagelijks de 90 langst niet gemeten domeinen;
-de volledige lijst is zo elke vier dagen rond. Nieuwe URL's worden signalen.
+de volledige lijst is zo elke vier dagen rond. Nieuwe URL's worden signalen. Posities
+wekelijks op maandag, zoekvolumes maandelijks op de eerste.
 
 ## Aanvullingen (feedback-ronde)
 - **Grafiek "aanvragen vs. direct gewonnen omzet (zelfde maand)"**: SAME-MONTH cohort — balken = leads

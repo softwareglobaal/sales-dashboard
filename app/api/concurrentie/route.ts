@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { importeerVerslaggevers, crawlDomeinen, teCrawlenDomeinen } from "@/lib/concurrentie";
+import { importeerVerslaggevers, crawlDomeinen, teCrawlenDomeinen, herberekenAfleidingen } from "@/lib/concurrentie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +20,13 @@ async function draai(url: URL) {
   const limiet = Number(url.searchParams.get("limiet") || 60);
 
   const uit: Record<string, unknown> = {};
+
+  // ?herbereken=1 leidt de afgeleide cijfers opnieuw af uit opgeslagen URL's,
+  // zonder één site opnieuw te bezoeken.
+  if (url.searchParams.get("herbereken") === "1") {
+    return { ...uit, ...herberekenAfleidingen() };
+  }
+
   if (doeImport) uit.register = importeerVerslaggevers();
 
   const domeinen = enkel ? [enkel] : teCrawlenDomeinen(limiet);

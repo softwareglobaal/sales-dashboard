@@ -22,6 +22,9 @@ export type ConcurrentRij = {
   ttfb_ms: number | null;
   heeft_localbiz: number | null;
   heeft_sitemap: number | null;
+  blog_artikels: number | null;
+  epb_paginas: number | null;
+  spam_verdacht: number | null;
   laatste_check: string | null;
   fout: string | null;
 };
@@ -54,8 +57,9 @@ export function getMarktKpis() {
     SELECT
       COUNT(*)                                              AS gemeten,
       SUM(CASE WHEN bereikbaar=1 THEN 1 ELSE 0 END)         AS online,
-      SUM(CASE WHEN blog_paginas > 0 THEN 1 ELSE 0 END)     AS met_blog,
-      SUM(CASE WHEN blog_per_maand >= 1 THEN 1 ELSE 0 END)  AS actief_bloggend,
+      SUM(CASE WHEN blog_artikels > 0 THEN 1 ELSE 0 END)    AS met_blog,
+      SUM(CASE WHEN laatste_blog >= date('now','-90 days') THEN 1 ELSE 0 END) AS actief_bloggend,
+      SUM(CASE WHEN spam_verdacht > 0 THEN 1 ELSE 0 END)    AS gehackt,
       AVG(NULLIF(paginas,0))                                AS gem_paginas
     FROM (${LAATSTE_SNAPSHOT})
   `).get() as Record<string, number>;
@@ -69,31 +73,57 @@ export function getConcurrenten(categorie?: string): ConcurrentRij[] {
   const sql = `
     SELECT c.domein, c.naam, c.categorie, c.verslaggevers, c.provincie, c.gemeente, c.laatste_check,
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
-           s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap, s.fout
+           s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
+           s.blog_artikels, s.epb_paginas, s.spam_verdacht, s.fout
     FROM concurrenten c
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
     ${waar}
-    ORDER BY c.verslaggevers DESC, COALESCE(s.paginas,0) DESC, c.domein
+    ORDER BY COALESCE(s.epb_paginas,0) DESC, c.verslaggevers DESC, c.domein
   `;
   return (categorie ? db.prepare(sql).all(categorie) : db.prepare(sql).all()) as ConcurrentRij[];
 }
 
-/** Bedrijven met de meeste erkende verslaggevers: de zwaargewichten van de markt. */
-export function getGrootsteBureaus(limiet = 15) {
+export type BureauRij = {
+  naam: string; domein: string; verslaggevers: number; provincie: string;
+  paginas: number | null; epb_paginas: number | null; blog_artikels: number | null;
+  laatste_blog: string | null; bereikbaar: number | null; heeft_sitemap: number | null;
+  spam_verdacht: number | null;
+};
+
+const BUREAU_KOLOMMEN = `
+  c.naam, c.domein, c.verslaggevers, c.provincie,
+  s.paginas, s.epb_paginas, s.blog_artikels, s.laatste_blog,
+  s.bereikbaar, s.heeft_sitemap, s.spam_verdacht
+`;
+
+/**
+ * Sterkst online in ONZE markt. Bewust op epb_paginas en niet op het totale
+ * aantal pagina's: Arcadis en Sweco hebben duizenden pagina's maar zijn geen
+ * EPB-bureau, en mijnEPB heeft maar drie verslaggevers maar staat overal.
+ */
+export function getSterksteOnline(limiet = 15): BureauRij[] {
   const db = getDb();
   return db.prepare(`
-    SELECT c.naam, c.domein, c.verslaggevers, c.provincie,
-           s.paginas, s.blog_paginas, s.blog_per_maand, s.bereikbaar, s.heeft_sitemap
+    SELECT ${BUREAU_KOLOMMEN}
+    FROM concurrenten c
+    JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
+    WHERE c.categorie <> 'eigen'
+    ORDER BY COALESCE(s.epb_paginas,0) DESC, COALESCE(s.blog_artikels,0) DESC
+    LIMIT ?
+  `).all(limiet) as BureauRij[];
+}
+
+/** De andere lens: wie heeft de meeste mensen in dienst. */
+export function getGrootsteBureaus(limiet = 10): BureauRij[] {
+  const db = getDb();
+  return db.prepare(`
+    SELECT ${BUREAU_KOLOMMEN}
     FROM concurrenten c
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
     WHERE c.categorie <> 'eigen'
-    ORDER BY c.verslaggevers DESC, COALESCE(s.paginas,0) DESC
+    ORDER BY c.verslaggevers DESC, COALESCE(s.epb_paginas,0) DESC
     LIMIT ?
-  `).all(limiet) as {
-    naam: string; domein: string; verslaggevers: number; provincie: string;
-    paginas: number | null; blog_paginas: number | null; blog_per_maand: number | null;
-    bereikbaar: number | null; heeft_sitemap: number | null;
-  }[];
+  `).all(limiet) as BureauRij[];
 }
 
 export function getPerProvincie() {
@@ -160,4 +190,75 @@ export function getCrawlStatus() {
            (SELECT COUNT(*) FROM site_snapshots WHERE datum = (SELECT MAX(datum) FROM site_snapshots)) AS gisteren_gemeten,
            (SELECT COUNT(*) FROM (${LAATSTE_SNAPSHOT}) WHERE fout <> '' AND fout IS NOT NULL) AS met_fout
   `).get() as { laatste_crawl: string | null; nooit_gecrawld: number; gisteren_gemeten: number; met_fout: number };
+}
+
+// ---------------------------------------------------------------------------
+// Zoekwoorden en posities
+// ---------------------------------------------------------------------------
+
+export type ZoekwoordRij = {
+  term: string;
+  thema: string;
+  intentie: string;
+  volume: number | null;
+  concurrentie: string | null;
+  cpc_hoog: number | null;
+  onze_positie: number | null;
+  beste_concurrent: string | null;
+  beste_positie: number | null;
+  adverteerders: number;
+};
+
+const ONZE_DOMEINEN = ["energie-efficient.be", "unabo.be"];
+
+export function getZoekwoorden(): ZoekwoordRij[] {
+  const db = getDb();
+  const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
+  const params = ONZE_DOMEINEN.map(() => "?").join(",");
+
+  return db.prepare(`
+    SELECT z.term, z.thema, z.intentie, z.volume, z.concurrentie, z.cpc_hoog,
+           (SELECT MIN(p.positie) FROM posities p
+             WHERE p.term = z.term AND p.datum = ? AND p.soort = 'organisch'
+               AND p.domein IN (${params}))                                   AS onze_positie,
+           (SELECT p.domein FROM posities p
+             WHERE p.term = z.term AND p.datum = ? AND p.soort = 'organisch'
+               AND p.domein NOT IN (${params})
+             ORDER BY p.positie LIMIT 1)                                      AS beste_concurrent,
+           (SELECT MIN(p.positie) FROM posities p
+             WHERE p.term = z.term AND p.datum = ? AND p.soort = 'organisch'
+               AND p.domein NOT IN (${params}))                               AS beste_positie,
+           (SELECT COUNT(DISTINCT p.domein) FROM posities p
+             WHERE p.term = z.term AND p.datum = ? AND p.soort = 'advertentie') AS adverteerders
+    FROM zoekwoorden z
+    ORDER BY COALESCE(z.volume, -1) DESC, z.thema, z.term
+  `).all(laatste, ...ONZE_DOMEINEN, laatste, ...ONZE_DOMEINEN, laatste, ...ONZE_DOMEINEN, laatste) as ZoekwoordRij[];
+}
+
+export function getZoekwoordStatus() {
+  const db = getDb();
+  return db.prepare(`
+    SELECT (SELECT COUNT(*) FROM zoekwoorden)                          AS termen,
+           (SELECT COUNT(*) FROM zoekwoorden WHERE volume IS NOT NULL) AS met_volume,
+           (SELECT MAX(volume_datum) FROM zoekwoorden)                 AS volume_datum,
+           (SELECT MAX(datum) FROM posities)                           AS positie_datum,
+           (SELECT COUNT(*) FROM posities)                             AS metingen
+  `).get() as {
+    termen: number; met_volume: number; volume_datum: string | null;
+    positie_datum: string | null; metingen: number;
+  };
+}
+
+/** Wie adverteert er op onze termen. Alleen betrouwbaar zodra een SERP-bron gekoppeld is. */
+export function getAdverteerders(limiet = 15) {
+  const db = getDb();
+  const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
+  if (!laatste) return [];
+  return db.prepare(`
+    SELECT p.domein, COUNT(DISTINCT p.term) termen, MIN(p.positie) beste,
+           COALESCE(NULLIF(c.naam,''), p.domein) naam
+    FROM posities p LEFT JOIN concurrenten c ON c.domein = p.domein
+    WHERE p.datum = ? AND p.soort = 'advertentie'
+    GROUP BY p.domein ORDER BY termen DESC LIMIT ?
+  `).all(laatste, limiet) as { domein: string; termen: number; beste: number; naam: string }[];
 }

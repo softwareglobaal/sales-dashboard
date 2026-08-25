@@ -41,6 +41,21 @@ const DIENSTEN: { key: string; patronen: RegExp }[] = [
   { key: "Architectuur", patronen: /architect(uur|enbureau)?\b/i },
 ];
 
+// Een categorie- of paginatie-archief is geen artikel. Zonder deze filter telt
+// /nieuws/regelgeving/ mee als publicatie, en dan lijkt een site actiever dan hij is.
+const ARCHIEF =
+  /\/(page|pagina|tag|categorie|category|author|auteur|archief|archive|feed)\/|\/page\/\d+/i;
+
+// Waar deze markt over gaat. Bepaalt de omvang van een concurrent in ONZE markt,
+// in plaats van zijn totale omvang: Arcadis heeft 3000 pagina's maar nauwelijks EPB.
+const EPB_RELEVANT =
+  /(epb|epc|energie|energy|ventilatie|luchtdicht|blower|isolat|s-?peil|e-?peil|k-?peil|verslaggev|premie|renovat|epw|ben-?woning|energieprestatie)/i;
+
+// Wijst op een gehackte site: gokreclame, adult, farma. Dat is geen concurrentie
+// maar een waarschuwing dat de meting van die site niets voorstelt.
+const SPAM =
+  /(onlyfans|mostbet|bahis|casino|slot(s)?-|bet-?win|porn|escort|viagra|cialis|kumar|pinup|1xbet|parimatch)/i;
+
 const BLOG_PAD =
   /\/(blog|nieuws|actua|actualiteit|artikel|artikels|kennis|kennisbank|tips|inzicht|publicatie|post|weetjes|updates?)(\/|$)/i;
 const BLOG_DATUM = /\/(19|20)\d{2}\/\d{1,2}\//;
@@ -84,16 +99,16 @@ async function haal(url: string, accepteerHtml = true): Promise<Haal> {
 // ---------------------------------------------------------------------------
 // Sitemaps
 // ---------------------------------------------------------------------------
-type SitemapUrl = { url: string; lastmod: string };
+type SitemapUrl = { url: string; lastmod: string; bron: string };
 
-function parseLocs(xml: string): SitemapUrl[] {
+function parseLocs(xml: string, bron = ""): SitemapUrl[] {
   const uit: SitemapUrl[] = [];
   const blokken = xml.match(/<(url|sitemap)\b[\s\S]*?<\/\1>/gi) || [];
   for (const b of blokken) {
     const loc = b.match(/<loc>\s*([\s\S]*?)\s*<\/loc>/i)?.[1]?.trim();
     if (!loc) continue;
     const lm = b.match(/<lastmod>\s*([\s\S]*?)\s*<\/lastmod>/i)?.[1]?.trim() || "";
-    uit.push({ url: loc, lastmod: lm.slice(0, 10) });
+    uit.push({ url: loc, lastmod: lm.slice(0, 10), bron });
   }
   return uit;
 }
@@ -121,12 +136,41 @@ async function sitemapUrls(domein: string, robots: string): Promise<{ urls: Site
     if (!r.ok || !/<(urlset|sitemapindex)/i.test(r.tekst)) continue;
     gevonden = true;
     const isIndex = /<sitemapindex/i.test(r.tekst);
-    for (const item of parseLocs(r.tekst)) {
+    for (const item of parseLocs(r.tekst, sm)) {
       if (isIndex) wachtrij.push(item.url);
       else if (uit.length < MAX_URLS) uit.push(item);
     }
   }
   return { urls: uit, gevonden };
+}
+
+/** Eén URL indelen. Alle kennis zit in de URL zelf, dus dit kan ook achteraf
+ *  opnieuw over reeds opgeslagen URL's draaien zonder een site te hercrawlen. */
+export function classificeer(url: string, lastmod = "", bron = "") {
+  const pad = (() => { try { return new URL(url).pathname; } catch { return url; } })();
+
+  // WordPress/Yoast splitst de sitemap per inhoudstype. Dat is een veel hardere
+  // aanwijzing dan het URL-pad: mijnepb.be publiceert artikels op /artikel-titel/
+  // zonder /blog/ ervoor, en dan raadt een padregel er altijd naast.
+  const isPost = /(^|[/_-])(post|posts|nieuws|blog|artikel)s?-?sitemap/i.test(bron);
+  const isPage = /(^|[/_-])(page|pagina)s?-?sitemap/i.test(bron);
+
+  const padZegtBlog = BLOG_PAD.test(pad) || BLOG_DATUM.test(pad);
+  const isBlog = isPost ? true : isPage ? false : padZegtBlog;
+
+  // Een categorie-, tag- of paginatiepagina is geen artikel.
+  const kortPadOnderBlogroot =
+    padZegtBlog && /\/$/.test(pad) && pad.split("/").filter(Boolean).length <= 2;
+
+  return {
+    url,
+    lastmod,
+    bron,
+    soort: isBlog ? "blog" : "pagina",
+    archief: ARCHIEF.test(pad) || (!isPost && kortPadOnderBlogroot),
+    spam: SPAM.test(pad),
+    epb: EPB_RELEVANT.test(pad),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -151,8 +195,11 @@ export type Snapshot = {
   heeft_localbiz: number;
   woorden_home: number;
   heeft_sitemap: number;
+  blog_artikels: number;
+  epb_paginas: number;
+  spam_verdacht: number;
   fout: string;
-  urls: { url: string; soort: string; lastmod: string }[];
+  urls: { url: string; soort: string; lastmod: string; bron: string; archief: boolean; spam: boolean; epb: boolean }[];
 };
 
 export async function meetDomein(domein: string): Promise<Snapshot> {
@@ -160,7 +207,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
   const leeg: Snapshot = {
     domein, datum, bereikbaar: 0, http_status: 0, ttfb_ms: 0, eind_url: "", titel: "",
     meta_desc: "", cms: "", paginas: 0, blog_paginas: 0, laatste_blog: "", blog_per_maand: 0,
-    diensten: "[]", heeft_schema: 0, heeft_localbiz: 0, woorden_home: 0, heeft_sitemap: 0, fout: "", urls: [],
+    diensten: "[]", heeft_schema: 0, heeft_localbiz: 0, woorden_home: 0, heeft_sitemap: 0, blog_artikels: 0, epb_paginas: 0, spam_verdacht: 0, fout: "", urls: [],
   };
 
   // Sommige bureaus draaien alleen op www, of alleen op http. Probeer die varianten
@@ -195,14 +242,13 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
   const robots = (await haal(`https://${basis}/robots.txt`, false)).tekst || "";
   const { urls, gevonden: heeftSitemap } = await sitemapUrls(basis, robots);
 
-  const gerangschikt = urls.map((u) => {
-    const pad = (() => { try { return new URL(u.url).pathname; } catch { return u.url; } })();
-    const soort = BLOG_PAD.test(pad) || BLOG_DATUM.test(pad) ? "blog" : "pagina";
-    return { url: u.url, soort, lastmod: u.lastmod };
-  });
+  const gerangschikt = urls.map((u) => classificeer(u.url, u.lastmod, u.bron));
 
   const blogs = gerangschikt.filter((u) => u.soort === "blog");
-  const blogDatums = blogs.map((b) => b.lastmod).filter(Boolean).sort();
+  const artikels = blogs.filter((u) => !u.archief && !u.spam);
+  const spam = gerangschikt.filter((u) => u.spam);
+  const epbPaginas = gerangschikt.filter((u) => u.epb && !u.spam);
+  const blogDatums = artikels.map((b) => b.lastmod).filter(Boolean).sort();
   const laatsteBlog = blogDatums.length ? blogDatums[blogDatums.length - 1] : "";
   const grens = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
   const recent = blogDatums.filter((d) => d >= grens).length;
@@ -224,6 +270,9 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
     cms: CMS_SIGNALEN.find((c) => c.patroon.test(html))?.key || "",
     paginas: gerangschikt.length,
     blog_paginas: blogs.length,
+    blog_artikels: artikels.length,
+    epb_paginas: epbPaginas.length,
+    spam_verdacht: spam.length,
     laatste_blog: laatsteBlog,
     blog_per_maand: Math.round((recent / 12) * 10) / 10,
     diensten: JSON.stringify(diensten),
@@ -244,12 +293,14 @@ function bewaarSnapshot(s: Snapshot) {
   db.prepare(
     `INSERT OR REPLACE INTO site_snapshots
      (domein,datum,bereikbaar,http_status,ttfb_ms,eind_url,titel,meta_desc,cms,paginas,
-      blog_paginas,laatste_blog,blog_per_maand,diensten,heeft_schema,heeft_localbiz,woorden_home,heeft_sitemap,fout)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+      blog_paginas,laatste_blog,blog_per_maand,diensten,heeft_schema,heeft_localbiz,woorden_home,heeft_sitemap,
+      blog_artikels,epb_paginas,spam_verdacht,fout)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run(
     s.domein, s.datum, s.bereikbaar, s.http_status, s.ttfb_ms, s.eind_url, s.titel, s.meta_desc,
     s.cms, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand, s.diensten,
-    s.heeft_schema, s.heeft_localbiz, s.woorden_home, s.heeft_sitemap, s.fout
+    s.heeft_schema, s.heeft_localbiz, s.woorden_home, s.heeft_sitemap,
+    s.blog_artikels, s.epb_paginas, s.spam_verdacht, s.fout
   );
 
   // Nieuwe URL's = signaal. De eerste crawl van een domein levert géén signalen op,
@@ -263,9 +314,11 @@ function bewaarSnapshot(s: Snapshot) {
   const bekend = new Set(bestaat.map((r) => r.url));
 
   const upsert = db.prepare(
-    `INSERT INTO site_urls (domein,url,soort,lastmod,eerste_zien,laatste_zien)
-     VALUES (?,?,?,?,?,?)
-     ON CONFLICT(domein,url) DO UPDATE SET lastmod=excluded.lastmod, laatste_zien=excluded.laatste_zien`
+    `INSERT INTO site_urls (domein,url,soort,lastmod,sitemap_bron,eerste_zien,laatste_zien)
+     VALUES (?,?,?,?,?,?,?)
+     ON CONFLICT(domein,url) DO UPDATE SET
+       lastmod=excluded.lastmod, soort=excluded.soort,
+       sitemap_bron=excluded.sitemap_bron, laatste_zien=excluded.laatste_zien`
   );
   const signaal = db.prepare(
     "INSERT INTO signalen (domein,datum,soort,omschrijving,url) VALUES (?,?,?,?,?)"
@@ -273,8 +326,8 @@ function bewaarSnapshot(s: Snapshot) {
 
   db.transaction(() => {
     for (const u of s.urls) {
-      upsert.run(s.domein, u.url, u.soort, u.lastmod, s.datum, s.datum);
-      if (!isEersteKeer && !bekend.has(u.url)) {
+      upsert.run(s.domein, u.url, u.soort, u.lastmod, u.bron || "", s.datum, s.datum);
+      if (!isEersteKeer && !bekend.has(u.url) && !u.spam) {
         signaal.run(
           s.domein,
           s.datum,
@@ -384,6 +437,39 @@ export function importeerVerslaggevers() {
   })();
 
   return { verslaggevers: bron.records.length, domeinen: perDomein.length, eigen: EIGEN_DOMEINEN.length, bron: bron.bron };
+}
+
+/**
+ * Leidt blog_artikels, epb_paginas en spam_verdacht opnieuw af uit de al opgeslagen
+ * URL's. Nodig na een aanscherping van de classificatie: geen enkele site hoeft
+ * daarvoor opnieuw bezocht te worden.
+ */
+export function herberekenAfleidingen() {
+  const db = getDb();
+  const domeinen = db.prepare("SELECT DISTINCT domein FROM site_urls").all() as { domein: string }[];
+  const upd = db.prepare(
+    `UPDATE site_snapshots SET blog_artikels = ?, epb_paginas = ?, spam_verdacht = ?, laatste_blog = ?
+     WHERE domein = ? AND datum = (SELECT MAX(datum) FROM site_snapshots WHERE domein = ?)`
+  );
+  let n = 0;
+  db.transaction(() => {
+    for (const d of domeinen) {
+      const urls = db.prepare("SELECT url, lastmod, sitemap_bron FROM site_urls WHERE domein = ?").all(d.domein) as
+        { url: string; lastmod: string; sitemap_bron: string }[];
+      const ingedeeld = urls.map((u) => classificeer(u.url, u.lastmod || "", u.sitemap_bron || ""));
+      const artikels = ingedeeld.filter((u) => u.soort === "blog" && !u.archief && !u.spam);
+      const datums = artikels.map((a) => a.lastmod).filter(Boolean).sort();
+      upd.run(
+        artikels.length,
+        ingedeeld.filter((u) => u.epb && !u.spam).length,
+        ingedeeld.filter((u) => u.spam).length,
+        datums.length ? datums[datums.length - 1] : "",
+        d.domein, d.domein
+      );
+      n++;
+    }
+  })();
+  return { herberekend: n };
 }
 
 export function teCrawlenDomeinen(limiet?: number): string[] {

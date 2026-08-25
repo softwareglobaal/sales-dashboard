@@ -189,6 +189,9 @@ function initSchema(db: Database.Database) {
       heeft_localbiz  INTEGER,
       woorden_home    INTEGER,
       heeft_sitemap   INTEGER,        -- 0 = geen sitemap gevonden; paginas is dan onbekend, niet nul
+      blog_artikels   INTEGER,        -- echte artikels, zonder categorie- en paginatie-archieven
+      epb_paginas     INTEGER,        -- pagina's die over EPB/energie gaan: omvang in ONZE markt
+      spam_verdacht   INTEGER,        -- URL's die op een gehackte site wijzen
       fout            TEXT,
       PRIMARY KEY (domein, datum)
     );
@@ -200,6 +203,7 @@ function initSchema(db: Database.Database) {
       url         TEXT NOT NULL,
       soort       TEXT,              -- blog / pagina / overig
       lastmod     TEXT,
+      sitemap_bron TEXT,             -- uit welke deel-sitemap de URL kwam
       eerste_zien TEXT,
       laatste_zien TEXT,
       PRIMARY KEY (domein, url)
@@ -217,6 +221,33 @@ function initSchema(db: Database.Database) {
       gezien       INTEGER DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS idx_sig_datum ON signalen(datum);
+
+    -- Zoekwoorden die de markt afbakenen. Komen uit config/zoekwoorden-energie.json.
+    CREATE TABLE IF NOT EXISTS zoekwoorden (
+      term         TEXT PRIMARY KEY,
+      thema        TEXT,
+      intentie     TEXT,             -- dienst / probleem / kennis / lokaal
+      volume       INTEGER,          -- gemiddeld maandelijks zoekvolume
+      concurrentie TEXT,             -- LOW / MEDIUM / HIGH
+      cpc_laag     REAL,
+      cpc_hoog     REAL,
+      volume_bron  TEXT,             -- google-ads / handmatig
+      volume_datum TEXT
+    );
+
+    -- Posities per zoekwoord per domein. Eén rij per meting.
+    CREATE TABLE IF NOT EXISTS posities (
+      term     TEXT NOT NULL,
+      domein   TEXT NOT NULL,
+      datum    TEXT NOT NULL,
+      soort    TEXT NOT NULL,        -- organisch / advertentie
+      positie  INTEGER,
+      url      TEXT,
+      bron     TEXT,                 -- welke SERP-bron de meting deed
+      PRIMARY KEY (term, domein, datum, soort)
+    );
+    CREATE INDEX IF NOT EXISTS idx_pos_datum ON posities(datum);
+    CREATE INDEX IF NOT EXISTS idx_pos_term  ON posities(term);
   `);
 
   // migratie: voeg ontbrekende kolommen toe aan bestaande databases
@@ -229,5 +260,19 @@ function initSchema(db: Database.Database) {
   }
   if (!cols.includes("custom_json")) {
     db.exec("ALTER TABLE deals ADD COLUMN custom_json TEXT");
+  }
+
+  // idem voor de concurrentiemonitor: kolommen die later zijn toegevoegd
+  const urlCols = (db.prepare("PRAGMA table_info(site_urls)").all() as any[]).map((c) => c.name);
+  if (!urlCols.includes("sitemap_bron")) db.exec("ALTER TABLE site_urls ADD COLUMN sitemap_bron TEXT");
+
+  const snapCols = (db.prepare("PRAGMA table_info(site_snapshots)").all() as any[]).map((c) => c.name);
+  for (const [naam, type] of [
+    ["heeft_sitemap", "INTEGER"],
+    ["blog_artikels", "INTEGER"],
+    ["epb_paginas", "INTEGER"],
+    ["spam_verdacht", "INTEGER"],
+  ] as const) {
+    if (!snapCols.includes(naam)) db.exec(`ALTER TABLE site_snapshots ADD COLUMN ${naam} ${type}`);
   }
 }
