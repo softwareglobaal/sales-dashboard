@@ -129,3 +129,8 @@ Crontab op de server:
 ```
 30 5 * * * /home/ubuntu/appportal/sales/scripts/concurrentie-cron.sh >> /home/ubuntu/concurrentie.log 2>&1
 ```
+
+Het script roept de routes aan met `docker exec`, niet met `curl`. De app luistert
+op poort 3008 *binnen* de container en die poort is niet naar de host gepubliceerd —
+nginx praat via het docker-netwerk. Vanaf de host is `http://localhost:3008` dus
+onbereikbaar.

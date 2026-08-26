@@ -1,30 +1,48 @@
 #!/bin/sh
 # Concurrentiemonitor Energie — dagelijkse controle van de concurrentiesites.
 #
-# Crontab op de server (UTC), na de Pipedrive-sync en vóór de werkdag in Suriname:
+# Crontab op de server:
 #   30 5 * * * /home/ubuntu/appportal/sales/scripts/concurrentie-cron.sh >> /home/ubuntu/concurrentie.log 2>&1
 #
-# Per run worden de 90 domeinen gecontroleerd die het langst geleden gemeten zijn.
-# Met ~360 domeinen is de hele lijst dus elke vier dagen rond, en blijft één run
-# ruim binnen de tijdslimiet van de route.
+# De app luistert op poort 3008 *binnen* de container; die poort is niet naar de
+# host gepubliceerd (nginx praat via het docker-netwerk). Vanaf de host is
+# http://localhost:3008 dus onbereikbaar, en daarom roepen we de routes aan met
+# docker exec in plaats van met curl.
+#
+# Per run worden de 90 domeinen gecontroleerd die het langst geleden gemeten
+# zijn; met ~360 domeinen is de hele lijst zo elke vier dagen rond.
 set -eu
 
-URL="${DASHBOARD_URL:-http://localhost:3008}/api/concurrentie?limiet=90"
+CONTAINER="${APPPORTAL_SALES_CONTAINER:-appportal-app-sales-1}"
 
-antwoord=$(curl -sS --max-time 3000 "$URL" || echo '{"ok":false,"fout":"curl faalde"}')
-echo "$(date -Is) $antwoord"
+roep() {
+  docker exec -e PAD="$1" "$CONTAINER" node -e '
+    fetch("http://127.0.0.1:3008" + process.env.PAD)
+      .then(r => r.text())
+      .then(t => console.log(t.slice(0, 600)))
+      .catch(e => { console.log(JSON.stringify({ ok: false, fout: e.message })); process.exit(1); })
+  '
+}
 
-# Niet-nul afsluiten als de run mislukt is, zodat cron-mail/log het opmerkt.
-echo "$antwoord" | grep -q '"ok":true' || exit 1
+echo "$(date -Is) crawl"
+antwoord="$(roep '/api/concurrentie?limiet=90')" || antwoord='{"ok":false,"fout":"docker exec faalde"}'
+echo "$antwoord"
 
-# Zoekwoorden: posities wekelijks (maandag), volumes maandelijks (de 1e).
+# Search Console: dagelijks. Gratis, en de enige bron die geen schatting is.
+echo "$(date -Is) search console"
+roep '/api/searchconsole?dagen=28' || echo '{"ok":false}'
+
+# Posities wekelijks (maandag), zoekvolumes maandelijks (de eerste).
 # Beide zijn no-ops zolang de betreffende bron niet gekoppeld is.
-BASIS="${DASHBOARD_URL:-http://localhost:3008}/api/zoekwoorden"
-[ "$(date +%u)" = "1" ] && echo "$(date -Is) $(curl -sS --max-time 1800 "$BASIS?posities=1" || echo mislukt)"
-[ "$(date +%d)" = "01" ] && echo "$(date -Is) $(curl -sS --max-time 300 "$BASIS?volumes=1" || echo mislukt)"
+if [ "$(date +%u)" = "1" ]; then
+  echo "$(date -Is) posities"
+  roep '/api/zoekwoorden?posities=1' || echo '{"ok":false}'
+fi
+if [ "$(date +%d)" = "01" ]; then
+  echo "$(date -Is) zoekvolumes"
+  roep '/api/zoekwoorden?volumes=1' || echo '{"ok":false}'
+fi
 
-# Search Console: dagelijks. Gratis, en het is de enige bron die geen schatting is.
-GSC="${DASHBOARD_URL:-http://localhost:3008}/api/searchconsole?dagen=28"
-echo "$(date -Is) $(curl -sS --max-time 300 "$GSC" || echo mislukt)"
-
+# Niet-nul afsluiten als de crawl mislukte, zodat het opvalt in de log.
+echo "$antwoord" | grep -q '"ok":true' || exit 1
 exit 0
