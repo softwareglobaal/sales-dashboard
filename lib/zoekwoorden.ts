@@ -135,10 +135,13 @@ export async function haalZoekvolumes() {
 
   const json = JSON.parse(tekst);
   const db = getDb();
+  // Google geeft de term terug in kleine letters ("epb verslaggeving") terwijl
+  // onze lijst hoofdletters gebruikt. Bij een exacte vergelijking werd daardoor
+  // maar een kwart van de termen bijgewerkt.
   const upd = db.prepare(
     `UPDATE zoekwoorden SET volume = ?, concurrentie = ?, cpc_laag = ?, cpc_hoog = ?,
                             volume_bron = 'google-ads', volume_datum = ?
-     WHERE term = ?`
+     WHERE lower(term) = lower(?)`
   );
   const datum = new Date().toISOString().slice(0, 10);
   let bijgewerkt = 0;
