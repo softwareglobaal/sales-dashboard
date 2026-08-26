@@ -131,6 +131,142 @@ function initSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_adm_account ON ad_metrics_daily(account_key);
     CREATE INDEX IF NOT EXISTS idx_adm_date    ON ad_metrics_daily(date);
+
+    -- ---------------------------------------------------------------
+    -- Concurrentiemonitor Energie (EPB / ventilatie)
+    -- ---------------------------------------------------------------
+
+    -- Erkende verslaggevers, bron: VEKA-register via energiesparen.be.
+    -- Persoonsgegevens uit een openbaar register: enkel intern gebruik.
+    CREATE TABLE IF NOT EXISTS verslaggevers (
+      ep_code     TEXT PRIMARY KEY,
+      naam        TEXT,
+      bedrijf     TEXT,
+      postcode    TEXT,
+      gemeente    TEXT,
+      provincie   TEXT,
+      telefoon    TEXT,
+      email       TEXT,
+      domein      TEXT,             -- afgeleid uit het e-mailadres, leeg bij gratis provider
+      bron_datum  TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_vsl_domein ON verslaggevers(domein);
+    CREATE INDEX IF NOT EXISTS idx_vsl_prov   ON verslaggevers(provincie);
+
+    -- Eén rij per gevolgd domein.
+    CREATE TABLE IF NOT EXISTS concurrenten (
+      domein        TEXT PRIMARY KEY,
+      naam          TEXT,
+      bron          TEXT,            -- register / serp / handmatig
+      volgen        INTEGER DEFAULT 1,
+      categorie     TEXT,            -- concurrent / prospect / portaal / onbekend
+      verslaggevers INTEGER DEFAULT 0,
+      provincie     TEXT,
+      gemeente      TEXT,
+      notitie       TEXT,
+      eerste_zien   TEXT,
+      laatste_check TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_conc_cat ON concurrenten(categorie);
+
+    -- Momentopname per domein per crawl. Verschil tussen twee snapshots = signaal.
+    CREATE TABLE IF NOT EXISTS site_snapshots (
+      domein          TEXT NOT NULL,
+      datum           TEXT NOT NULL,   -- JJJJ-MM-DD
+      bereikbaar      INTEGER,
+      http_status     INTEGER,
+      ttfb_ms         INTEGER,
+      eind_url        TEXT,
+      titel           TEXT,
+      meta_desc       TEXT,
+      cms             TEXT,
+      paginas         INTEGER,         -- indexeerbare URL's in de sitemap
+      blog_paginas    INTEGER,
+      laatste_blog    TEXT,            -- lastmod van het nieuwste artikel
+      laatste_blog_url TEXT,           -- en de bijbehorende link, om te kunnen doorklikken
+      blog_per_maand  REAL,            -- publicatietempo laatste 12 maanden
+      diensten        TEXT,            -- JSON-array van herkende diensten
+      heeft_schema    INTEGER,
+      heeft_localbiz  INTEGER,
+      woorden_home    INTEGER,
+      heeft_sitemap   INTEGER,        -- 0 = geen sitemap gevonden; paginas is dan onbekend, niet nul
+      blog_artikels   INTEGER,        -- echte artikels, zonder categorie- en paginatie-archieven
+      epb_paginas     INTEGER,        -- pagina's die over EPB/energie gaan: omvang in ONZE markt
+      spam_verdacht   INTEGER,        -- URL's die op een gehackte site wijzen
+      fout            TEXT,
+      PRIMARY KEY (domein, datum)
+    );
+    CREATE INDEX IF NOT EXISTS idx_snap_datum ON site_snapshots(datum);
+
+    -- URL-niveau, om nieuwe pagina's en nieuwe blogartikels te kunnen zien.
+    CREATE TABLE IF NOT EXISTS site_urls (
+      domein      TEXT NOT NULL,
+      url         TEXT NOT NULL,
+      soort       TEXT,              -- blog / pagina / overig
+      lastmod     TEXT,
+      sitemap_bron TEXT,             -- uit welke deel-sitemap de URL kwam
+      artikel     INTEGER,           -- 1 = echt blogartikel (geen archief, geen spam)
+      eerste_zien TEXT,
+      laatste_zien TEXT,
+      PRIMARY KEY (domein, url)
+    );
+    CREATE INDEX IF NOT EXISTS idx_surl_domein ON site_urls(domein);
+
+    -- Wat er veranderd is. Dit voedt de meldingen.
+    CREATE TABLE IF NOT EXISTS signalen (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      domein       TEXT NOT NULL,
+      datum        TEXT NOT NULL,
+      soort        TEXT NOT NULL,    -- nieuwe-blog / nieuwe-pagina / site-weg / dienst-erbij
+      omschrijving TEXT,
+      url          TEXT,
+      gezien       INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_sig_datum ON signalen(datum);
+
+    -- Zoekwoorden die de markt afbakenen. Komen uit config/zoekwoorden-energie.json.
+    CREATE TABLE IF NOT EXISTS zoekwoorden (
+      term         TEXT PRIMARY KEY,
+      thema        TEXT,
+      intentie     TEXT,             -- dienst / probleem / kennis / lokaal
+      volume       INTEGER,          -- gemiddeld maandelijks zoekvolume
+      concurrentie TEXT,             -- LOW / MEDIUM / HIGH
+      cpc_laag     REAL,
+      cpc_hoog     REAL,
+      volume_bron  TEXT,             -- google-ads / handmatig
+      volume_datum TEXT
+    );
+
+    -- Posities per zoekwoord per domein. Eén rij per meting.
+    CREATE TABLE IF NOT EXISTS posities (
+      term     TEXT NOT NULL,
+      domein   TEXT NOT NULL,
+      datum    TEXT NOT NULL,
+      soort    TEXT NOT NULL,        -- organisch / advertentie
+      positie  INTEGER,
+      url      TEXT,
+      bron     TEXT,                 -- welke SERP-bron de meting deed
+      PRIMARY KEY (term, domein, datum, soort)
+    );
+    CREATE INDEX IF NOT EXISTS idx_pos_datum ON posities(datum);
+    CREATE INDEX IF NOT EXISTS idx_pos_term  ON posities(term);
+
+    -- Echte Google-cijfers voor onze eigen sites, uit Search Console.
+    -- Gratis, en nauwkeuriger dan welke externe schatting ook: dit is wat Google
+    -- zelf registreert. Alleen voor domeinen waarvan we eigenaar zijn.
+    CREATE TABLE IF NOT EXISTS gsc_metingen (
+      site        TEXT NOT NULL,     -- de property in Search Console
+      term        TEXT NOT NULL,
+      datum       TEXT NOT NULL,     -- laatste dag van de gemeten periode
+      positie     REAL,              -- gemiddelde positie
+      vertoningen INTEGER,
+      klikken     INTEGER,
+      ctr         REAL,
+      url         TEXT,              -- best scorende pagina voor die term
+      PRIMARY KEY (site, term, datum)
+    );
+    CREATE INDEX IF NOT EXISTS idx_gsc_datum ON gsc_metingen(datum);
+    CREATE INDEX IF NOT EXISTS idx_gsc_term  ON gsc_metingen(term);
   `);
 
   // migratie: voeg ontbrekende kolommen toe aan bestaande databases
@@ -143,5 +279,21 @@ function initSchema(db: Database.Database) {
   }
   if (!cols.includes("custom_json")) {
     db.exec("ALTER TABLE deals ADD COLUMN custom_json TEXT");
+  }
+
+  // idem voor de concurrentiemonitor: kolommen die later zijn toegevoegd
+  const urlCols = (db.prepare("PRAGMA table_info(site_urls)").all() as any[]).map((c) => c.name);
+  if (!urlCols.includes("sitemap_bron")) db.exec("ALTER TABLE site_urls ADD COLUMN sitemap_bron TEXT");
+  if (!urlCols.includes("artikel")) db.exec("ALTER TABLE site_urls ADD COLUMN artikel INTEGER");
+
+  const snapCols = (db.prepare("PRAGMA table_info(site_snapshots)").all() as any[]).map((c) => c.name);
+  for (const [naam, type] of [
+    ["heeft_sitemap", "INTEGER"],
+    ["blog_artikels", "INTEGER"],
+    ["epb_paginas", "INTEGER"],
+    ["spam_verdacht", "INTEGER"],
+    ["laatste_blog_url", "TEXT"],
+  ] as const) {
+    if (!snapCols.includes(naam)) db.exec(`ALTER TABLE site_snapshots ADD COLUMN ${naam} ${type}`);
   }
 }

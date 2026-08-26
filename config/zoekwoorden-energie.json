@@ -1,0 +1,60 @@
+{
+  "_uitleg": "Zoekwoorden die de EPB-markt afbakenen. Mukesh en Jean mogen hier termen bij zetten; er is geen code voor nodig. thema = groepering op de pagina, intentie = dienst (koopklaar) / probleem (urgent, hoge waarde) / kennis (blogstof) / lokaal (regio).",
+  "locatie": { "land": "BE", "taal": "nl", "geoTargetConstant": "2056" },
+  "zoekwoorden": [
+    { "term": "EPB verslaggeving", "thema": "EPB kern", "intentie": "dienst" },
+    { "term": "EPB verslaggever", "thema": "EPB kern", "intentie": "dienst" },
+    { "term": "EPB verslaggever nodig", "thema": "EPB kern", "intentie": "dienst" },
+    { "term": "EPB aangifte", "thema": "EPB kern", "intentie": "dienst" },
+    { "term": "EPB attest", "thema": "EPB kern", "intentie": "dienst" },
+    { "term": "EPB studie", "thema": "EPB kern", "intentie": "dienst" },
+    { "term": "EPB dossier", "thema": "EPB kern", "intentie": "dienst" },
+    { "term": "wat kost een EPB verslag", "thema": "EPB kern", "intentie": "kennis" },
+    { "term": "prijs EPB verslaggeving", "thema": "EPB kern", "intentie": "dienst" },
+
+    { "term": "ventilatieverslaggeving", "thema": "Ventilatie", "intentie": "dienst" },
+    { "term": "ventilatieverslaggever", "thema": "Ventilatie", "intentie": "dienst" },
+    { "term": "ventilatiedocument", "thema": "Ventilatie", "intentie": "kennis" },
+    { "term": "ventilatieprestatieverslag", "thema": "Ventilatie", "intentie": "kennis" },
+    { "term": "ventilatiemeting woning", "thema": "Ventilatie", "intentie": "dienst" },
+
+    { "term": "EPB onderaanneming", "thema": "Onderaanneming", "intentie": "dienst" },
+    { "term": "EPB onderaannemer", "thema": "Onderaanneming", "intentie": "dienst" },
+    { "term": "EPB uitbesteden", "thema": "Onderaanneming", "intentie": "dienst" },
+    { "term": "EPB verslaggeving overnemen", "thema": "Onderaanneming", "intentie": "dienst" },
+    { "term": "freelance EPB verslaggever", "thema": "Onderaanneming", "intentie": "dienst" },
+
+    { "term": "EPB boete", "thema": "Handhaving", "intentie": "probleem" },
+    { "term": "EPB boete betwisten", "thema": "Handhaving", "intentie": "probleem" },
+    { "term": "EPB aangifte te laat", "thema": "Handhaving", "intentie": "probleem" },
+    { "term": "EPB aangifte vergeten", "thema": "Handhaving", "intentie": "probleem" },
+    { "term": "boete energieprestatie niet gehaald", "thema": "Handhaving", "intentie": "probleem" },
+    { "term": "EPB handhaving Vlaanderen", "thema": "Handhaving", "intentie": "kennis" },
+    { "term": "geen EPB verslaggever aangesteld", "thema": "Handhaving", "intentie": "probleem" },
+    { "term": "EPB verslaggever weigert", "thema": "Handhaving", "intentie": "probleem" },
+
+    { "term": "ingrijpende energetische renovatie", "thema": "Regelgeving", "intentie": "kennis" },
+    { "term": "IER voorwaarden", "thema": "Regelgeving", "intentie": "kennis" },
+    { "term": "EPB eisen 2026", "thema": "Regelgeving", "intentie": "kennis" },
+    { "term": "E-peil berekenen", "thema": "Regelgeving", "intentie": "kennis" },
+    { "term": "S-peil eisen", "thema": "Regelgeving", "intentie": "kennis" },
+    { "term": "BEN woning eisen", "thema": "Regelgeving", "intentie": "kennis" },
+    { "term": "EPB productgegevens", "thema": "Regelgeving", "intentie": "kennis" },
+    { "term": "EPB startverklaring", "thema": "Regelgeving", "intentie": "kennis" },
+
+    { "term": "EPB verslaggever Limburg", "thema": "Lokaal", "intentie": "lokaal" },
+    { "term": "EPB verslaggever Genk", "thema": "Lokaal", "intentie": "lokaal" },
+    { "term": "EPB verslaggever Hasselt", "thema": "Lokaal", "intentie": "lokaal" },
+    { "term": "EPB verslaggever Antwerpen", "thema": "Lokaal", "intentie": "lokaal" },
+    { "term": "EPB verslaggever Gent", "thema": "Lokaal", "intentie": "lokaal" },
+    { "term": "EPB verslaggever Leuven", "thema": "Lokaal", "intentie": "lokaal" },
+    { "term": "EPB verslaggever Brugge", "thema": "Lokaal", "intentie": "lokaal" },
+    { "term": "EPB verslaggever Vlaams-Brabant", "thema": "Lokaal", "intentie": "lokaal" },
+
+    { "term": "luchtdichtheidsmeting", "thema": "Aanpalend", "intentie": "dienst" },
+    { "term": "blowerdoor test prijs", "thema": "Aanpalend", "intentie": "dienst" },
+    { "term": "energieaudit bedrijf", "thema": "Aanpalend", "intentie": "dienst" },
+    { "term": "EPC gebouw", "thema": "Aanpalend", "intentie": "dienst" },
+    { "term": "veiligheidscoordinator werf", "thema": "Aanpalend", "intentie": "dienst" }
+  ]
+}

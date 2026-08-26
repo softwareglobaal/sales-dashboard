@@ -104,6 +104,83 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
 - Sync-status (laatste ververs-moment) op elke pagina.
 - Klein lokaal notities/to-do-paneel (samen bijhouden), lokaal opgeslagen.
 
+## 10. Concurrentiemonitor Energie (augustus 2026)
+
+Aparte module onder `/energy/concurrentie`, gevraagd in de salesmeeting van 25/08/2026.
+Doel: weten wie de markt van EPB- en ventilatieverslaggeving bezet, wat zij aanbieden,
+en wat er verandert — zonder dat iemand daarvoor handmatig websites moet openen.
+
+**Bronnen**
+- `data-bronnen/verslaggevers-2026-08.json` — export van het VEKA-register
+  (energiesparen.be/energiekaart), 792 erkenningen, 613 personen. Handmatig ververst.
+- Eigen crawl van de bedrijfssites: alleen `robots.txt`, sitemap en homepage. Publiek
+  materiaal, uitsluitend lezen.
+
+**Harde regels voor deze module**
+- **Alleen lezen.** Geen formulieren, geen accounts, geen contact via de site van een ander.
+- **Eerlijke crawler.** Eigen User-Agent, geen omzeiling van blokkades. Een site die met
+  403 antwoordt wordt geregistreerd als "blokkeert crawlers", niet alsnog binnengedrongen.
+- **Feit en schatting uit elkaar houden.** `lastmod` uit een sitemap is géén publicatiedatum;
+  bij een sitemigratie krijgen alle artikels dezelfde datum. De kolom heet daarom
+  "laatste post" met een expliciete waarschuwing eronder. Uitgaven aan SEA schatten we niet.
+- **Geen sitemap = onbekend, niet nul.** `heeft_sitemap = 0` toont "geen sitemap" in plaats
+  van "0 pagina's", anders lijkt een site kleiner dan hij is.
+- **Eerste meting geeft geen signalen.** Anders levert de startcrawl honderden meldingen op
+  over pagina's die al jaren bestaan.
+- **Persoonsgegevens.** Naam, e-mail en telefoon komen uit een openbaar register, maar blijven
+  persoonsgegevens: intern gebruik achter Authentik, niet exporteren, niet doorverkopen,
+  niet verrijken met gegevens van buiten dat register.
+
+**Indeling**
+- `categorie = concurrent` bij twee of meer erkende verslaggevers op hetzelfde e-maildomein;
+  bij één verslaggever `prospect`. Dat is een vuistregel, geen waarheid — handmatig te corrigeren
+  in de tabel `concurrenten`.
+- Wie erkend is maar nauwelijks online staat, is geen bedreiging maar een kandidaat voor
+  onderaanneming. Die lijst voedt de Onderaanneming-tab van energie-efficient.be.
+
+**Classificatie van pagina's.** De deel-sitemap is leidend, niet het URL-pad: WordPress
+splitst `post-sitemap` van `page-sitemap`, en mijnepb.be publiceert artikels op
+`/artikel-titel/` zonder `/blog/` ervoor. Op het pad alleen telde die site 9 artikels
+in plaats van 356. Categorie-, tag- en paginatiepagina's tellen niet als artikel.
+
+**Omvang meten we in ONZE markt.** `epb_paginas` telt pagina's over EPB, energie of
+ventilatie. Rangschikken op het totale aantal pagina's zet Arcadis en Sweco bovenaan —
+reuzen met één EPB'er in dienst. Rangschikken op aantal verslaggevers zet mijnEPB
+onderaan, terwijl dat de sterkste speler is. Beide lenzen staan naast elkaar op de pagina.
+
+**Gehackte sites.** `spam_verdacht` telt URL's met gok-, adult- of farmatermen.
+vestingbvba.be bleek 2993 zulke pagina's te hebben. Zonder die telling lijkt zo'n site
+de actiefste blogger van de markt.
+
+## 11. Zoekwoorden en posities
+
+- Zoekwoordenlijst in `config/zoekwoorden-energie.json` — aanpasbaar zonder code, zodat
+  Mukesh en Jean termen kunnen toevoegen. Per term: thema en intentie
+  (dienst / probleem / kennis / lokaal).
+- **Zoekvolume** via Google Ads Keyword Planner, op dezelfde OAuth-koppeling als de
+  advertentiesync. Vraagt `GOOGLE_ADS_KEYWORD_CUSTOMER_ID` of een gevulde
+  `GOOGLE_ADS_LOGIN_CUSTOMER_ID`. Let op dezelfde valkuil als bij de advertentiesync:
+  een ingetrokken API-versie geeft HTML in plaats van JSON.
+- **Posities** via een betaalde SERP-bron (DataForSEO-implementatie aanwezig, aan te
+  zetten met `DATAFORSEO_LOGIN` / `DATAFORSEO_PASSWORD`). Google rechtstreeks uitlezen
+  doen we niet. Zonder bron blijven de positiekolommen leeg — geen geraden getallen.
+- **Advertenties**: we tonen wél wie er adverteert, **nooit** een geschat budget.
+- **Onze eigen posities** via Google Search Console (`lib/searchConsole.ts`): gratis, en de
+  enige bron die geen schatting is — het is wat Google zelf registreert. Vraagt een eigen
+  refresh-token, want Search Console gebruikt een andere scope dan Google Ads; op te halen
+  met `scripts/gsc-auth.mjs`. Werkt alleen voor domeinen waarvan het eigenaarschap bevestigd is.
+- Bovenaan de pagina staat een **bronnenstatus**: welke koppeling leeft, en wat er ontbreekt.
+  Zie `SETUP-CONCURRENTIE.md` voor de stappen.
+- Search Console geeft **alle** properties van het account terug, dus ook `contrax.be`,
+  `h-architects.be` en `highdesignstudio.in`. De Energie-pagina filtert op onze eigen
+  energiedomeinen en kiest per domein de `sc-domain:`-property boven de URL-prefix,
+  omdat die www en non-www samen dekt.
+
+**Ritme**
+`scripts/concurrentie-cron.sh` controleert dagelijks de 90 langst niet gemeten domeinen;
+de volledige lijst is zo elke vier dagen rond. Nieuwe URL's worden signalen. Posities
+wekelijks op maandag, zoekvolumes maandelijks op de eerste.
+
 ## Aanvullingen (feedback-ronde)
 - **Grafiek "aanvragen vs. direct gewonnen omzet (zelfde maand)"**: SAME-MONTH cohort — balken = leads
   binnengekomen die maand (add_time); lijn = omzet uit deals die in DIEZELFDE maand zijn aangemaakt ÉN gewonnen
