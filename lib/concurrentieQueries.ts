@@ -332,19 +332,51 @@ export type GscRij = {
  * `in_lijst` zegt of de term ook in onze zoekwoordenlijst staat — termen die
  * Google wél oppikt maar wij niet volgen, zijn juist interessant.
  */
+/**
+ * Search Console bevat álle properties van het account — ook contrax.be en
+ * h-architects.be, die hier niets te zoeken hebben. We filteren op onze eigen
+ * energiedomeinen, en kiezen per domein de domain-property (`sc-domain:`) boven
+ * de losse URL-prefix, want die dekt www en non-www in één keer.
+ */
+function gscSiteFilter(): string {
+  return ONZE_DOMEINEN.map((d) => `'sc-domain:${d}'`).join(",");
+}
+
 export function getOnzeGscPosities(limiet = 50): GscRij[] {
   const db = getDb();
   const laatste = (db.prepare("SELECT MAX(datum) d FROM gsc_metingen").get() as { d: string | null }).d;
   if (!laatste) return [];
+
+  // Bestaat er geen domain-property voor een domein, val dan terug op de
+  // URL-prefix-variant zodat we die site toch meenemen.
+  const patronen = ONZE_DOMEINEN.map((d) => `%${d}%`);
+  const gaten = patronen.map(() => "g.site LIKE ?").join(" OR ");
+
   return db.prepare(`
     SELECT g.term, z.thema, g.site, g.positie, g.vertoningen, g.klikken, g.url,
            CASE WHEN z.term IS NULL THEN 0 ELSE 1 END AS in_lijst
     FROM gsc_metingen g
     LEFT JOIN zoekwoorden z ON lower(z.term) = lower(g.term)
     WHERE g.datum = ?
+      AND (${gaten})
+      AND (
+        g.site IN (${gscSiteFilter()})
+        OR NOT EXISTS (
+          SELECT 1 FROM gsc_metingen b
+          WHERE b.datum = g.datum AND b.site IN (${gscSiteFilter()})
+            AND replace(b.site,'sc-domain:','') = replace(replace(replace(g.site,'https://',''),'www.',''),'/','')
+        )
+      )
     ORDER BY g.vertoningen DESC, g.positie
     LIMIT ?
-  `).all(laatste, limiet) as GscRij[];
+  `).all(laatste, ...patronen, limiet) as GscRij[];
+}
+
+/** Voor welke van onze domeinen ontbreekt er een Search Console-property? */
+export function gscOntbrekendeSites(): string[] {
+  const db = getDb();
+  const rijen = db.prepare("SELECT DISTINCT site FROM gsc_metingen").all() as { site: string }[];
+  return ONZE_DOMEINEN.filter((d) => !rijen.some((r) => r.site.includes(d)));
 }
 
 export function gscStatus() {
@@ -353,10 +385,12 @@ export function gscStatus() {
     SELECT (SELECT COUNT(*) FROM gsc_metingen)                  AS metingen,
            (SELECT MAX(datum) FROM gsc_metingen)                AS datum,
            (SELECT COUNT(DISTINCT site) FROM gsc_metingen)      AS sites,
-           (SELECT SUM(vertoningen) FROM gsc_metingen
-             WHERE datum = (SELECT MAX(datum) FROM gsc_metingen)) AS vertoningen,
-           (SELECT SUM(klikken) FROM gsc_metingen
-             WHERE datum = (SELECT MAX(datum) FROM gsc_metingen)) AS klikken
+           (SELECT SUM(g.vertoningen) FROM gsc_metingen g
+             WHERE g.datum = (SELECT MAX(datum) FROM gsc_metingen)
+               AND (${ONZE_DOMEINEN.map((d) => `g.site LIKE '%${d}%'`).join(" OR ")})) AS vertoningen,
+           (SELECT SUM(g.klikken) FROM gsc_metingen g
+             WHERE g.datum = (SELECT MAX(datum) FROM gsc_metingen)
+               AND (${ONZE_DOMEINEN.map((d) => `g.site LIKE '%${d}%'`).join(" OR ")})) AS klikken
   `).get() as {
     metingen: number; datum: string | null; sites: number;
     vertoningen: number | null; klikken: number | null;

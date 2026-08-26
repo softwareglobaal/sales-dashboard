@@ -171,6 +171,10 @@ de actiefste blogger van de markt.
   met `scripts/gsc-auth.mjs`. Werkt alleen voor domeinen waarvan het eigenaarschap bevestigd is.
 - Bovenaan de pagina staat een **bronnenstatus**: welke koppeling leeft, en wat er ontbreekt.
   Zie `SETUP-CONCURRENTIE.md` voor de stappen.
+- Search Console geeft **alle** properties van het account terug, dus ook `contrax.be`,
+  `h-architects.be` en `highdesignstudio.in`. De Energie-pagina filtert op onze eigen
+  energiedomeinen en kiest per domein de `sc-domain:`-property boven de URL-prefix,
+  omdat die www en non-www samen dekt.
 
 **Ritme**
 `scripts/concurrentie-cron.sh` controleert dagelijks de 90 langst niet gemeten domeinen;

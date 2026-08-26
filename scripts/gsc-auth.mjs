@@ -9,7 +9,12 @@
  *   node scripts/gsc-auth.mjs
  *
  * Het script start kort een webserver op localhost, toont een Google-link, en
- * vangt de code automatisch op zodra je bent ingelogd. Je hoeft niets te plakken.
+ * vangt de code automatisch op zodra je bent ingelogd. Daarna schrijft het het
+ * token zelf in .env.local. Het token komt dus niet op je scherm en je hoeft
+ * niets over te nemen -- knippen en plakken van een lang token gaat te vaak mis.
+ *
+ * Wil je het toch zien in plaats van laten wegschrijven:
+ *   node scripts/gsc-auth.mjs --toon
  *
  * Google heeft de oude "out-of-band"-methode (code overtypen) op 31 januari 2023
  * uitgeschakeld; die geeft nu altijd "Error 400: invalid_request". Vandaar deze
@@ -23,7 +28,13 @@
  */
 
 import { createServer } from "node:http";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+// Werk altijd vanuit de repo, ongeacht waar het script gestart wordt. Anders
+// zoekt het .env.local in de map waar je toevallig stond.
+process.chdir(join(dirname(fileURLToPath(import.meta.url)), ".."));
 
 const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 const POORT = Number(process.env.GSC_OAUTH_PORT || 53682);
@@ -135,7 +146,30 @@ if (!json.refresh_token) {
   process.exit(1);
 }
 
-console.log("\nGelukt. Zet deze regel in .env.local en op de server in ~/appportal/.env:\n");
-console.log(`GSC_REFRESH_TOKEN=${json.refresh_token}`);
-console.log("\nDeel dit token met niemand. Controleer daarna met:");
-console.log("  curl 'http://localhost:3008/api/searchconsole?check=1'\n");
+if (process.argv.includes("--toon")) {
+  console.log("\nGelukt. Zet deze regel zelf in .env.local:\n");
+  console.log(`GSC_REFRESH_TOKEN=${json.refresh_token}`);
+  console.log("\nDeel dit token met niemand.\n");
+  process.exit(0);
+}
+
+// Standaard schrijven we het token weg, zodat het nergens hoeft te worden
+// overgetypt. .env.local kan een symlink zijn (hier naar credentials.env);
+// realpathSync zorgt dat we het echte bestand aanpassen en niet de link vervangen.
+const doel = existsSync(".env.local") ? realpathSync(".env.local") : ".env.local";
+const bestaand = existsSync(doel) ? readFileSync(doel, "utf8") : "";
+const regel = `GSC_REFRESH_TOKEN=${json.refresh_token}`;
+
+let nieuw;
+if (/^GSC_REFRESH_TOKEN=.*$/m.test(bestaand)) {
+  nieuw = bestaand.replace(/^GSC_REFRESH_TOKEN=.*$/m, regel);
+  console.log(`\nGelukt. Bestaande GSC_REFRESH_TOKEN vervangen in ${doel}`);
+} else {
+  nieuw = bestaand.replace(/\n*$/, "\n") + `\n# Google Search Console (concurrentiemonitor)\n${regel}\n`;
+  console.log(`\nGelukt. GSC_REFRESH_TOKEN toegevoegd aan ${doel}`);
+}
+writeFileSync(doel, nieuw);
+
+console.log("Het token staat niet in dit venster en hoeft nergens overgetypt te worden.");
+console.log("\nVergeet niet dezelfde regel naar de server te brengen (sync-credentials.sh).");
+console.log("Controleer daarna met: curl 'http://localhost:3099/api/searchconsole?check=1'\n");

@@ -15,6 +15,7 @@ import {
   getLeaderboard,
   getOnzeGscPosities,
   gscStatus,
+  gscOntbrekendeSites,
 } from "@/lib/concurrentieQueries";
 import { serpBron } from "@/lib/zoekwoorden";
 import { gscBeschikbaar } from "@/lib/searchConsole";
@@ -110,6 +111,7 @@ export default async function ConcurrentiePage() {
   const gsc = gscBeschikbaar();
   const gscCijfers = gscStatus();
   const onzePosities = getOnzeGscPosities(12);
+  const gscOntbreekt = gscOntbrekendeSites();
   const bronnen = [
     { naam: "Sitecrawl concurrenten", klaar: true, uitleg: `${num(status.gisteren_gemeten || 0)} sites vandaag gemeten` },
     { naam: "Zoekvolume (Google Ads)", klaar: zwStatus.met_volume > 0,
@@ -152,6 +154,20 @@ export default async function ConcurrentiePage() {
             </div>
           ))}
         </div>
+
+        {gscOntbreekt.length > 0 && gscCijfers.metingen > 0 && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="font-medium">
+              Geen Search Console-property voor {gscOntbreekt.join(" en ")}
+            </div>
+            <p className="mt-1">
+              Google meet die site dus niet voor ons. Maak er een Domain-property van
+              (DNS-verificatie bij one.com) — dan overleeft ze ook de migratie naar de nieuwe
+              site. Zolang dat niet gebeurt, hebben we geen nulmeting om de migratie tegen af
+              te zetten.
+            </p>
+          </div>
+        )}
 
         <Card title="Wie leidt er online">
           {leaderboard.length > 0 ? (
