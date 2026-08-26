@@ -13,6 +13,7 @@
 import fs from "fs";
 import path from "path";
 import { getDb } from "./db";
+import { ADS_ACCOUNTS } from "./googleAdsConfig";
 
 export type ZoekwoordBron = {
   locatie: { land: string; taal: string; geoTargetConstant: string };
@@ -64,12 +65,27 @@ async function adsToken(): Promise<string> {
   return json.access_token as string;
 }
 
+/**
+ * Welk Google Ads-account gebruiken we voor Keyword Planner?
+ * GOOGLE_ADS_LOGIN_CUSTOMER_ID is leeg op de server -- de advertentiesync draait
+ * op het klantnummer uit config/ads.json. Daar vallen we dus op terug, anders
+ * lijkt de koppeling te ontbreken terwijl ze gewoon werkt.
+ */
+function keywordKlantnummer(): string {
+  const uit =
+    process.env.GOOGLE_ADS_KEYWORD_CUSTOMER_ID ||
+    process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID ||
+    ADS_ACCOUNTS[0]?.customerId ||
+    "";
+  return uit.replace(/[^0-9]/g, "");
+}
+
 export function adsBeschikbaar(): boolean {
   return Boolean(
     process.env.GOOGLE_ADS_CLIENT_ID &&
       process.env.GOOGLE_ADS_REFRESH_TOKEN &&
       process.env.GOOGLE_ADS_DEVELOPER_TOKEN &&
-      (process.env.GOOGLE_ADS_KEYWORD_CUSTOMER_ID || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID)
+      keywordKlantnummer()
   );
 }
 
@@ -80,11 +96,10 @@ export function adsBeschikbaar(): boolean {
  */
 export async function haalZoekvolumes() {
   if (!adsBeschikbaar()) {
-    return { ok: false, reden: "Google Ads-credentials ontbreken (of GOOGLE_ADS_KEYWORD_CUSTOMER_ID is niet gezet)" };
+    return { ok: false, reden: "Google Ads-credentials ontbreken" };
   }
   const cfg = leesZoekwoordenConfig();
-  const klant = (process.env.GOOGLE_ADS_KEYWORD_CUSTOMER_ID || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "")
-    .replace(/[^0-9]/g, "");
+  const klant = keywordKlantnummer();
   const token = await adsToken();
 
   const headers: Record<string, string> = {
