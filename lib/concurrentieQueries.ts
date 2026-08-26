@@ -333,43 +333,50 @@ export type GscRij = {
  * Google wél oppikt maar wij niet volgen, zijn juist interessant.
  */
 /**
- * Search Console bevat álle properties van het account — ook contrax.be en
- * h-architects.be, die hier niets te zoeken hebben. We filteren op onze eigen
- * energiedomeinen, en kiezen per domein de domain-property (`sc-domain:`) boven
- * de losse URL-prefix, want die dekt www en non-www in één keer.
+ * Search Console levert per domein soms meerdere properties: een domain-property
+ * (`sc-domain:unabo.be`) en losse URL-prefixen (`https://unabo.be/`,
+ * `https://www.unabo.be/`). Die overlappen, dus optellen telt dubbel -- UNABO kwam
+ * zo op 5.726 vertoningen in plaats van 2.863. Deze CTE kiest per domein een
+ * property, bij voorkeur de domain-property omdat die www en non-www samen dekt,
+ * en houdt alleen onze eigen domeinen over. Het account bevat namelijk ook
+ * contrax.be, h-architects.be en highdesignstudio.in, die hier niets te zoeken hebben.
  */
-function gscSiteFilter(): string {
-  return ONZE_DOMEINEN.map((d) => `'sc-domain:${d}'`).join(",");
-}
+const GSC_EIGEN = `
+  WITH genormaliseerd AS (
+    SELECT g.*,
+           rtrim(replace(replace(replace(replace(g.site,'sc-domain:',''),'https://',''),'http://',''),'www.',''),'/') AS domein
+    FROM gsc_metingen g
+  ),
+  gekozen AS (
+    SELECT domein, site FROM (
+      SELECT domein, site,
+             ROW_NUMBER() OVER (
+               PARTITION BY domein ORDER BY (site LIKE 'sc-domain:%') DESC, site
+             ) AS rn
+      FROM (SELECT DISTINCT domein, site FROM genormaliseerd)
+    ) WHERE rn = 1
+  ),
+  eigen AS (
+    SELECT n.* FROM genormaliseerd n
+    JOIN gekozen k ON k.domein = n.domein AND k.site = n.site
+    WHERE n.domein IN (${ONZE_DOMEINEN.map((d) => `'${d}'`).join(",")})
+  )
+`;
 
 export function getOnzeGscPosities(limiet = 50): GscRij[] {
   const db = getDb();
   const laatste = (db.prepare("SELECT MAX(datum) d FROM gsc_metingen").get() as { d: string | null }).d;
   if (!laatste) return [];
-
-  // Bestaat er geen domain-property voor een domein, val dan terug op de
-  // URL-prefix-variant zodat we die site toch meenemen.
-  const patronen = ONZE_DOMEINEN.map((d) => `%${d}%`);
-  const gaten = patronen.map(() => "g.site LIKE ?").join(" OR ");
-
   return db.prepare(`
-    SELECT g.term, z.thema, g.site, g.positie, g.vertoningen, g.klikken, g.url,
+    ${GSC_EIGEN}
+    SELECT e.term, z.thema, e.site, e.positie, e.vertoningen, e.klikken, e.url,
            CASE WHEN z.term IS NULL THEN 0 ELSE 1 END AS in_lijst
-    FROM gsc_metingen g
-    LEFT JOIN zoekwoorden z ON lower(z.term) = lower(g.term)
-    WHERE g.datum = ?
-      AND (${gaten})
-      AND (
-        g.site IN (${gscSiteFilter()})
-        OR NOT EXISTS (
-          SELECT 1 FROM gsc_metingen b
-          WHERE b.datum = g.datum AND b.site IN (${gscSiteFilter()})
-            AND replace(b.site,'sc-domain:','') = replace(replace(replace(g.site,'https://',''),'www.',''),'/','')
-        )
-      )
-    ORDER BY g.vertoningen DESC, g.positie
+    FROM eigen e
+    LEFT JOIN zoekwoorden z ON lower(z.term) = lower(e.term)
+    WHERE e.datum = ?
+    ORDER BY e.vertoningen DESC, e.positie
     LIMIT ?
-  `).all(laatste, ...patronen, limiet) as GscRij[];
+  `).all(laatste, limiet) as GscRij[];
 }
 
 /** Voor welke van onze domeinen ontbreekt er een Search Console-property? */
@@ -382,15 +389,13 @@ export function gscOntbrekendeSites(): string[] {
 export function gscStatus() {
   const db = getDb();
   return db.prepare(`
-    SELECT (SELECT COUNT(*) FROM gsc_metingen)                  AS metingen,
-           (SELECT MAX(datum) FROM gsc_metingen)                AS datum,
-           (SELECT COUNT(DISTINCT site) FROM gsc_metingen)      AS sites,
-           (SELECT SUM(g.vertoningen) FROM gsc_metingen g
-             WHERE g.datum = (SELECT MAX(datum) FROM gsc_metingen)
-               AND (${ONZE_DOMEINEN.map((d) => `g.site LIKE '%${d}%'`).join(" OR ")})) AS vertoningen,
-           (SELECT SUM(g.klikken) FROM gsc_metingen g
-             WHERE g.datum = (SELECT MAX(datum) FROM gsc_metingen)
-               AND (${ONZE_DOMEINEN.map((d) => `g.site LIKE '%${d}%'`).join(" OR ")})) AS klikken
+    ${GSC_EIGEN}
+    SELECT COUNT(*)               AS metingen,
+           MAX(datum)             AS datum,
+           COUNT(DISTINCT domein) AS sites,
+           SUM(CASE WHEN datum = (SELECT MAX(datum) FROM eigen) THEN vertoningen ELSE 0 END) AS vertoningen,
+           SUM(CASE WHEN datum = (SELECT MAX(datum) FROM eigen) THEN klikken     ELSE 0 END) AS klikken
+    FROM eigen
   `).get() as {
     metingen: number; datum: string | null; sites: number;
     vertoningen: number | null; klikken: number | null;

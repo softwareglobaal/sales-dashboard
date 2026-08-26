@@ -16,8 +16,14 @@ groen = gekoppeld, grijs = ontbreekt nog. Daar zie je altijd de actuele stand.
 weet je niet of "EPB verslaggever Genk" tien of duizend keer per maand gezocht wordt.
 
 **Wat er nodig is:** niets nieuws. De koppeling gebruikt dezelfde OAuth-client als
-de advertentiesync. Vereist wel dat `GOOGLE_ADS_LOGIN_CUSTOMER_ID` gevuld is
-(of `GOOGLE_ADS_KEYWORD_CUSTOMER_ID` als je een ander account wil gebruiken).
+de advertentiesync, en valt voor het klantnummer terug op het eerste account uit
+`config/ads.json` (UNABO). `GOOGLE_ADS_LOGIN_CUSTOMER_ID` is namelijk leeg op de
+server -- ook de advertentiesync draait op het nummer uit dat configbestand.
+Wil je een ander account gebruiken, zet dan `GOOGLE_ADS_KEYWORD_CUSTOMER_ID`.
+
+**Status:** getest en werkend op 26/08/2026. Google normaliseert nauwe varianten
+("EPB verslaggever" valt samen met "EPB verslaggeving") en geeft geen volume terug
+voor termen onder de meetdrempel; 24 van de 48 termen hebben daardoor een cijfer.
 
 **Uitvoeren:** op de server, waar de Google-sleutels staan:
 
