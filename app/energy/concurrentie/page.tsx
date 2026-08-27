@@ -13,6 +13,8 @@ import {
   getZoekwoordStatus,
   getAdverteerders,
   getLeaderboard,
+  getProvincieVergelijking,
+  getHerschrijfKansen,
   getOnzeGscPosities,
   gscStatus,
   gscOntbrekendeSites,
@@ -76,7 +78,13 @@ function Diensten({ json }: { json: string | null }) {
   );
 }
 
-export default async function ConcurrentiePage() {
+export default async function ConcurrentiePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ toon?: string }>;
+}) {
+  const sp = await searchParams;
+  const toonAlles = sp.toon === "alles";
   if (!concurrentieHeeftData()) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
@@ -102,7 +110,9 @@ export default async function ConcurrentiePage() {
   const zoekwoorden = getZoekwoorden();
   const zwStatus = getZoekwoordStatus();
   const adverteerders = getAdverteerders();
-  const leaderboard = getLeaderboard(8, 5);
+  const leaderboard = getLeaderboard(8, 5, toonAlles);
+  const provincies2 = getProvincieVergelijking();
+  const herschrijf = getHerschrijfKansen(12);
   const perTerm = leaderboard.reduce<Record<string, typeof leaderboard>>((acc, r) => {
     (acc[r.term] ||= []).push(r);
     return acc;
@@ -172,9 +182,18 @@ export default async function ConcurrentiePage() {
         <Card title="Wie leidt er online">
           {leaderboard.length > 0 ? (
             <>
-              <div className="mb-2 text-xs text-zinc-500">
-                Top 5 in Google per zoekterm — stand van{" "}
-                {zwStatus.positie_datum?.split("-").reverse().join("/")}
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-xs">
+                <span className="text-zinc-500">
+                  Top 5 in Google per zoekterm — stand van{" "}
+                  {zwStatus.positie_datum?.split("-").reverse().join("/")}
+                  {!toonAlles && " · overheid en portalen verborgen"}
+                </span>
+                <a
+                  href={toonAlles ? "/energy/concurrentie" : "/energy/concurrentie?toon=alles"}
+                  className="shrink-0 rounded border border-zinc-200 px-2 py-1 text-zinc-600 hover:bg-zinc-50"
+                >
+                  {toonAlles ? "Verberg overheid en portalen" : "Toon ook overheid en portalen"}
+                </a>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {Object.entries(perTerm).map(([term, rijen]) => (
@@ -389,21 +408,43 @@ export default async function ConcurrentiePage() {
           </div>
 
           <div className="space-y-4">
-            <Card title="Waar zitten ze">
-              <div className="space-y-2">
-                {provincies.map((p) => (
-                  <div key={p.provincie}>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-zinc-600">{p.provincie}</span>
-                      <span className="font-medium text-zinc-800">{num(p.erkenningen)}</span>
-                    </div>
-                    <div className="mt-1 h-1.5 rounded bg-zinc-100">
-                      <div className="h-1.5 rounded bg-cyan-600"
-                           style={{ width: `${(p.erkenningen / totaalErkenningen) * 100}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <Card title="Waar staan wij tegenover de markt">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-left uppercase tracking-wide text-zinc-400">
+                    <th className="pb-2 pr-3 font-medium">Provincie</th>
+                    <th className="pb-2 pr-3 text-right font-medium">Markt</th>
+                    <th className="pb-2 pr-3 text-right font-medium">Wij</th>
+                    <th className="pb-2 text-right font-medium">Dekking</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {provincies2.map((p) => (
+                    <tr key={p.provincie} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-1.5 pr-3 text-zinc-700">{p.provincie}</td>
+                      <td className="py-1.5 pr-3 text-right tabular-nums text-zinc-500">{num(p.erkenningen)}</td>
+                      <td className="py-1.5 pr-3 text-right tabular-nums text-zinc-800">{num(p.onzeDeals)}</td>
+                      <td className="py-1.5 text-right">
+                        {p.erkenningen === 0 ? (
+                          <span className="text-zinc-300">—</span>
+                        ) : (
+                          <span className={
+                            "tabular-nums font-medium " +
+                            (p.dekking >= 0.5 ? "text-emerald-700" : p.dekking >= 0.3 ? "text-zinc-600" : "text-amber-700")
+                          }>
+                            {p.dekking.toFixed(2)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
+                Markt = erkende verslaggevers, Wij = onze Energy-projecten. Dekking is het
+                aantal projecten per erkende verslaggever: <span className="text-amber-700">laag</span> betekent
+                veel markt waar wij weinig doen.
+              </p>
             </Card>
 
             <Card title="Onze eigen site">
@@ -504,6 +545,47 @@ export default async function ConcurrentiePage() {
             noemt is ofwel oninteressant, ofwel onze opening.
           </p>
         </Card>
+
+        {herschrijf.length > 0 && (
+          <div className="mt-4">
+            <Card title="Herschrijfkansen — overheidspagina's die onze zoektermen bezetten">
+              <p className="mb-3 text-sm text-zinc-600">
+                Geen concurrenten, maar wel de pagina's waarvan Google vindt dat ze bij deze
+                zoektermen horen. Ambtelijk geschreven, en vaak onvolledig. Dat is precies
+                waar wij een duidelijker antwoord tegenover kunnen zetten.
+              </p>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
+                    <th className="pb-2 pr-4 whitespace-nowrap font-medium">Zoekterm</th>
+                    <th className="pb-2 pr-4 whitespace-nowrap text-right font-medium">Volume</th>
+                    <th className="pb-2 pr-4 whitespace-nowrap text-right font-medium">Positie</th>
+                    <th className="pb-2 font-medium">Pagina</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {herschrijf.map((h, i) => (
+                    <tr key={h.term + i} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-2 pr-4 text-zinc-800">{h.term}</td>
+                      <td className="py-2 pr-4 whitespace-nowrap text-right tabular-nums text-zinc-600">
+                        {h.volume ? num(h.volume) : <span className="text-zinc-300">—</span>}
+                      </td>
+                      <td className="py-2 pr-4 whitespace-nowrap text-right tabular-nums font-medium text-zinc-800">
+                        #{h.positie}
+                      </td>
+                      <td className="py-2">
+                        <a href={h.url} target="_blank" rel="noreferrer noopener"
+                           className="block max-w-md truncate text-xs text-blue-600 hover:underline" title={h.url}>
+                          {h.domein}
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          </div>
+        )}
       </section>
 
       {/* ------------------------------------------------------------------ */}

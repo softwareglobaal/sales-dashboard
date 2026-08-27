@@ -3,6 +3,9 @@
  * per domein, zodat de pagina niet afhangt van het moment van de laatste crawl.
  */
 import { getDb } from "./db";
+import { LEAD_SCOPE } from "./energyQueries";
+import { parseProjectLocation } from "./regio";
+import { UNABO_ADDR_HASH } from "./queries";
 
 export type ConcurrentRij = {
   domein: string;
@@ -283,7 +286,18 @@ export type LeaderboardRij = {
  * Toont wie er werkelijk bovenaan staat — inclusief spelers die niet in het
  * verslaggeversregister voorkomen.
  */
-export function getLeaderboard(aantalTermen = 8, diepte = 5): LeaderboardRij[] {
+/** Categorieën die geen concurrent zijn: overheid schrijft de wetgeving, portalen verkopen niets. */
+export const GEEN_CONCURRENT = ["overheid", "portaal"];
+
+/**
+ * De top per zoekterm. `alles = false` laat overheid en portalen weg — je gaat
+ * vlaanderen.be niet verslaan en Batibouw is geen concurrent.
+ *
+ * De positienummers blijven wél de echte Google-posities. Staat vlaanderen.be
+ * op 1 en mijnEPB op 2, dan blijft mijnEPB #2. Anders lieg je tegen jezelf over
+ * hoe hoog je moet klimmen.
+ */
+export function getLeaderboard(aantalTermen = 8, diepte = 5, alles = false): LeaderboardRij[] {
   const db = getDb();
   const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
   if (!laatste) return [];
@@ -400,4 +414,103 @@ export function gscStatus() {
     metingen: number; datum: string | null; sites: number;
     vertoningen: number | null; klikken: number | null;
   };
+}
+
+// ---------------------------------------------------------------------------
+// Provincies: onze aanwezigheid tegenover de marktdichtheid
+// ---------------------------------------------------------------------------
+
+export type ProvincieRij = {
+  provincie: string;
+  erkenningen: number;      // erkende verslaggevers in die provincie
+  bureaus: number;          // bedrijven met een eigen domein
+  onzeDeals: number;        // onze Energy-projecten
+  onzeWon: number;
+  dekking: number;          // deals per erkenning — laag = veel markt, weinig van ons
+};
+
+/**
+ * De vraag is niet "waar zitten de concurrenten" maar "waar zitten wij niet".
+ * Een provincie met veel erkende verslaggevers en weinig projecten van ons is
+ * open terrein; andersom is het een markt waar we al sterk staan.
+ *
+ * Onze kant komt uit dezelfde deal-afbakening als de rest van de Energy-tab
+ * (LEAD_SCOPE), en de provincie uit `parseProjectLocation` — hetzelfde als op
+ * de kaart. Anders krijg je twee cijfers die allebei "onze projecten" heten.
+ */
+export function getProvincieVergelijking(): ProvincieRij[] {
+  const db = getDb();
+
+  const markt = db.prepare(`
+    SELECT COALESCE(NULLIF(provincie,''),'onbekend') provincie,
+           COUNT(*) erkenningen,
+           COUNT(DISTINCT NULLIF(domein,'')) bureaus
+    FROM verslaggevers GROUP BY 1
+  `).all() as { provincie: string; erkenningen: number; bureaus: number }[];
+
+  const deals = db.prepare(
+    `SELECT id, title, raw, status FROM deals WHERE ${LEAD_SCOPE}`
+  ).all() as { id: number; title: string | null; raw: string | null; status: string }[];
+
+  const onze: Record<string, { deals: number; won: number }> = {};
+  for (const d of deals) {
+    let raw: Record<string, unknown> = {};
+    try { raw = JSON.parse(d.raw || "{}"); } catch { /* deal zonder ruwe data */ }
+    const pc = (raw[UNABO_ADDR_HASH + "_postal_code"] as string) || null;
+    const loc = parseProjectLocation(d.title, pc);
+    if (!loc) continue;
+    const p = (onze[loc.province] ||= { deals: 0, won: 0 });
+    p.deals++;
+    if (d.status === "won") p.won++;
+  }
+
+  const provincies = new Set([...markt.map((m) => m.provincie), ...Object.keys(onze)]);
+  return [...provincies]
+    .map((p) => {
+      const m = markt.find((x) => x.provincie === p);
+      const o = onze[p] || { deals: 0, won: 0 };
+      const erkenningen = m?.erkenningen || 0;
+      return {
+        provincie: p,
+        erkenningen,
+        bureaus: m?.bureaus || 0,
+        onzeDeals: o.deals,
+        onzeWon: o.won,
+        dekking: erkenningen ? o.deals / erkenningen : 0,
+      };
+    })
+    .filter((r) => r.erkenningen > 0 || r.onzeDeals > 0)
+    .sort((a, b) => b.erkenningen - a.erkenningen);
+}
+
+
+export type HerschrijfKans = {
+  term: string;
+  volume: number | null;
+  positie: number;
+  domein: string;
+  url: string;
+  categorie: string;
+};
+
+/**
+ * Overheidspagina's die hoog scoren op onze zoektermen. Geen concurrenten, maar
+ * wél een contentlijst: dat zijn onderwerpen waarvan Google vindt dat ze bij de
+ * zoekterm horen, geschreven in ambtelijke taal. Zoals in de meeting gezegd:
+ * die teksten kunnen wij beter en duidelijker maken.
+ */
+export function getHerschrijfKansen(limiet = 20): HerschrijfKans[] {
+  const db = getDb();
+  const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
+  if (!laatste) return [];
+  return db.prepare(`
+    SELECT p.term, z.volume, p.positie, p.domein, p.url, c.categorie
+    FROM posities p
+    JOIN concurrenten c ON c.domein = p.domein
+    LEFT JOIN zoekwoorden z ON z.term = p.term
+    WHERE p.datum = ? AND p.soort = 'organisch' AND p.positie <= 5
+      AND c.categorie IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})
+    ORDER BY COALESCE(z.volume,0) DESC, p.positie
+    LIMIT ?
+  `).all(laatste, limiet) as HerschrijfKans[];
 }

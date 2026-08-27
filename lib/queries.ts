@@ -1339,7 +1339,7 @@ export type EngRegion = {
   total: number;
 };
 
-const UNABO_ADDR_HASH = "851a82ca35b98f6f166752733ad0498887b2fc8c";
+export const UNABO_ADDR_HASH = "851a82ca35b98f6f166752733ad0498887b2fc8c";
 
 export function getEngineeringRegion(period: Period, themeKey?: string, scope: EngScope = "all"): EngRegion {
   const db = getDb();

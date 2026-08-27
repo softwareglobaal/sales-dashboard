@@ -55,7 +55,10 @@ function hidden(prefix: string): { clause: string; named: Record<string, string>
 }
 
 // Deal-niveau LEAD-scope (UNABO ENERGY-product óf UNABO-Energy-pipeline).
-const LEAD_SCOPE =
+// Geëxporteerd omdat de concurrentiemonitor exact dezelfde afbakening moet
+// gebruiken: anders vergelijk je onze projecten met een andere dealverzameling
+// dan de rest van de Energy-tab toont.
+export const LEAD_SCOPE =
   "(account_key='unabo' AND (" +
   "id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='" +
   DEPT +
