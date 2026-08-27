@@ -248,6 +248,19 @@ function initSchema(db: Database.Database) {
       bron     TEXT,                 -- welke SERP-bron de meting deed
       PRIMARY KEY (term, domein, datum, soort)
     );
+    -- Menselijk oordeel over een verslaggever of bedrijf. De automatische
+    -- indeling zit er soms naast: iemand zonder website kan de zaakvoerder van
+    -- een groot bureau zijn. Wie de markt kent, corrigeert dat hier.
+    CREATE TABLE IF NOT EXISTS beoordelingen (
+      soort     TEXT NOT NULL,      -- verslaggever / domein
+      sleutel   TEXT NOT NULL,      -- ep_code of domein
+      oordeel   TEXT NOT NULL,      -- prospect / geen-prospect / concurrent / klant
+      notitie   TEXT,
+      door      TEXT,
+      datum     TEXT,
+      PRIMARY KEY (soort, sleutel)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_pos_datum ON posities(datum);
     CREATE INDEX IF NOT EXISTS idx_pos_term  ON posities(term);
 

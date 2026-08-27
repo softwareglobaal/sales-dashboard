@@ -170,20 +170,39 @@ export function getSignalen(limiet = 50) {
 }
 
 /** Erkend, maar nauwelijks online: geen concurrent maar een kandidaat voor onderaanneming. */
-export function getOnderaannemingProspects(limiet = 40) {
+/**
+ * Erkend maar nauwelijks online: kandidaten voor onderaanneming.
+ *
+ * De automatische selectie zit er soms naast — iemand zonder eigen website kan
+ * de zaakvoerder van een groot bureau zijn. Daarom draagt elke rij een
+ * beoordeling die iemand met marktkennis kan zetten; wie op "geen" staat
+ * verdwijnt uit de lijst.
+ */
+export function getOnderaannemingProspects(limiet = 40, toonAfgekeurd = false) {
   const db = getDb();
   return db.prepare(`
-    SELECT v.naam, v.bedrijf, v.gemeente, v.provincie, v.domein, v.email, v.telefoon,
-           s.paginas, s.bereikbaar
+    SELECT v.ep_code, v.naam, v.bedrijf, v.gemeente, v.provincie, v.domein,
+           s.paginas, s.bereikbaar, b.oordeel, b.door
     FROM verslaggevers v
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = v.domein
-    WHERE v.domein = '' OR s.bereikbaar = 0 OR COALESCE(s.paginas,0) <= 5
-    ORDER BY v.provincie, v.gemeente, v.naam
+    LEFT JOIN beoordelingen b ON b.soort = 'verslaggever' AND b.sleutel = v.ep_code
+    WHERE (v.domein = '' OR s.bereikbaar = 0 OR COALESCE(s.paginas,0) <= 5)
+      ${toonAfgekeurd ? "" : "AND COALESCE(b.oordeel,'') <> 'geen-prospect'"}
+    ORDER BY CASE b.oordeel WHEN 'prospect' THEN 0 ELSE 1 END,
+             v.provincie, v.gemeente, v.naam
     LIMIT ?
   `).all(limiet) as {
-    naam: string; bedrijf: string; gemeente: string; provincie: string;
-    domein: string; email: string; telefoon: string; paginas: number | null; bereikbaar: number | null;
+    ep_code: string; naam: string; bedrijf: string; gemeente: string; provincie: string;
+    domein: string; paginas: number | null; bereikbaar: number | null;
+    oordeel: string | null; door: string | null;
   }[];
+}
+
+export function telAfgekeurdeProspects(): number {
+  const db = getDb();
+  return (db.prepare(
+    "SELECT COUNT(*) n FROM beoordelingen WHERE soort='verslaggever' AND oordeel='geen-prospect'"
+  ).get() as { n: number }).n;
 }
 
 export function getCrawlStatus() {
@@ -513,4 +532,87 @@ export function getHerschrijfKansen(limiet = 20): HerschrijfKans[] {
     ORDER BY COALESCE(z.volume,0) DESC, p.positie
     LIMIT ?
   `).all(laatste, limiet) as HerschrijfKans[];
+}
+
+// ---------------------------------------------------------------------------
+// Het volledige register
+// ---------------------------------------------------------------------------
+
+export type RegisterRij = {
+  ep_code: string;
+  naam: string;
+  bedrijf: string;
+  gemeente: string;
+  provincie: string;
+  domein: string;
+  email: string;
+  telefoon: string;
+  collegas: number;      // aantal erkenningen op hetzelfde domein
+  paginas: number | null;
+  epb_paginas: number | null;
+  beoordeling: string | null;
+};
+
+export type RegisterFilter = {
+  zoek?: string;
+  provincie?: string;
+  soort?: string;        // alles / bureau / eenmanszaak / zonder-website
+};
+
+/**
+ * Alle erkenningen, doorzoekbaar. Dit is de bron waar de rest op steunt:
+ * wie is erkend, bij welk bureau, en hoe zichtbaar is dat bureau online.
+ *
+ * Let op het onderscheid: 792 erkenningen voor 613 personen. Wie een oude en
+ * een nieuwe EP-code heeft staat twee keer in het register.
+ */
+export function getRegister(f: RegisterFilter = {}, limiet = 300): RegisterRij[] {
+  const db = getDb();
+  const waar: string[] = [];
+  const args: unknown[] = [];
+
+  if (f.zoek?.trim()) {
+    waar.push("(lower(v.naam) LIKE ? OR lower(v.bedrijf) LIKE ? OR lower(v.gemeente) LIKE ? OR lower(v.domein) LIKE ? OR lower(v.ep_code) LIKE ?)");
+    const q = `%${f.zoek.trim().toLowerCase()}%`;
+    args.push(q, q, q, q, q);
+  }
+  if (f.provincie && f.provincie !== "alles") {
+    waar.push("COALESCE(NULLIF(v.provincie,''),'onbekend') = ?");
+    args.push(f.provincie);
+  }
+  if (f.soort === "zonder-website") waar.push("v.domein = ''");
+  if (f.soort === "bureau") waar.push("v.domein <> '' AND c.verslaggevers >= 2");
+  if (f.soort === "eenmanszaak") waar.push("(v.domein = '' OR c.verslaggevers <= 1)");
+
+  const sql = `
+    SELECT v.ep_code, v.naam, v.bedrijf, v.gemeente, v.provincie, v.domein, v.email, v.telefoon,
+           COALESCE(c.verslaggevers, 1) AS collegas,
+           s.paginas, s.epb_paginas, c.notitie AS beoordeling
+    FROM verslaggevers v
+    LEFT JOIN concurrenten c ON c.domein = v.domein AND v.domein <> ''
+    LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = v.domein
+    ${waar.length ? "WHERE " + waar.join(" AND ") : ""}
+    ORDER BY COALESCE(c.verslaggevers,1) DESC, v.bedrijf, v.naam
+    LIMIT ?
+  `;
+  return db.prepare(sql).all(...args, limiet) as RegisterRij[];
+}
+
+export function getRegisterTotalen(f: RegisterFilter = {}) {
+  const db = getDb();
+  return db.prepare(`
+    SELECT COUNT(*) erkenningen,
+           COUNT(DISTINCT naam) personen,
+           COUNT(DISTINCT NULLIF(domein,'')) domeinen,
+           SUM(CASE WHEN domein = '' THEN 1 ELSE 0 END) zonder_website
+    FROM verslaggevers
+  `).get() as { erkenningen: number; personen: number; domeinen: number; zonder_website: number };
+}
+
+export function getProvincieKeuzes(): string[] {
+  const db = getDb();
+  return (db.prepare(`
+    SELECT DISTINCT COALESCE(NULLIF(provincie,''),'onbekend') p
+    FROM verslaggevers ORDER BY p
+  `).all() as { p: string }[]).map((r) => r.p);
 }

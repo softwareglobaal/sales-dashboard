@@ -15,6 +15,7 @@ import {
   getLeaderboard,
   getProvincieVergelijking,
   getHerschrijfKansen,
+  telAfgekeurdeProspects,
   getOnzeGscPosities,
   gscStatus,
   gscOntbrekendeSites,
@@ -24,6 +25,7 @@ import { gscBeschikbaar } from "@/lib/searchConsole";
 import { num } from "@/lib/format";
 import { Kpi, Card } from "@/components/ui";
 import { SubNav } from "@/components/SubNav";
+import { Beoordeling } from "@/components/Beoordeling";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +107,8 @@ export default async function ConcurrentiePage({
   const diensten = getDienstenDekking();
   const concurrenten = getConcurrenten("concurrent");
   const signalen = getSignalen(40);
-  const prospects = getOnderaannemingProspects(40);
+  const prospects = getOnderaannemingProspects(60, sp.toon === "afgekeurd");
+  const afgekeurd = telAfgekeurdeProspects();
   const wij = getConcurrenten().find((c) => c.domein === ONS_DOMEIN);
   const zoekwoorden = getZoekwoorden();
   const zwStatus = getZoekwoordStatus();
@@ -738,24 +741,32 @@ export default async function ConcurrentiePage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
-                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Naam</th>
-                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Bedrijf</th>
-                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Gemeente</th>
-                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Provincie</th>
-                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Website</th>
+                  <th className="pb-2 pr-4 whitespace-nowrap font-medium">Naam</th>
+                  <th className="pb-2 pr-4 whitespace-nowrap font-medium">Bedrijf</th>
+                  <th className="pb-2 pr-4 whitespace-nowrap font-medium">Gemeente</th>
+                  <th className="pb-2 pr-4 whitespace-nowrap font-medium">Website</th>
+                  <th className="pb-2 whitespace-nowrap font-medium">Oordeel</th>
                 </tr>
               </thead>
               <tbody>
-                {prospects.map((p, i) => (
-                  <tr key={`${p.naam}-${i}`} className="border-b border-zinc-100 last:border-0">
-                    <td className="py-2 pr-4 last:pr-0 text-zinc-800">{p.naam}</td>
-                    <td className="py-2 pr-4 last:pr-0 text-zinc-600">{p.bedrijf || "—"}</td>
-                    <td className="py-2 pr-4 last:pr-0 text-zinc-600">{p.gemeente}</td>
-                    <td className="py-2 pr-4 last:pr-0 text-zinc-500">{p.provincie || "—"}</td>
-                    <td className="py-2 pr-4 last:pr-0 text-xs">
+                {prospects.map((p) => (
+                  <tr key={p.ep_code} className="border-b border-zinc-100 last:border-0">
+                    <td className="py-2 pr-4 text-zinc-800">
+                      {p.naam}
+                      <div className="text-[11px] text-zinc-400">{p.provincie || "—"}</div>
+                    </td>
+                    <td className="py-2 pr-4 text-zinc-600">{p.bedrijf || <span className="text-zinc-300">—</span>}</td>
+                    <td className="py-2 pr-4 text-zinc-600">{p.gemeente}</td>
+                    <td className="py-2 pr-4 text-xs">
                       {p.domein
                         ? <a href={`https://${p.domein}`} target="_blank" rel="noreferrer noopener" className="text-blue-600 hover:underline">{p.domein}</a>
                         : <span className="text-zinc-400">geen</span>}
+                    </td>
+                    <td className="py-2">
+                      <Beoordeling soort="verslaggever" sleutel={p.ep_code} huidig={p.oordeel} />
+                      {p.door && p.oordeel && (
+                        <div className="text-[11px] text-zinc-400">door {p.door}</div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -763,7 +774,7 @@ export default async function ConcurrentiePage({
             </table>
           </div>
           <p className="mt-3 text-xs text-zinc-500">
-            Contactgegevens komen uit het openbare VEKA-register. Enkel voor intern gebruik.
+                        Contactgegevens komen uit het openbare VEKA-register. Enkel voor intern gebruik.
           </p>
         </Card>
       </section>
