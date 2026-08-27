@@ -184,6 +184,33 @@ export function serpBron(): { naam: string; klaar: boolean; reden?: string } {
 
 type SerpRij = { soort: "organisch" | "advertentie"; positie: number; domein: string; url: string };
 
+/**
+ * Wat is dit domein dat we in de zoekresultaten tegenkwamen?
+ *
+ * Alles wat rankt automatisch "concurrent" noemen is fout: op deze zoektermen
+ * staan vooral overheidssites (vlaanderen.be, leefmilieu.brussels), de
+ * wetgevingsdatabank van VITO, vergelijkers en zelfs een politieke partij.
+ * Die zijn wel relevant om te volgen — ze nemen posities in — maar het zijn
+ * geen bedrijven waar we klanten aan verliezen.
+ *
+ * Wat we niet met zekerheid kunnen plaatsen wordt "onbekend", niet "concurrent".
+ * Liever een lijstje dat iemand nakijkt dan een opgeblazen concurrententelling.
+ */
+export function categoriseerSerpDomein(domein: string): string {
+  const d = domein.toLowerCase();
+  const overheid =
+    /(^|\.)(vlaanderen\.be|belgium\.be|fgov\.be|europa\.eu|brussels|vito\.be|energiesparen\.be|vlaio\.be|veka\.be)$/.test(d) ||
+    /\.(gov|overheid)\./.test(d) ||
+    d.endsWith(".brussels");
+  if (overheid) return "overheid";
+
+  const portaal =
+    /(premiezoeker|callmepower|bouwenwonen|livios|batibouw|zoekbedrijf|goudengids|trustlocal|solvari|bobex|werkspot|gidsduurzamegebouwen|wikipedia|reddit|facebook|linkedin|youtube|indeed|jobat)/.test(d);
+  if (portaal) return "portaal";
+
+  return "onbekend";
+}
+
 /** Eén zoekopdracht bij SerpApi, Google België / Nederlands. */
 async function serpSerpApi(term: string): Promise<SerpRij[]> {
   const params = new URLSearchParams({
@@ -306,17 +333,34 @@ export async function meetPosities(limiet?: number) {
   const nu = new Date().toISOString();
   const insDom = db.prepare(
     `INSERT INTO concurrenten (domein,naam,bron,volgen,categorie,verslaggevers,eerste_zien)
-     VALUES (?,?,'serp',1,'concurrent',0,?)
+     VALUES (?,?,'serp',1,?,0,?)
      ON CONFLICT(domein) DO NOTHING`
   );
   let nieuw = 0;
   db.transaction(() => {
     for (const d of ontdekt) {
       if (gevolgd.has(d)) continue;
-      insDom.run(d, d.replace(/\.(be|com|eu|nl)$/, ""), nu);
+      insDom.run(d, d.replace(/\.(be|com|eu|nl)$/, ""), categoriseerSerpDomein(d), nu);
       nieuw++;
     }
   })();
 
   return { ok: true, bron: bron.naam, gemeten, opgeslagen, nieuweDomeinen: nieuw, fouten };
+}
+
+/** Deelt eerder als "concurrent" opgeslagen SERP-vondsten opnieuw in. */
+export function herclassificeerSerpDomeinen() {
+  const db = getDb();
+  const rijen = db.prepare("SELECT domein, categorie FROM concurrenten WHERE bron = 'serp'").all() as
+    { domein: string; categorie: string }[];
+  const upd = db.prepare("UPDATE concurrenten SET categorie = ? WHERE domein = ?");
+  const telling: Record<string, number> = {};
+  db.transaction(() => {
+    for (const r of rijen) {
+      const nieuw = categoriseerSerpDomein(r.domein);
+      if (nieuw !== r.categorie) upd.run(nieuw, r.domein);
+      telling[nieuw] = (telling[nieuw] || 0) + 1;
+    }
+  })();
+  return { bekeken: rijen.length, ...telling };
 }

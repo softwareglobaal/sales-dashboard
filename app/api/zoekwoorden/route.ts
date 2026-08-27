@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { importeerZoekwoorden, haalZoekvolumes, meetPosities, serpBron } from "@/lib/zoekwoorden";
+import { importeerZoekwoorden, haalZoekvolumes, meetPosities, serpBron, herclassificeerSerpDomeinen } from "@/lib/zoekwoorden";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +20,11 @@ async function draai(url: URL) {
     const limiet = Number(url.searchParams.get("limiet") || 0) || undefined;
     uit.posities = await meetPosities(limiet);
   }
+  // ?herclassificeer=1 deelt eerder gevonden SERP-domeinen opnieuw in.
+  if (url.searchParams.get("herclassificeer") === "1") {
+    uit.herclassificeerd = herclassificeerSerpDomeinen();
+  }
+
   uit.serpBron = serpBron();
   return uit;
 }

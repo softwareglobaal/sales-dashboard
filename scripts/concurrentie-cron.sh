@@ -36,7 +36,9 @@ roep '/api/searchconsole?dagen=28' || echo '{"ok":false}'
 # Beide zijn no-ops zolang de betreffende bron niet gekoppeld is.
 if [ "$(date +%u)" = "1" ]; then
   echo "$(date -Is) posities"
-  roep '/api/zoekwoorden?posities=1' || echo '{"ok":false}'
+  # Beperkt tot de 30 termen met het meeste volume: het gratis SerpApi-quotum is
+  # 250 zoekopdrachten per maand, en 48 termen wekelijks zou daar overheen gaan.
+  roep '/api/zoekwoorden?posities=1&limiet=30' || echo '{"ok":false}'
 fi
 if [ "$(date +%d)" = "01" ]; then
   echo "$(date -Is) zoekvolumes"
