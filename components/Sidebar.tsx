@@ -6,24 +6,36 @@ import { useEffect, useState } from "react";
 import { SyncButton } from "./SyncButton";
 
 type Item = { href: string; label: string; dot?: string; icon?: string; soon?: boolean };
+type Afdeling = Item & { pad: string; onder?: Item[] };
 
 const OVERZICHT: Item[] = [
   { href: "/", label: "Algemeen", icon: "▦" },
   { href: "/kaart", label: "Kaart (alles)", icon: "◉" },
 ];
-const AFDELINGEN: Item[] = [
-  { href: "/engineering", label: "Engineering", dot: "#16a34a" },
-  { href: "/energy", label: "Energy", dot: "#0891b2" },
-  { href: "/3d-scanning", label: "3D Scanning", dot: "#3a4459", soon: true },
-  { href: "/safety", label: "Safety", dot: "#3a4459", soon: true },
-  { href: "/plaatsbeschrijving", label: "Plaatsbeschrijving", dot: "#3a4459", soon: true },
-  { href: "/meetstaten", label: "Meetstaten", dot: "#3a4459", soon: true },
-  { href: "/h-architects", label: "H-Architects", dot: "#3a4459", soon: true },
+
+// Afdeling-eerst: wat bij één afdeling hoort, hangt eronder. Concurrentie en
+// Verslaggevers stonden hiervoor in een globale groep "Marketing", terwijl ze
+// alleen over Energy gaan -- dat breekt zodra Engineering hetzelfde krijgt.
+const AFDELINGEN: Afdeling[] = [
+  {
+    pad: "engineering", href: "/engineering", label: "Engineering", dot: "#16a34a",
+  },
+  {
+    pad: "energy", href: "/energy", label: "Energy", dot: "#0891b2",
+    onder: [
+      { href: "/energy/concurrentie", label: "Concurrentie", icon: "◈" },
+      { href: "/energy/register", label: "Verslaggevers", icon: "≡" },
+    ],
+  },
+  { pad: "3d-scanning", href: "/3d-scanning", label: "3D Scanning", dot: "#3a4459", soon: true },
+  { pad: "safety", href: "/safety", label: "Safety", dot: "#3a4459", soon: true },
+  { pad: "plaatsbeschrijving", href: "/plaatsbeschrijving", label: "Plaatsbeschrijving", dot: "#3a4459", soon: true },
+  { pad: "meetstaten", href: "/meetstaten", label: "Meetstaten", dot: "#3a4459", soon: true },
+  { pad: "h-architects", href: "/h-architects", label: "H-Architects", dot: "#3a4459", soon: true },
 ];
+
 const MARKETING: Item[] = [
   { href: "/seo-sea", label: "SEO / SEA", icon: "◎" },
-  { href: "/energy/concurrentie", label: "Concurrentie", icon: "◈" },
-  { href: "/energy/register", label: "Verslaggevers", icon: "≡" },
 ];
 const TEAM: Item[] = [
   { href: "/sales-team", label: "Sales team", icon: "◍" },
@@ -31,7 +43,8 @@ const TEAM: Item[] = [
   { href: "/applicaties", label: "Applicaties", icon: "⊞" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ afdelingen }: { afdelingen: string[] }) {
+  const mag = (pad: string) => afdelingen.includes(pad);
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -80,6 +93,54 @@ export function Sidebar() {
     );
   };
 
+  const slotRij = (it: Afdeling) => (
+    <div
+      key={it.href}
+      title={collapsed ? `${it.label} — geen toegang` : undefined}
+      className={
+        "relative flex items-center gap-2.5 rounded-lg py-2 text-[13.5px] text-slate-600 " +
+        (collapsed ? "justify-center px-0" : "px-2.5")
+      }
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full bg-slate-700" />
+      {!collapsed && <span>{it.label}</span>}
+      {!collapsed && (
+        <span className="ml-auto text-[11px] text-slate-600" aria-label="geen toegang">
+          &#128274;
+        </span>
+      )}
+    </div>
+  );
+
+  // Afdelingen blijven staan als je er niet bij mag -- zo weet het team wát er
+  // bestaat. De gegevens komen er niet: middleware.ts blokkeert het adres.
+  const afdelingGroep = () => (
+    <div key="afdelingen">
+      {collapsed ? (
+        <div className="mx-2 my-2 border-t border-[#232c3d]" />
+      ) : (
+        <div className="px-2.5 pb-1.5 pt-4 text-[10.5px] font-medium uppercase tracking-[0.09em] text-slate-500">
+          Afdelingen
+        </div>
+      )}
+      {AFDELINGEN.map((it) =>
+        mag(it.pad) ? (
+          <div key={it.href}>
+            {row(it)}
+            {!collapsed &&
+              it.onder?.map((sub) => (
+                <div key={sub.href} className="ml-3 border-l border-[#232c3d] pl-2">
+                  {row(sub)}
+                </div>
+              ))}
+          </div>
+        ) : (
+          slotRij(it)
+        ),
+      )}
+    </div>
+  );
+
   const group = (label: string, items: Item[]) => (
     <div key={label}>
       {collapsed ? (
@@ -109,7 +170,7 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto px-3">
         {group("Overzicht", OVERZICHT)}
-        {group("Afdelingen", AFDELINGEN)}
+        {afdelingGroep()}
         {group("Marketing", MARKETING)}
         {group("Team", TEAM)}
       </nav>
