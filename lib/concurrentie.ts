@@ -38,7 +38,9 @@ const DIENSTEN: { key: string; patronen: RegExp }[] = [
   { key: "Energieaudit", patronen: /energieaudit|energiestud|energiedeskundige/i },
   { key: "Premies & subsidies", patronen: /premie|subsidie|mijn ?verbouwpremie/i },
   { key: "Onderaanneming", patronen: /onderaannem|uitbested/i },
-  { key: "Architectuur", patronen: /architect(uur|enbureau)?\b/i },
+  // "Architect, aannemer of projectontwikkelaar" is een doelgroep, geen dienst.
+  // Daarom een bureau- of studiewoord eisen in plaats van het kale "architect".
+  { key: "Architectuur", patronen: /architect(en|uur)[- ]?bureau|architectuurstudie|\/architectuur/i },
 ];
 
 // Een categorie- of paginatie-archief is geen artikel. Zonder deze filter telt
@@ -222,6 +224,23 @@ export type Snapshot = {
   urls: { url: string; soort: string; lastmod: string; bron: string; archief: boolean; spam: boolean; epb: boolean }[];
 };
 
+/**
+ * Ontkenningen tellen niet als aangeboden dienst. Sites bakenen hun aanbod
+ * juist af met een zin als "Geen EPC bij verkoop, geen asbestattest, geen
+ * keuringen: alleen EPB en ventilatie" — dat betekende tot nu toe dat die site
+ * EPC én asbest aanbood. Eén niet-ontkende vermelding volstaat om te tellen.
+ */
+const ONTKENNING = /\b(geen|niet|zonder|nooit)\b[^.!?;]{0,40}$/i;
+
+export function biedtAan(patroon: RegExp, tekst: string): boolean {
+  const vlaggen = patroon.flags.includes("g") ? patroon.flags : patroon.flags + "g";
+  for (const m of tekst.matchAll(new RegExp(patroon.source, vlaggen))) {
+    if (m.index === undefined) continue;
+    if (!ONTKENNING.test(tekst.slice(Math.max(0, m.index - 60), m.index))) return true;
+  }
+  return false;
+}
+
 export async function meetDomein(domein: string): Promise<Snapshot> {
   const datum = vandaag();
   const leeg: Snapshot = {
@@ -277,7 +296,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
 
   // Diensten herkennen uit de homepage én uit de URL-structuur van de site.
   const zoekbaar = tekst + " " + gerangschikt.map((u) => u.url).join(" ");
-  const diensten = DIENSTEN.filter((d) => d.patronen.test(zoekbaar)).map((d) => d.key);
+  const diensten = DIENSTEN.filter((d) => biedtAan(d.patronen, zoekbaar)).map((d) => d.key);
 
   return {
     domein,
