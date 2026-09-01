@@ -173,9 +173,13 @@ export function classificeer(url: string, lastmod = "", bron = "") {
   const padZegtBlog = BLOG_PAD.test(pad) || BLOG_DATUM.test(pad);
   const isBlog = isPost ? true : isPage ? false : padZegtBlog;
 
-  // Een categorie-, tag- of paginatiepagina is geen artikel.
+  // Een categorie-, tag- of paginatiepagina is geen artikel. Alleen de RUBRIEK
+  // zelf telt niet mee (/blog/, /kennisbank/): dat is één segment. Een artikel
+  // staat er één niveau onder (/kennisbank/ben-ik-epb-plichtig/) en is echte
+  // inhoud. Stond dit op <= 2, dan verdween elk artikel van een site zonder
+  // aparte WordPress-artikelsitemap uit de telling.
   const kortPadOnderBlogroot =
-    padZegtBlog && /\/$/.test(pad) && pad.split("/").filter(Boolean).length <= 2;
+    padZegtBlog && /\/$/.test(pad) && pad.split("/").filter(Boolean).length <= 1;
 
   return {
     url,
