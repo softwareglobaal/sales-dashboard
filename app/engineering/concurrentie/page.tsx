@@ -546,11 +546,13 @@ export default async function EngineeringConcurrentiePage({
       <section id="nakijken" className="scroll-mt-36 pt-8">
         <Card title={`Nakijken — ${num(rest.length)} sites die de automatiek buiten de markt hield`}>
           <p className="mb-4 text-sm text-zinc-600">
-            Deze sites staan wél in onze zoekresultaten, maar zijn ingedeeld als overheid, portaal,
-            jobsite of buitenlands bureau. Ze tellen dus niet mee als concurrent. De indeling gebeurt
-            op de domeinnaam en zit er soms naast: een fabrikant of een detacheerder van ingenieurs
-            herkent geen enkele regel. Zit er een echte concurrent tussen, zet hem dan hier recht —
-            hij verschuift meteen naar de lijst hierboven.
+            Deze sites staan wél in onze zoekresultaten, maar tellen niet mee als concurrent. De
+            indeling komt uit de domeinnaam en uit wat de site over zichzelf zegt in zijn titel.
+            <strong className="font-medium text-zinc-800"> Let op de architecten en aannemers</strong>:
+            die zijn geen bedreiging maar het omgekeerde — zij besteden stabiliteitswerk uit. Dat is
+            dezelfde doelgroep als de onderaannemingspagina. Zit er een echte concurrent tussen, zet
+            hem dan hier recht; hij verschuift meteen naar de lijst hierboven, en dat oordeel blijft
+            staan.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -573,7 +575,13 @@ export default async function EngineeringConcurrentiePage({
                     </td>
                     <td className="py-2 pr-4 last:pr-0">
                       <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">
-                        {c.categorie === "geen-concurrent" ? "geen concurrent (handmatig)" : c.categorie}
+                        {c.categorie === "geen-concurrent" ? "geen concurrent (handmatig)"
+                          : c.categorie === "architect" ? "architect — kan klant zijn"
+                          : c.categorie === "aannemer" ? "aannemer — koopt studies"
+                          : c.categorie === "fabrikant" ? "fabrikant"
+                          : c.categorie === "buitenland" ? "buitenland"
+                          : c.categorie === "vacature" ? "jobsite"
+                          : c.categorie}
                       </span>
                     </td>
                     <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right tabular-nums text-zinc-600">

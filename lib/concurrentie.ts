@@ -498,8 +498,17 @@ export function markeerMarkt(domein: string, markt: Markt, bron: string) {
  */
 const UIT_TITEL: { patroon: RegExp; categorie: string }[] = [
   { patroon: /\b(jobs?|vacature|werken bij|rekruter|recruit|interim|detacher|talent en bedrijven)\b/i, categorie: "vacature" },
-  { patroon: /nieuwsplatform|portaalsite|vakblad|vergelijk .{0,20}offertes|innovatiecentrum|kenniscentrum|beroepsfederatie|sectorfederatie|confederatie/i, categorie: "portaal" },
+  // Wie zichzelf een studiebureau noemt, is er een -- ook als er "architecten en
+  // ingenieurs" staat. Deze regel gaat daarom vóór de architectenregel.
   { patroon: /studiebureau|ingenieursbureau|raadgevend ingenieur|ingenieurs.{0,4}en adviesbureau|stabiliteitsstud/i, categorie: "concurrent" },
+  { patroon: /nieuwsplatform|portaalsite|vakblad|vergelijk .{0,20}offertes|innovatiecentrum|kenniscentrum|beroepsfederatie|sectorfederatie|confederatie/i, categorie: "portaal" },
+  // Een aannemer bouwt, een fabrikant levert. Allebei staan ze op onze zoektermen
+  // en allebei kopen ze studies in plaats van ze te verkopen.
+  { patroon: /sleutel[- ]op[- ]de[- ]deur|cl[ée] sur porte|bouwbedrijf|aannemer|woningbouw|maisons |totaalrenovatie|bouw met /i, categorie: "aannemer" },
+  { patroon: /prefab|betonfabriek|welfsels|predallen|fabrikant|producent van|totaal bouwsysteem|op maat gemaakte? (beton|staal)/i, categorie: "fabrikant" },
+  // Architecten zijn geen concurrent maar het tegenovergestelde: zij besteden
+  // stabiliteitswerk uit. Dat is de doelgroep van de onderaannemingspagina.
+  { patroon: /architect(en|uur)|interieurontwerp/i, categorie: "architect" },
 ];
 
 export function categoriseerUitSite() {

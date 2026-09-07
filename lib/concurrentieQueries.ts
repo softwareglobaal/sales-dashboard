@@ -76,11 +76,16 @@ function termInMarkt(markt: Markt, alias = "z"): string {
 
 /**
  * Categorieën die geen concurrent zijn: overheid schrijft de wetgeving, portalen
- * verkopen niets, een jobsite bedient werkzoekenden in plaats van klanten, en een
- * Nederlands bureau neemt ons geen dossier in Vlaanderen af. `geen-concurrent` is
- * de handmatige variant: iemand heeft er zelf naar gekeken.
+ * verkopen niets, een jobsite bedient werkzoekenden, en een Nederlands bureau neemt
+ * ons geen dossier in Vlaanderen af. Aannemers, fabrikanten en architecten staan
+ * hier om de omgekeerde reden: die kópen stabiliteitswerk. Een architect in deze
+ * lijst is geen bedreiging maar een lead voor onderaanneming.
+ * `geen-concurrent` is de handmatige variant: iemand heeft er zelf naar gekeken.
  */
-export const GEEN_CONCURRENT = ["overheid", "portaal", "vacature", "buitenland", "geen-concurrent"];
+export const GEEN_CONCURRENT = [
+  "overheid", "portaal", "vacature", "buitenland", "aannemer", "fabrikant", "architect",
+  "geen-concurrent",
+];
 
 /**
  * Het menselijk oordeel gaat voor op de automatische indeling.
