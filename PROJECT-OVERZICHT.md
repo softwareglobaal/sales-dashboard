@@ -32,11 +32,13 @@ voor SEO/SEA-advies.
 - HarmonieBOUW / Contrax Bv is bewust **niet** opgenomen (daar worden geen deals bijgehouden).
 - Alle bedragen in EUR.
 
-## 4. Structuur — twee dashboards (menu bovenaan)
+## 4. Structuur — drie dashboards (menu links)
 
 - **Algemeen** (`/`) — alle sales over de 4 accounts samen.
 - **Engineering** (`/engineering`) — enkel UNABO Engineering + TKN-Buro, met diepere analyse.
-- Opzet is voorbereid om later meer afdelings-dashboards toe te voegen (Energy, Safety, …).
+- **Energy** (`/energy`) — UNABO Energy, zelfde diepgang als Engineering (eigen querymodule
+  `lib/energyQueries.ts`), plus concurrentiemonitor en verslaggeversregister.
+- Opzet is voorbereid om later meer afdelings-dashboards toe te voegen (Safety, 3D Scanning, …).
 
 ---
 

@@ -66,14 +66,24 @@ function renderMarkdown(md: string) {
   return out;
 }
 
-export function AnalysePanel({ period, themeKey, scope }: { period: string; themeKey?: string; scope?: string }) {
+export function AnalysePanel({
+  period,
+  themeKey,
+  scope,
+  afdeling = "engineering",
+}: {
+  period: string;
+  themeKey?: string;
+  scope?: string;
+  afdeling?: "engineering" | "energy";
+}) {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generatedFor, setGeneratedFor] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
 
-  const filterKey = period + "|" + (themeKey || "") + "|" + (scope || "all");
+  const filterKey = afdeling + "|" + period + "|" + (themeKey || "") + "|" + (scope || "all");
   const stale = text != null && generatedFor !== filterKey;
 
   async function generate() {
@@ -83,7 +93,7 @@ export function AnalysePanel({ period, themeKey, scope }: { period: string; them
       const res = await fetch("/api/analyse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period, t: themeKey || "", sc: scope || "" }),
+        body: JSON.stringify({ period, t: themeKey || "", sc: scope || "", afd: afdeling }),
       });
       const data = await res.json();
       if (!res.ok) {

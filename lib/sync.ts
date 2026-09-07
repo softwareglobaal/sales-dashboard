@@ -89,25 +89,49 @@ async function syncProducts(account: Account, rows: DealRow[]): Promise<number> 
   return products.length;
 }
 
-// Deal-flow: exacte aanvraag->offerte-tijd. Alleen Engineering-scope deals, en alleen
-// deals die nog niet in deal_flow zitten (incrementeel — snel na de eerste keer).
+// Deal-flow: exacte aanvraag->offerte-tijd. Alleen deals uit de scope van een afdelings-tab
+// (Engineering + Energy voor UNABO, alles voor TKN), en alleen deals die nog niet in
+// deal_flow zitten (incrementeel — snel na de eerste keer).
 async function syncDealFlow(account: Account, stageMap: Map<number, string>) {
   const db = getDb();
   const offerteStageIds = new Set<number>();
   for (const [id, name] of stageMap) if (isOfferteStage(name)) offerteStageIds.add(id);
   if (offerteStageIds.size === 0) return;
 
+  const cols = "id, status, pipeline_name, stage_name, stage_order";
   const idRows =
     account.key === "unabo"
       ? (db
           .prepare(
-            `SELECT id FROM deals WHERE account_key='unabo'
-             AND (id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department='ENGINEERING') OR REPLACE(pipeline_name, ' ', '')='UNABO-Engineering')`
+            `SELECT ${cols} FROM deals WHERE account_key='unabo'
+             AND (id IN (SELECT deal_id FROM deal_products WHERE account_key='unabo' AND department IN ('ENGINEERING','ENERGY'))
+                  OR REPLACE(pipeline_name, ' ', '') IN ('UNABO-Engineering','UNABO-Energy'))`
           )
           .all() as any[])
-      : (db.prepare("SELECT id FROM deals WHERE account_key=?").all(account.key) as any[]);
-  const done = new Set((db.prepare("SELECT deal_id FROM deal_flow WHERE account_key=?").all(account.key) as any[]).map((r) => r.deal_id));
-  const todo = idRows.map((r) => r.id).filter((id) => !done.has(id));
+      : (db.prepare(`SELECT ${cols} FROM deals WHERE account_key=?`).all(account.key) as any[]);
+
+  // Offerte-drempel per pipeline: de laagste fase-volgorde van een offerte-fase.
+  const threshold = new Map<string, number>();
+  for (const r of idRows) {
+    if (r.stage_order != null && isOfferteStage(r.stage_name)) {
+      const cur = threshold.get(r.pipeline_name);
+      if (cur == null || r.stage_order < cur) threshold.set(r.pipeline_name, r.stage_order);
+    }
+  }
+  // Een deal die nu in of voorbij een offerte-fase staat (of gewonnen is) hoort een
+  // offerte-tijd te hebben. Staat er toch NULL, dan is de fase destijds niet herkend
+  // (UNABO kortte "Offerte gestuurd" in juli 2026 in tot "Off. gestuurd", waardoor de
+  // sync twee maanden lang niets meer vond) — die halen we opnieuw op. Deals die nooit
+  // tot een offerte kwamen blijven NULL en worden niet telkens opnieuw bevraagd.
+  const shouldHaveTime = (r: any) => {
+    const thr = threshold.get(r.pipeline_name);
+    return r.status === "won" || isOfferteStage(r.stage_name) || (thr != null && r.stage_order != null && r.stage_order >= thr);
+  };
+  const done = new Map<number, string | null>();
+  for (const r of db.prepare("SELECT deal_id, offerte_time FROM deal_flow WHERE account_key=?").all(account.key) as any[]) {
+    done.set(r.deal_id, r.offerte_time);
+  }
+  const todo = idRows.filter((r) => !done.has(r.id) || (done.get(r.id) == null && shouldHaveTime(r))).map((r) => r.id);
   if (todo.length === 0) return;
 
   const times = await mapLimit(todo, 6, (id) => fetchDealOfferteTime(account, id, offerteStageIds).catch(() => null));
@@ -158,7 +182,7 @@ export async function syncAccount(account: Account) {
       // organisatie-sync mag de deal-sync niet blokkeren
     }
 
-    // deal-flow (aanvraag -> offerte-tijd) — enkel Engineering-accounts, incrementeel
+    // deal-flow (aanvraag -> offerte-tijd) — enkel accounts met afdelings-tabs, incrementeel
     if (account.syncProducts) {
       try {
         await syncDealFlow(account, lookups.stageMap);

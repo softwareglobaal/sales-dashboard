@@ -16,6 +16,18 @@ import {
   type EngScope,
 } from "@/lib/queries";
 import { getTheme } from "@/lib/themes";
+import {
+  getEnergyKpisWithDelta,
+  getEnergyOfferteStats,
+  getEnergyChannels,
+  getEnergyLostReasons,
+  getEnergyServices,
+  getEnergyBundleSplit,
+  getEnergyMotivation,
+  getEnergyProjectType,
+  getEnergyActivity,
+  getEnergyFunnel,
+} from "@/lib/energyQueries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,6 +127,126 @@ function buildAggregates(period: Period, themeKey: string | undefined, scope: En
   return lines.join("\n");
 }
 
+// Energy: zelfde opbouw, maar op de Energy-queries (UNABO Energy: EPB-verslaggeving,
+// ventilatie, blowerdoor…). Ook hier uitsluitend geaggregeerde cijfers.
+function buildEnergyAggregates(period: Period) {
+  const label = periodRange(period).label;
+  const k = getEnergyKpisWithDelta(period);
+  const offerte = getEnergyOfferteStats(period);
+  const channels = getEnergyChannels(period);
+  const lost = getEnergyLostReasons(period);
+  const services = getEnergyServices(period);
+  const bundle = getEnergyBundleSplit(period);
+  const motivation = getEnergyMotivation(period);
+  const projectType = getEnergyProjectType(period);
+  const activity = getEnergyActivity(period, "month");
+  const funnel = getEnergyFunnel(period);
+
+  const lines: string[] = [];
+  lines.push("AFDELING: UNABO Energy (EPB-verslaggeving, ventilatie, blowerdoor, warmteverlies)");
+  lines.push(`PERIODE: ${label}`);
+  lines.push("");
+  lines.push("KERNCIJFERS (t.o.v. vorige even lange periode):");
+  lines.push(`- Aanvragen (leads): ${k.requests} (${pct(k.dRequests)})`);
+  lines.push(`- Verkocht (gewonnen deals): ${k.wonCount} (${pct(k.dWonCount)})`);
+  lines.push(`- Omzet gewonnen (op product-prijs, enkel het Energy-aandeel): ${eur(k.wonValue)} (${pct(k.dWonValue)})`);
+  lines.push(`- Gem. tijd aanvraag → gewonnen: ${k.avgDays != null ? k.avgDays + " dagen" : "onbekend"}`);
+  lines.push("");
+  lines.push("OFFERTES:");
+  lines.push(`- Verstuurd: ${offerte.offerteCount}${offerte.leadCount > 0 ? ` (= ${Math.round((offerte.offerteCount / offerte.leadCount) * 100)}% van de aanvragen)` : ""}`);
+  lines.push(
+    `- Gem. tijd aanvraag → offerte: ${offerte.avgDaysToOfferte != null ? offerte.avgDaysToOfferte + " dagen" : "onbekend"} (INDICATIEF, steekproef n=${offerte.timingSample})`
+  );
+  lines.push("");
+
+  if (activity.length) {
+    lines.push("VERLOOP PER MAAND (aanvragen / gewonnen aantal / omzet / verloren):");
+    for (const a of activity) {
+      lines.push(`- ${a.label}: ${a.requests} aanvr. · ${a.wonCount} gewonnen · ${eur(a.wonValue)} · ${a.lostCount} verloren`);
+    }
+    lines.push("");
+  }
+
+  for (const f of funnel) {
+    lines.push(`TRECHTER PER FASE — pipeline "${f.pipeline}" (${f.leads} leads; bereikt = minstens tot die fase geraakt, afgeleid uit de huidige fase):`);
+    for (const st of f.stages) {
+      lines.push(
+        `- ${st.stage}: ${st.reached} bereikt (${st.pctOfLeads ?? 0}% van leads${st.pctOfPrev != null ? `, ${st.pctOfPrev}% doorstroom` : ""}) · ${st.open} open${st.avgDaysInStage != null ? ` (gem. ${st.avgDaysInStage} d in fase)` : ""} · ${st.lost} hier verloren`
+      );
+    }
+    lines.push("");
+  }
+
+  if (channels.length) {
+    lines.push("KANALEN (herkomst van aanvragen — leads / gewonnen / open / verloren):");
+    for (const c of channels) {
+      lines.push(`- ${c.channel}: ${c.leads} leads · ${c.won} gewonnen · ${c.open} open · ${c.lost} verloren`);
+    }
+    lines.push("");
+  }
+
+  if (lost.outside2026) {
+    lines.push("VERLIESREDENEN: niet beschikbaar (periode valt buiten 2026).");
+  } else if (lost.reasons.length) {
+    lines.push(`VERLIESREDENEN (totaal ${lost.total} verloren deals):`);
+    for (const r of lost.reasons) lines.push(`- ${r.reason}: ${r.count}`);
+    lines.push("");
+  }
+
+  if (!motivation.outside2026 && motivation.total > 0) {
+    lines.push(`MOTIVATIE BIJ VERLIES ("Invloedbaar door UNABO?", ${motivation.filledInfluenceable}/${motivation.total} ingevuld):`);
+    for (const m of motivation.influenceable) lines.push(`- ${m.label}: ${m.count}`);
+    if (motivation.cause.length) {
+      lines.push("ONDERLIGGENDE OORZAAK:");
+      for (const m of motivation.cause) lines.push(`- ${m.label}: ${m.count}`);
+    }
+    lines.push("");
+  }
+
+  if (services.length) {
+    const top = [...services].sort((a, b) => b.requests - a.requests).slice(0, 12);
+    lines.push("DIENSTEN (top op aanvragen — aanvragen / verkocht / omzet / gem. dagen):");
+    for (const s of top) {
+      lines.push(`- ${s.service}: ${s.requests} aanvr. · ${s.soldCount} verkocht · ${eur(s.revenue)} · ${s.avgDays != null ? s.avgDays + "d" : "—"}`);
+    }
+    lines.push("");
+  }
+
+  lines.push("BUNDEL vs. LOS (gewonnen deals):");
+  lines.push(`- Los verkocht (enkel Energy): ${bundle.losCount} deals, ${eur(bundle.losValue)}`);
+  lines.push(
+    `- In bundel (samen met andere afdelingen, meestal pipeline UNABO - Bundel): ${bundle.bundelCount} deals, ${eur(bundle.bundelDealValue)} totale deal-waarde waarvan ${eur(bundle.bundelEngValue)} Energy`
+  );
+  lines.push("");
+
+  const ptReliable = projectType.total > 0 && projectType.gebouwtypeFilled / projectType.total >= 0.4;
+  lines.push(
+    `PROJECTTYPE (LET OP: slechts ${projectType.gebouwtypeFilled}/${projectType.total} deals hebben 'gebouwtype' ingevuld — ${ptReliable ? "bruikbaar" : "ONBETROUWBAAR / indicatief, niet hard concluderen"}):`
+  );
+  for (const g of projectType.gebouwtype.slice(0, 6)) lines.push(`- ${g.label}: ${g.count}`);
+  for (const g of projectType.typeAanvraag.slice(0, 6)) lines.push(`- type aanvraag ${g.label}: ${g.count}`);
+
+  return lines.join("\n");
+}
+
+const SYSTEM_PROMPT_ENERGY = `Je bent een ervaren sales-analist voor H-Architects Group (België), gespecialiseerd in de Energy-afdeling van UNABO (EPB-verslaggeving voor nieuwbouw en renovatie, ventilatievoorontwerp, blowerdoortesten, warmteverliesberekeningen). De klanten zijn vooral particulieren die bouwen of verbouwen, vaak via de website of via architecten. Je schrijft in helder, professioneel Nederlands voor een niet-technische zaakvoerder.
+
+Je krijgt uitsluitend GEAGGREGEERDE cijfers voor een gekozen periode. Regels:
+- Gebruik ALLEEN de cijfers die je krijgt. Verzin niets, geen klantnamen, geen bedragen die er niet staan.
+- Als een dataset als "indicatief", "onbetrouwbaar" of "kleine steekproef" is gemarkeerd: benoem die onzekerheid en trek er GEEN harde conclusie uit.
+- De trechter per fase is afgeleid uit de huidige fase van elke deal (geen volledige historiek): gebruik hem om te zien wáár leads afvallen, niet voor exacte doorlooptijden.
+- Wees concreet en zakelijk. Vermijd holle marketingtaal en overdreven enthousiasme.
+
+Geef je antwoord in Markdown, in exact deze structuur:
+
+## Korte analyse
+2 tot 4 korte alinea's: wat valt op in de cijfers (groei/daling, waar in de trechter leads afvallen, sterkste kanaal, belangrijkste verliesreden en of die beïnvloedbaar was, offerte-conversie, opvallende diensten, aandeel bundels). Benoem de belangrijkste 1–2 aandachtspunten.
+
+## Concrete acties
+Een lijst van 3 tot 5 concrete, uitvoerbare acties die direct op deze cijfers gebaseerd zijn. Elke actie begint met een werkwoord en is specifiek (welke fase, welk kanaal, welke dienst, welke verliesreden). Geen algemeenheden.
+
+Houd het totaal bondig (max ~400 woorden).`;
+
 const SYSTEM_PROMPT = `Je bent een ervaren sales-analist voor H-Architects Group (België), gespecialiseerd in de Engineering-afdeling (UNABO Engineering + TKN-Buro). Je schrijft in helder, professioneel Nederlands voor een niet-technische zaakvoerder.
 
 Je krijgt uitsluitend GEAGGREGEERDE cijfers voor een gekozen periode. Regels:
@@ -140,7 +272,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { period?: string; t?: string; sc?: string };
+  let body: { period?: string; t?: string; sc?: string; afd?: string };
   try {
     body = await req.json();
   } catch {
@@ -150,10 +282,11 @@ export async function POST(req: Request) {
   const period: Period = isValidPeriod(body.period) ? (body.period as Period) : "ytd";
   const themeKey = body.t && body.t.length ? body.t : undefined;
   const scope: EngScope = body.sc === "unabo" ? "unabo" : body.sc === "tkn" ? "tkn" : "all";
+  const afdeling = body.afd === "energy" ? "energy" : "engineering";
 
   let aggregates: string;
   try {
-    aggregates = buildAggregates(period, themeKey, scope);
+    aggregates = afdeling === "energy" ? buildEnergyAggregates(period) : buildAggregates(period, themeKey, scope);
   } catch (e: any) {
     return NextResponse.json({ error: "Kon de cijfers niet ophalen: " + (e?.message || String(e)) }, { status: 500 });
   }
@@ -163,11 +296,11 @@ export async function POST(req: Request) {
     const msg = await client.messages.create({
       model: "claude-opus-4-8",
       max_tokens: 2048,
-      system: SYSTEM_PROMPT,
+      system: afdeling === "energy" ? SYSTEM_PROMPT_ENERGY : SYSTEM_PROMPT,
       messages: [
         {
           role: "user",
-          content: `Analyseer de Engineering-cijfers hieronder en geef analyse + acties.\n\n${aggregates}`,
+          content: `Analyseer de ${afdeling === "energy" ? "Energy" : "Engineering"}-cijfers hieronder en geef analyse + acties.\n\n${aggregates}`,
         },
       ],
     });
@@ -182,7 +315,7 @@ export async function POST(req: Request) {
       .join("")
       .trim();
 
-    return NextResponse.json({ text, period, themeKey: themeKey || null, scope });
+    return NextResponse.json({ text, period, themeKey: themeKey || null, scope, afdeling });
   } catch (e: any) {
     const status = e?.status || 500;
     let error = "Er ging iets mis bij het genereren van de analyse.";

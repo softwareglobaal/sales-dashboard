@@ -3,9 +3,10 @@
   "ignorePipelines": ["B2B: UNABO", "Setup", "B2B: EPB Campaigne [NEW]"],
   "ignoreLabels": ["test", "setup", "test deal"],
   "noLabelChannel": "Geen label",
-  "_uitleg_offerteStages": "Fasen (stage-namen) die betekenen dat een offerte verstuurd is. Niet hoofdletter-gevoelig, gedeeltelijke match. Voor UNABO Openoproep worden aanvragen na info naar H-Architects doorgestuurd voor offerte-opmaak -> 'doorgestuurd naar h-a' telt mee.",
+  "_uitleg_offerteStages": "Fasen (stage-namen) die betekenen dat een offerte verstuurd is. Niet hoofdletter-gevoelig, gedeeltelijke match. Voor UNABO Openoproep worden aanvragen na info naar H-Architects doorgestuurd voor offerte-opmaak -> 'doorgestuurd naar h-a' telt mee. 'off. gestuurd' is de afgekorte naam die UNABO sinds juli 2026 in Engineering, Energy en Bundel gebruikt.",
   "offerteStages": [
     "offerte gestuurd",
+    "off. gestuurd",
     "offerte opgestuurd",
     "offerte uitgestuurd",
     "off. verzonden",

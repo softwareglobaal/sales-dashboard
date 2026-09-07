@@ -17,13 +17,20 @@ Het dashboard blijft draaien zolang de Terminal openstaat. Sluit je de Terminal,
 
 Klik rechtsboven op **"↻ Data verversen"**. Dan haalt het de meest recente deals uit alle 4 de accounts op. De eerste keer of na lange tijd duurt dit ~20-30 seconden.
 
-## Twee dashboards (menu bovenaan)
+## Drie dashboards (menu links)
 
 - **Algemeen** — alle sales over de 4 Pipedrive-accounts samen.
 - **Engineering** — enkel UNABO Engineering + TKN-Buro, met analyse per dienst
   (meest verkocht, snelst verkocht, meeste aanvragen).
+- **Energy** — UNABO Energy (EPB-verslaggeving, ventilatie, blowerdoor, warmteverlies). Zelfde
+  opbouw als Engineering: KPI's, offertes, AI-analyse, verloop over tijd, dag & uur, **trechter per
+  fase** (waar vallen aanvragen af, hoe lang staan open deals stil), regio-kaart, kanalen,
+  verlies-redenen met motivatie, los vs. bundel, diensten en projecttype. De omzet is altijd het
+  Energy-aandeel; bij bundels (EPB + ventilatie + engineering in één offerte) staat de volledige
+  deal value ernaast. Onder Energy zitten ook de **Concurrentie**-monitor en het
+  **Verslaggevers**-register.
 
-Later komen er meer afdelings-dashboards bij (Energy, Safety, …).
+Later komen er meer afdelings-dashboards bij (Safety, 3D Scanning, …).
 
 > **Toegang afschermen:** zolang dit lokaal op je Mac draait, ziet iedereen alles. Pas wanneer het
 > dashboard online staat, kan een login worden toegevoegd zodat iemand enkel zijn eigen dashboard ziet.

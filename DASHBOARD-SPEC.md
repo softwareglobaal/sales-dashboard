@@ -72,6 +72,26 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
   expliciet. UNABO ~160 los / ~75 bundel; TKN vrijwel altijd los.
 - Beide scopes negeren de pipelines uit §7.
 
+## 6b. Energy-afbakening (`/energy`, uitgewerkt sept 2026)
+- **Lead-scope** = UNABO-deals met een ENERGY-product **óf** in de pipeline `UNABO - Energy`
+  (spaties weggenormaliseerd, zie §6). Zit in `lib/energyQueries.ts` als `LEAD_SCOPE`; de
+  concurrentiemonitor gebruikt exact dezelfde constante.
+- **Omzet-scope** = UNABO ENERGY-productregels, omzet = product-prijs. De omzet-KPI is dus enkel het
+  **Energy-aandeel**, ook bij bundels.
+- **Bundels zijn hier de regel, niet de uitzondering:** ~40% van de gewonnen Energy-deals zit in de
+  pipeline `UNABO - Bundel` (EPB + ventilatie + engineering in één offerte). Daarom toont de tab los
+  vs. bundel mét de volledige deal value van de bundels naast het Energy-aandeel.
+- **Trechter per fase** per pipeline (`UNABO - Energy`, `UNABO - Bundel`): "bereikt" is afgeleid uit de
+  huidige fase (gewonnen = einde bereikt; open/verloren staan in hun fase). Geen volledige
+  fase-historiek — dat staat er ook bij. Tijd in huidige fase via `stage_change_time`.
+- Offertes, regio, verliesmotivatie (Invloedbaar door UNABO? + onderliggende oorzaak), projecttype:
+  zelfde definities als Engineering, maar op de Energy-scope. `deal_flow` wordt sinds sept 2026 ook
+  voor Energy-leads gevuld (`lib/sync.ts`), zodat "gem. aanvraag → offerte" exact wordt na de
+  volgende sync.
+- AI-analyse: `/api/analyse` met `afd: "energy"` — eigen aggregaten en systeemprompt, verder dezelfde
+  regels (enkel geaggregeerde cijfers, geen namen).
+- Jaardoel: sleutel `energy` in `config/targets.json`.
+
 ## 7. Afdelingen, verborgen pipelines, verlies-redenen
 - **Afdeling (UNABO)** = tekst vóór eerste dubbele punt in productnaam (ENERGY, ENGINEERING, SAFETY,
   3D-SCANNING, PERMIT, DRAFTING, CONTRACTOR SUPPORT, …). Geen prefix → "Niet toegewezen" (rood).
@@ -88,10 +108,11 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
   TKN heeft deze velden niet). "Toelichting lost deal" (~14%) als optionele tekst.
 
 ## 8. Tab-structuur (platform)
-- **Algemeen** (`/`), **Engineering** (`/engineering`) — volledig uitgewerkt.
+- **Algemeen** (`/`), **Engineering** (`/engineering`), **Energy** (`/energy`, met
+  `/energy/concurrentie` en `/energy/register`) — volledig uitgewerkt.
 - **Onder constructie** (nette placeholder, exacte tekst
   "Under construction — Siyan is doing his best to finish this as soon as possible."):
-  Energy, 3D Scanning, Safety, Plaatsbeschrijving, Meetstaten, H-Architects, SEO/SEA.
+  3D Scanning, Safety, Plaatsbeschrijving, Meetstaten, H-Architects.
   SEO/SEA = afdeling (Google Ads + zoekdata), geen Pipedrive-account.
 - Nieuwe afdelings-tab moet met minimale moeite toegevoegd kunnen worden (Engineering als template).
 

@@ -6,6 +6,12 @@ import {
   getEnergyLostReasons,
   getEnergyActivity,
   getEnergyTiming,
+  getEnergyOfferteStats,
+  getEnergyBundleSplit,
+  getEnergyMotivation,
+  getEnergyProjectType,
+  getEnergyRegion,
+  getEnergyFunnel,
   energyHasData,
   periodRange,
 } from "@/lib/energyQueries";
@@ -23,8 +29,13 @@ import { ServiceTable } from "@/components/ServiceTable";
 import { ChannelTable } from "@/components/ChannelTable";
 import { LostReasonsTable } from "@/components/LostReasonsTable";
 import { SubNav } from "@/components/SubNav";
+import { AnalysePanel } from "@/components/AnalysePanel";
 import { SyncFreshness } from "@/components/SyncFreshness";
-import { PeriodSelector, MonthSelector, WeekSelector, GranularitySelector } from "@/components/Controls";
+import { PeriodSelector, MonthSelector, WeekSelector, GranularitySelector, RegionStatusSelector } from "@/components/Controls";
+import { BelgiumMap, type OurOffice } from "@/components/BelgiumMap";
+import { POSTCODE_COORDS } from "@/lib/postcodeCoords";
+import { getYearTarget } from "@/lib/targets";
+import officesConfig from "@/config/offices.json";
 import { Card, Highlight } from "@/components/ui";
 import { LastSync } from "@/components/LastSync";
 
@@ -35,11 +46,12 @@ const PATH = "/energy";
 export default async function EnergyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; g?: string }>;
+  searchParams: Promise<{ period?: string; g?: string; rs?: string }>;
 }) {
   const sp = await searchParams;
   const period: Period = isValidPeriod(sp.period) ? (sp.period as Period) : "ytd";
   const granularity: ActivityGranularity = sp.g === "week" ? "week" : "month";
+  const regionStatus = (["won", "open", "lost", "all"].includes(sp.rs || "") ? sp.rs : "won") as "won" | "open" | "lost" | "all";
   const periodLabel = periodRange(period).label;
   const monthOpts = monthOptions2026();
   const weekOpts = weekOptions2026();
@@ -56,13 +68,42 @@ export default async function EnergyPage({
   }
 
   const kpis = getEnergyKpisWithDelta(period);
+  // Jaardoelen: enkel tonen bij "Dit jaar" (ytd) én wanneer een doel is ingevuld (> 0).
+  const yearTarget = getYearTarget("energy");
+  const showTargets = period === "ytd";
+  const offerte = getEnergyOfferteStats(period);
   const services = getEnergyServices(period);
   const trend = getEnergyByMonth(period);
   const channels = getEnergyChannels(period);
   const channelLeadTotal = channels.reduce((a, c) => a + c.leads, 0);
   const lost = getEnergyLostReasons(period);
+  const motivation = getEnergyMotivation(period);
   const activity = getEnergyActivity(period, granularity);
   const timing = getEnergyTiming(period);
+  const bundle = getEnergyBundleSplit(period);
+  const projectType = getEnergyProjectType(period);
+  const region = getEnergyRegion(period);
+  const funnel = getEnergyFunnel(period);
+
+  const regionVal = (r: { won: number; open: number; lost: number; total: number }) =>
+    regionStatus === "all" ? r.total : r[regionStatus];
+  const regionRowsSorted = [...region.rows].sort((a, b) => regionVal(b) - regionVal(a));
+  const shownPoints = regionStatus === "all" ? region.points : region.points.filter((p) => p.status === regionStatus);
+  const ourOffices: OurOffice[] = officesConfig.offices
+    .map((o) => {
+      const c = (POSTCODE_COORDS as Record<string, [number, number]>)[o.postal];
+      return c ? { label: o.label, address: o.address, city: o.city, lat: c[0], lng: c[1], confirmed: o.confirmed } : null;
+    })
+    .filter((o): o is OurOffice => o !== null);
+  const regionStatusLabel =
+    regionStatus === "won" ? "Projecten (gewonnen)" : regionStatus === "open" ? "Aanvragen (open)" : regionStatus === "lost" ? "Verloren" : "Alles";
+
+  // motivatie: Ja/Nee-rollup
+  const inflRollup = motivation.influenceable.reduce<Record<string, number>>((acc, r) => {
+    const k = r.label.startsWith("Ja") ? "Wél beïnvloedbaar" : r.label.startsWith("Nee") ? "Niet beïnvloedbaar" : "Onbekend";
+    acc[k] = (acc[k] || 0) + r.count;
+    return acc;
+  }, {});
 
   // Inzicht-highlights (per dienst)
   const bestseller = services.reduce<typeof services[number] | null>(
@@ -80,7 +121,7 @@ export default async function EnergyPage({
       null
     );
 
-  const conversion = kpis.requests > 0 ? Math.round((kpis.wonCount / kpis.requests) * 100) : null;
+  const totalWonValue = bundle.losValue + bundle.bundelEngValue;
 
   return (
     <main className="mx-auto max-w-7xl px-6 pb-10">
@@ -117,12 +158,18 @@ export default async function EnergyPage({
         <SubNav
           items={[
             { id: "overzicht", label: "Overzicht" },
+            { id: "analyse", label: "Analyse & advies" },
             { id: "overtijd", label: "Over tijd" },
             { id: "timing", label: "Dag & uur" },
+            { id: "trechter", label: "Trechter" },
+            { id: "regio", label: "Regio" },
             { id: "kanalen", label: "Kanalen" },
             { id: "verlies", label: "Verlies" },
-            { id: "omzet", label: "Omzet" },
+            { id: "omzet", label: "Omzet & bundel" },
             { id: "diensten", label: "Diensten" },
+            { id: "projecttype", label: "Projecttype" },
+            { id: "geslacht", label: "Geslacht" },
+            { id: "meetings", label: "Meetings" },
           ]}
         />
       </div>
@@ -133,7 +180,8 @@ export default async function EnergyPage({
           <div className="text-[11px] font-medium uppercase tracking-wide text-indigo-200">Omzet (gewonnen)</div>
           <div className="text-[30px] font-extrabold leading-none tracking-tight">{euro(kpis.wonValue)}</div>
           <Delta v={kpis.dWonValue} hero />
-          <div className="mt-auto text-[11.5px] text-indigo-200/80">op product-prijs</div>
+          {showTargets && yearTarget.omzet > 0 && <TargetBar current={kpis.wonValue} target={yearTarget.omzet} fmt={euro} hero />}
+          <div className="mt-auto text-[11.5px] text-indigo-200/80">op product-prijs · enkel het Energy-aandeel</div>
         </div>
         <div className="flex flex-col gap-1.5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Aanvragen</div>
@@ -145,6 +193,7 @@ export default async function EnergyPage({
           <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Verkocht</div>
           <div className="text-2xl font-bold text-zinc-900">{num(kpis.wonCount)}</div>
           <Delta v={kpis.dWonCount} />
+          {showTargets && yearTarget.aantal > 0 && <TargetBar current={kpis.wonCount} target={yearTarget.aantal} fmt={(n) => num(n)} />}
           <div className="text-xs text-zinc-500">gewonnen deals in periode</div>
         </div>
         <div className="flex flex-col gap-1.5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -154,18 +203,37 @@ export default async function EnergyPage({
         </div>
       </section>
 
-      {/* Conversie-strip */}
+      {/* Offerte-strip */}
       <section className="mb-8">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-xl border border-zinc-200 bg-white px-5 py-4 text-sm">
-          <span className="font-semibold text-zinc-700">Conversie</span>
+          <span className="font-semibold text-zinc-700">Offertes</span>
           <span className="text-zinc-600">
-            <strong className="text-zinc-900">{conversion != null ? `${conversion}%` : "—"}</strong>
+            <strong className="text-zinc-900">{num(offerte.offerteCount)}</strong> verstuurd
+            {offerte.leadCount > 0 && (
+              <span className="text-zinc-400"> · {Math.round((offerte.offerteCount / offerte.leadCount) * 100)}% van de aanvragen</span>
+            )}
+          </span>
+          <span className="text-zinc-600">
+            Conversie:{" "}
+            <strong className="text-zinc-900">{kpis.requests > 0 ? `${Math.round((kpis.wonCount / kpis.requests) * 100)}%` : "—"}</strong>
             <span className="ml-1 text-xs text-zinc-400">
               (gewonnen/aanvragen deze periode — kies een langere periode voor een stabieler cijfer)
             </span>
           </span>
+          <span className="text-zinc-600">
+            Gem. aanvraag → offerte:{" "}
+            <strong className="text-zinc-900">{offerte.avgDaysToOfferte != null ? `${num(offerte.avgDaysToOfferte)} dagen` : "—"}</strong>
+            <span className="ml-1 text-xs text-zinc-400">
+              {offerte.exact
+                ? `(uit de fase-historiek · ${num(offerte.timingSample)} offertes gemeten)`
+                : "(nog geen fase-historiek — ververs de data)"}
+            </span>
+          </span>
         </div>
       </section>
+
+      {/* AI-analyse & advies */}
+      <AnalysePanel period={period} afdeling="energy" />
 
       {/* Aanvragen / gewonnen / verloren over tijd */}
       <section id="overtijd" className="mb-8 scroll-mt-40">
@@ -214,6 +282,170 @@ export default async function EnergyPage({
         )}
       </section>
 
+      {/* Trechter per fase: waar vallen leads af, waar blijven ze hangen */}
+      <section id="trechter" className="mb-8 scroll-mt-40">
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-zinc-900">Trechter per fase</h2>
+          <p className="text-xs text-zinc-500">
+            Per pipeline: hoeveel van de aanvragen uit deze periode minstens tot elke fase geraakten, hoeveel er in die fase
+            afvielen en hoe lang de open deals er al staan.
+          </p>
+        </div>
+        {funnel.length === 0 ? (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-400 shadow-sm">
+            Geen aanvragen in deze periode.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {funnel.map((f) => (
+              <Card key={f.pipeline} title={`${f.pipeline} · ${num(f.leads)} aanvragen`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] uppercase tracking-wide text-zinc-400">
+                        <th className="pb-2 pr-4 font-medium">Fase</th>
+                        <th className="pb-2 pr-4 font-medium">Bereikt</th>
+                        <th className="pb-2 pr-4 text-right font-medium">Doorstroom</th>
+                        <th className="pb-2 pr-4 text-right font-medium">Open nu</th>
+                        <th className="pb-2 pr-4 text-right font-medium">Hier verloren</th>
+                        <th className="pb-2 text-right font-medium">Gewonnen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {f.stages.map((s) => (
+                        <tr key={s.order} className="border-t border-zinc-100">
+                          <td className="whitespace-nowrap py-2 pr-4 text-zinc-800">{s.stage}</td>
+                          <td className="min-w-[220px] py-2 pr-4">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                                <div className="h-full rounded-full bg-cyan-600" style={{ width: `${s.pctOfLeads ?? 0}%` }} />
+                              </div>
+                              <span className="w-24 shrink-0 text-right tabular-nums text-zinc-700">
+                                <b className="text-zinc-900">{num(s.reached)}</b>
+                                <span className="ml-1 text-[11px] text-zinc-400">{s.pctOfLeads != null ? `${s.pctOfLeads}%` : ""}</span>
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2 pr-4 text-right tabular-nums text-zinc-600">{s.pctOfPrev != null ? `${s.pctOfPrev}%` : "—"}</td>
+                          <td className="py-2 pr-4 text-right tabular-nums">
+                            {s.open > 0 ? (
+                              <>
+                                <span className="font-medium text-orange-600">{num(s.open)}</span>
+                                {s.avgDaysInStage != null && (
+                                  <span className="ml-1 text-[11px] text-zinc-400">gem. {num(s.avgDaysInStage)} d</span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-zinc-300">0</span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-4 text-right tabular-nums">
+                            {s.lost > 0 ? <span className="font-medium text-red-600">{num(s.lost)}</span> : <span className="text-zinc-300">0</span>}
+                          </td>
+                          <td className="py-2 text-right tabular-nums">
+                            {s.won > 0 ? <span className="font-medium text-emerald-600">{num(s.won)}</span> : <span className="text-zinc-300">0</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-3 text-xs text-zinc-400">
+                  &ldquo;Bereikt&rdquo; is afgeleid uit de fase waarin elke deal nu staat (gewonnen = tot het einde geraakt). Pipedrive
+                  bewaart geen volledige fase-historiek in de sync, dus een deal die teruggezet werd telt bij zijn huidige fase.
+                  &ldquo;Doorstroom&rdquo; = bereikt t.o.v. de vorige fase.
+                </p>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Regio — projectlocaties op de kaart */}
+      <section id="regio" className="mb-8 scroll-mt-40">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900">Regio — projectlocaties</h2>
+            <p className="text-xs text-zinc-500">
+              Elk punt = een deal op zijn projectadres (Vlaanderen + Brussel). Klik op een punt voor de deal-info.
+            </p>
+          </div>
+          <RegionStatusSelector current={regionStatus} params={params} path={PATH} />
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          {region.placed === 0 ? (
+            <p className="py-10 text-center text-sm text-zinc-400">Geen herkenbare projectadressen in deze periode.</p>
+          ) : (
+            <>
+              <BelgiumMap points={shownPoints} b2bOffices={region.b2bOffices} ourOffices={ourOffices} />
+              <p className="mt-2 text-center text-[11.5px] text-zinc-400">
+                {num(shownPoints.length)} projectpunten · {num(region.plotted)} van {num(region.total)} deals op de kaart ·{" "}
+                {num(region.unplaced)} zonder herkenbaar projectadres
+              </p>
+
+              {region.unplacedDeals.length > 0 && (
+                <details className="mt-3 rounded-xl border border-amber-200 bg-amber-50/60">
+                  <summary className="cursor-pointer list-none px-4 py-2.5 text-[13px] font-medium text-amber-900 marker:content-none">
+                    <span className="mr-1.5">▸</span>
+                    {num(region.unplaced)} deals zonder herkenbaar projectadres — controleer &amp; fix in Pipedrive
+                  </summary>
+                  <div className="max-h-80 overflow-y-auto border-t border-amber-200 px-2 py-2">
+                    <table className="w-full text-[12.5px]">
+                      <tbody>
+                        {region.unplacedDeals.map((d) => (
+                          <tr key={d.id} className="border-b border-amber-100/70 last:border-0">
+                            <td className="py-1.5 pl-2">
+                              <span
+                                className="mr-2 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                                style={{ background: d.status === "won" ? "#16a34a" : d.status === "open" ? "#ea580c" : "#dc2626" }}
+                                title={d.status}
+                              />
+                              <span className="text-zinc-800">{d.title}</span>
+                              <span className="ml-1.5 text-zinc-400">· {d.client}</span>
+                            </td>
+                            <td className="py-1.5 pr-2 text-right">
+                              {d.url && (
+                                <a href={d.url} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap text-blue-600 hover:underline">
+                                  openen ↗
+                                </a>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {region.unplaced > region.unplacedDeals.length && (
+                      <p className="px-2 pt-2 text-[11px] text-zinc-400">
+                        Eerste {num(region.unplacedDeals.length)} van {num(region.unplaced)} getoond.
+                      </p>
+                    )}
+                  </div>
+                </details>
+              )}
+              <div className="mt-4 border-t border-zinc-100 pt-3">
+                <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-zinc-400">
+                  <span>Provincies</span>
+                  <span>{regionStatusLabel} · (gewonnen / open / verloren)</span>
+                </div>
+                <div className="grid grid-cols-1 gap-x-8 gap-y-0.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {regionRowsSorted.map((r) => (
+                    <div key={r.province} className="flex items-center justify-between border-b border-zinc-50 py-1.5 text-sm">
+                      <span className="text-zinc-700">{r.province}</span>
+                      <span>
+                        <b className="tabular-nums text-zinc-900">{num(regionVal(r))}</b>
+                        <span className="ml-1.5 text-[11px] tabular-nums text-zinc-400">
+                          ({num(r.won)}/{num(r.open)}/{num(r.lost)})
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
       {/* Aanvragen per kanaal (hoofd/subkanaal) */}
       <section id="kanalen" className="mb-8 scroll-mt-40">
         <Card title="Aanvragen per kanaal">
@@ -234,7 +466,7 @@ export default async function EnergyPage({
         </Card>
       </section>
 
-      {/* Verlies-redenen (genormaliseerd, enkel 2026) */}
+      {/* Verlies-redenen (genormaliseerd, enkel 2026) + motivatie */}
       <section id="verlies" className="mb-8 scroll-mt-40">
         <Card title="Verlies-redenen — UNABO Energy (enkel 2026)">
           {lost.outside2026 ? (
@@ -248,22 +480,123 @@ export default async function EnergyPage({
                 reden voor de deals, of <strong>klik</strong> om alle deals te openen (met link naar Pipedrive).
               </p>
               <LostReasonsTable reasons={lost.reasons} total={lost.total} />
+
+              {/* Motivatie — Invloedbaar door UNABO? */}
+              {!motivation.outside2026 && motivation.filledInfluenceable > 0 && (
+                <div className="mt-6 border-t border-zinc-100 pt-4">
+                  <h4 className="mb-1 text-sm font-semibold text-zinc-700">Was het verlies beïnvloedbaar door UNABO?</h4>
+                  <p className="mb-3 text-xs text-zinc-400">
+                    Uit het verplichte veld &ldquo;Invloedbaar door UNABO?&rdquo; ({num(motivation.filledInfluenceable)} van{" "}
+                    {num(motivation.total)} verloren deals ingevuld).
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {Object.entries(inflRollup).map(([k, v]) => (
+                      <div
+                        key={k}
+                        className={
+                          "rounded-lg border p-3 " +
+                          (k.startsWith("Wél") ? "border-red-200 bg-red-50" : k.startsWith("Niet") ? "border-green-200 bg-green-50" : "border-zinc-200 bg-zinc-50")
+                        }
+                      >
+                        <div className="text-xs uppercase tracking-wide text-zinc-500">{k}</div>
+                        <div className="text-lg font-bold text-zinc-900">{num(v)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="overflow-x-auto">
+                      <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-400">Beïnvloedbaar?</div>
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {motivation.influenceable.map((r) => (
+                            <tr key={r.label} className="border-b border-zinc-100">
+                              <td className="py-1.5 pr-4 text-zinc-600">{r.label}</td>
+                              <td className="py-1.5 pr-4 text-right font-medium text-zinc-800">{num(r.count)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {motivation.cause.length > 0 && (
+                      <div className="overflow-x-auto">
+                        <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-400">Onderliggende oorzaak</div>
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {motivation.cause.map((r) => (
+                              <tr key={r.label} className="border-b border-zinc-100">
+                                <td className="py-1.5 pr-4 text-zinc-600">{r.label}</td>
+                                <td className="py-1.5 pr-4 text-right font-medium text-zinc-800">{num(r.count)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </Card>
       </section>
 
-      {/* Aanvragen vs. omzet die dezelfde maand meteen werd gewonnen */}
-      <section id="omzet" className="mb-8 scroll-mt-40">
-        <Card title="Aanvragen vs. omzet die dezelfde maand meteen werd gewonnen">
-          <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-800">
-            <b>Wat toont dit?</b> De balken = <strong>alle aanvragen (leads) die in die maand binnenkwamen</strong>. De lijn =
-            enkel de <strong>omzet uit deals die in diezelfde maand zijn binnengekomen én meteen gewonnen</strong>. Deals die
-            pas later winnen, tellen niet in de lijn maar wél in hun aanvraagmaand-balk. Dit is dus géén totale maandomzet — voor
-            de volledige gewonnen omzet: zie de KPI bovenaan of &ldquo;Over tijd → Gewonnen&rdquo;.
-          </div>
-          <EngineeringTrendChart data={trend} />
-        </Card>
+      {/* Trend + bundel/los */}
+      <section id="omzet" className="mb-8 grid scroll-mt-40 grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card title="Aanvragen vs. omzet die dezelfde maand meteen werd gewonnen">
+            <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-800">
+              <b>Wat toont dit?</b> De balken = <strong>alle aanvragen (leads) die in die maand binnenkwamen</strong>. De lijn =
+              enkel de <strong>omzet uit deals die in diezelfde maand zijn binnengekomen én meteen gewonnen</strong>. Deals die
+              pas later winnen, tellen niet in de lijn maar wél in hun aanvraagmaand-balk. Dit is dus géén totale maandomzet —
+              voor de volledige gewonnen omzet: zie de KPI bovenaan of &ldquo;Over tijd → Gewonnen&rdquo;.
+            </div>
+            <EngineeringTrendChart data={trend} />
+          </Card>
+        </div>
+        <div className="flex flex-col gap-6">
+          <Card title="Los vs. in bundel (gewonnen)">
+            <div className="space-y-3 text-sm">
+              <SplitRow label="Los verkocht" count={bundle.losCount} value={bundle.losValue} total={totalWonValue} color="#0891b2" />
+              <SplitRow label="In bundel (Energy-aandeel)" count={bundle.bundelCount} value={bundle.bundelEngValue} total={totalWonValue} color="#6366f1" />
+              <div className="border-t border-zinc-200 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-zinc-800">Totaal Energy-omzet</span>
+                  <span className="font-semibold text-zinc-900">
+                    {num(bundle.losCount + bundle.bundelCount)} · {euro(totalWonValue)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-zinc-400">
+              Los = Energy is de enige afdeling op de deal. Bundel = samen met andere afdelingen (bv. EPB + ventilatie +
+              stabiliteit in één offerte, meestal pipeline &ldquo;UNABO - Bundel&rdquo;).
+            </p>
+          </Card>
+          {bundle.bundelCount > 0 && (
+            <Card title="Wat brengen de bundels op?">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-600">Volledige deal value</span>
+                  <span className="font-medium text-zinc-800">{euro(bundle.bundelDealValue)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-600">Waarvan Energy</span>
+                  <span className="font-medium text-zinc-800">{euro(bundle.bundelEngValue)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-600">Andere afdelingen in de bundel</span>
+                  <span className="font-medium text-zinc-800">{euro(bundle.bundelDealValue - bundle.bundelEngValue)}</span>
+                </div>
+                <div className="rounded-lg bg-zinc-50 p-2 text-xs text-zinc-500">
+                  Een Energy-aanvraag die als bundel wint, brengt gemiddeld{" "}
+                  <strong className="text-zinc-700">{euro(Math.round(bundle.bundelDealValue / bundle.bundelCount))}</strong> per deal op voor de
+                  hele groep, tegenover{" "}
+                  <strong className="text-zinc-700">{bundle.losCount > 0 ? euro(Math.round(bundle.losValue / bundle.losCount)) : "—"}</strong> los.
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
       </section>
 
       {/* Analyse per dienst */}
@@ -305,8 +638,135 @@ export default async function EnergyPage({
         </Card>
       </section>
 
+      {/* Projecttype (nog niet volledig gevuld) */}
+      <section id="projecttype" className="mb-8 scroll-mt-40">
+        <Card title="Projecttype (UNABO Energy)">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+            <span className="rounded bg-amber-500 px-1.5 py-0.5 font-semibold text-white">NIEUW</span>
+            Deze velden zijn net ingevoerd en nog niet volledig ingevuld — behandel als indicatief, nog geen harde conclusies.
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <div className="mb-1 flex items-baseline justify-between">
+                <span className="text-sm font-semibold text-zinc-700">Gebouwtype</span>
+                <span className="text-xs text-zinc-400">
+                  {num(projectType.gebouwtypeFilled)}/{num(projectType.total)} ingevuld (
+                  {projectType.total ? Math.round((projectType.gebouwtypeFilled / projectType.total) * 100) : 0}%)
+                </span>
+              </div>
+              {projectType.gebouwtype.length === 0 ? (
+                <p className="py-3 text-sm text-zinc-400">Nog niet gevuld.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <tbody>
+                    {projectType.gebouwtype.map((r) => (
+                      <tr key={r.label} className="border-b border-zinc-100">
+                        <td className="py-1.5 pr-4 text-zinc-700">{r.label}</td>
+                        <td className="py-1.5 text-right font-medium text-zinc-800">{num(r.count)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div>
+              <div className="mb-1 flex items-baseline justify-between">
+                <span className="text-sm font-semibold text-zinc-700">Type aanvraag / situatie</span>
+                <span className="text-xs text-zinc-400">
+                  {num(projectType.typeAanvraagFilled)}/{num(projectType.total)} ingevuld (
+                  {projectType.total ? Math.round((projectType.typeAanvraagFilled / projectType.total) * 100) : 0}%)
+                </span>
+              </div>
+              {projectType.typeAanvraag.length === 0 ? (
+                <p className="py-3 text-sm text-zinc-400">Nog niet gevuld.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <tbody>
+                    {projectType.typeAanvraag.map((r) => (
+                      <tr key={r.label} className="border-b border-zinc-100">
+                        <td className="py-1.5 pr-4 text-zinc-700">{r.label}</td>
+                        <td className="py-1.5 text-right font-medium text-zinc-800">{num(r.count)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      {/* Geslacht (demografie) — placeholder, veld bestaat in Pipedrive maar wordt nog niet gesynct */}
+      <section id="geslacht" className="mb-8 scroll-mt-40">
+        <Card title="Geslacht (demografie)">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+            <span className="rounded bg-zinc-400 px-1.5 py-0.5 font-semibold text-white">BINNENKORT</span>
+            Wacht op het geslacht-veld op de contactpersoon in Pipedrive — nog geen data.
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {["Man", "Vrouw", "Onbekend"].map((g) => (
+              <div key={g} className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 p-4">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{g}</div>
+                <div className="mt-1 text-2xl font-bold text-zinc-300">—</div>
+                <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100" />
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-zinc-400">
+            Zodra het geslacht-veld gevuld en gesynct is, vullen deze cijfers zich automatisch (verdeling over contactpersonen van
+            de aanvragen).
+          </p>
+        </Card>
+      </section>
+
+      {/* Meetings / afspraken — placeholder, wacht op data uit Pipedrive-activiteiten */}
+      <section id="meetings" className="mb-8 scroll-mt-40">
+        <Card title="Meetings & afspraken">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+            <span className="rounded bg-zinc-400 px-1.5 py-0.5 font-semibold text-white">BINNENKORT</span>
+            Wacht op afsprakendata uit Pipedrive-activiteiten — nog geen cijfers.
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              { label: "Meetings gepland", hint: "in periode" },
+              { label: "Meeting → offerte", hint: "conversie" },
+              { label: "Meeting → gewonnen", hint: "conversie" },
+              { label: "Gem. tijd tot meeting", hint: "aanvraag → afspraak" },
+            ].map((m) => (
+              <div key={m.label} className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 p-4">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{m.label}</div>
+                <div className="mt-1 text-2xl font-bold text-zinc-300">—</div>
+                <div className="mt-1 text-[11px] text-zinc-400">{m.hint}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-zinc-400">
+            Zodra afspraak-activiteiten gekoppeld zijn aan de deals, tonen we hier hoeveel meetings er plaatsvonden en hoe goed ze
+            converteren.
+          </p>
+        </Card>
+      </section>
+
       <LastSync />
     </main>
+  );
+}
+
+function SplitRow({ label, count, value, total, color }: { label: string; count: number; value: number; total: number; color: string }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <span className="text-zinc-600">{label}</span>
+        <span className="font-medium text-zinc-800">
+          {num(count)} · {euro(value)}
+        </span>
+      </div>
+      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <div className="mt-0.5 text-[11px] text-zinc-400">{pct}% van de Energy-omzet</div>
+    </div>
   );
 }
 
@@ -329,5 +789,33 @@ function Delta({ v, hero = false }: { v: number | null; hero?: boolean }) {
       </span>
       <span className={hero ? "text-indigo-200/80" : "text-zinc-400"}>vs. vorige periode</span>
     </span>
+  );
+}
+
+function TargetBar({
+  current,
+  target,
+  fmt,
+  hero = false,
+}: {
+  current: number;
+  target: number;
+  fmt: (n: number) => string;
+  hero?: boolean;
+}) {
+  const pct = Math.max(0, Math.min(100, Math.round((current / target) * 100)));
+  const reached = current >= target;
+  const trackCls = hero ? "bg-white/15" : "bg-zinc-100";
+  const barCls = reached ? (hero ? "bg-emerald-300" : "bg-emerald-500") : hero ? "bg-indigo-300" : "bg-blue-500";
+  const textCls = hero ? "text-indigo-200/80" : "text-zinc-500";
+  return (
+    <div className="mt-0.5 flex flex-col gap-1">
+      <div className={"h-1.5 w-full overflow-hidden rounded-full " + trackCls}>
+        <div className={"h-full rounded-full " + barCls} style={{ width: `${pct}%` }} />
+      </div>
+      <div className={"text-[11px] " + textCls}>
+        {pct}% van jaardoel {fmt(target)}
+      </div>
+    </div>
   );
 }
