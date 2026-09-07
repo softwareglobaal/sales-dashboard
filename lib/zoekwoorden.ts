@@ -403,7 +403,10 @@ export function herclassificeerSerpDomeinen() {
   db.transaction(() => {
     for (const r of rijen) {
       const nieuw = categoriseerSerpDomein(r.domein);
-      if (nieuw !== r.categorie) upd.run(nieuw, r.domein);
+      // Alleen bijwerken als de domeinnaam iets zegt. "onbekend" terugzetten zou de
+      // indeling wissen die `categoriseerUitSite()` uit de sitetitel afleidde --
+      // die weet meer dan een domeinnaam ooit kan.
+      if (nieuw !== "onbekend" && nieuw !== r.categorie) upd.run(nieuw, r.domein);
       telling[nieuw] = (telling[nieuw] || 0) + 1;
     }
   })();

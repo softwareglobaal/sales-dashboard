@@ -484,6 +484,50 @@ export function markeerMarkt(domein: string, markt: Markt, bron: string) {
  * niets meer dan de laatste meting. Wat uit het register, uit de zoekresultaten
  * of uit onze eigen lijst komt, blijft staan -- daar is de crawl geen bewijs tegen.
  */
+/**
+ * Wat zegt de site zelf te zijn?
+ *
+ * De indeling op domeinnaam komt niet ver: architectura.be, buildwise.be en
+ * ctrl-f.be zien er alle drie uit als een bedrijf. Hun eigen titel is duidelijker
+ * -- "Nieuwsplatform over en voor de bouwsector", "Het innovatiecentrum van de
+ * Bouwsector", "Jobs voor experts in Engineering". Andersom net zo goed:
+ * "Studiebureau stabiliteit" is geen twijfelgeval.
+ *
+ * Wordt alleen toegepast op domeinen die nog "onbekend" zijn. Een indeling uit het
+ * register en elk menselijk oordeel blijven met rust.
+ */
+const UIT_TITEL: { patroon: RegExp; categorie: string }[] = [
+  { patroon: /\b(jobs?|vacature|werken bij|rekruter|recruit|interim|detacher|talent en bedrijven)\b/i, categorie: "vacature" },
+  { patroon: /nieuwsplatform|portaalsite|vakblad|vergelijk .{0,20}offertes|innovatiecentrum|kenniscentrum|beroepsfederatie|sectorfederatie|confederatie/i, categorie: "portaal" },
+  { patroon: /studiebureau|ingenieursbureau|raadgevend ingenieur|ingenieurs.{0,4}en adviesbureau|stabiliteitsstud/i, categorie: "concurrent" },
+];
+
+export function categoriseerUitSite() {
+  const db = getDb();
+  const rijen = db.prepare(
+    `SELECT c.domein, s.titel, s.meta_desc
+       FROM concurrenten c
+       JOIN (SELECT s.* FROM site_snapshots s
+              JOIN (SELECT domein, MAX(datum) d FROM site_snapshots GROUP BY domein) m
+                ON m.domein = s.domein AND m.d = s.datum) s ON s.domein = c.domein
+      WHERE c.categorie = 'onbekend'
+        AND NOT EXISTS (SELECT 1 FROM beoordelingen b WHERE b.soort='domein' AND b.sleutel=c.domein)`
+  ).all() as { domein: string; titel: string | null; meta_desc: string | null }[];
+
+  const upd = db.prepare("UPDATE concurrenten SET categorie = ? WHERE domein = ?");
+  const telling: Record<string, number> = {};
+  db.transaction(() => {
+    for (const r of rijen) {
+      const tekst = `${r.titel || ""} ${r.meta_desc || ""}`;
+      const treffer = UIT_TITEL.find((u) => u.patroon.test(tekst));
+      if (!treffer) continue;
+      upd.run(treffer.categorie, r.domein);
+      telling[treffer.categorie] = (telling[treffer.categorie] || 0) + 1;
+    }
+  })();
+  return { bekeken: rijen.length, ...telling };
+}
+
 export function bepaalMarkten() {
   const db = getDb();
   const rijen = db
@@ -530,7 +574,7 @@ export function bepaalMarkten() {
       }
     }
   })();
-  return { bekeken: rijen.length, energie, engineering, ingetrokken };
+  return { bekeken: rijen.length, energie, engineering, ingetrokken, uitSite: categoriseerUitSite() };
 }
 
 export function importeerVerslaggevers() {
