@@ -221,7 +221,7 @@ export function categoriseerSerpDomein(domein: string): string {
   // jobsites: dat zijn werkzoekenden, geen klanten. Zonder dit onderscheid lijkt
   // die term een gemiste kans, terwijl er niets te winnen valt.
   const vacature =
-    /(jobat|indeed|stepstone|michaelpage|werkenvoor|linkedin|freelancenetwork|recruitment|vdab|jobs?\.|vacature)/.test(d);
+    /(jobat|indeed|stepstone|michaelpage|werkenvoor|linkedin|freelancenetwork|recruitment|vdab|glassdoor|adzuna|bebee|monster\.|talent\.com|optioncarriere|jobbird|joblift|jobs?\.|vacature)/.test(d);
   if (vacature) return "vacature";
 
   // Informatiesites, vergelijkers en rekentools: ze staan hoog op onze termen,
