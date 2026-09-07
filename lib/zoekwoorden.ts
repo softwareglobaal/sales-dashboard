@@ -210,6 +210,12 @@ type SerpRij = { soort: "organisch" | "advertentie"; positie: number; domein: st
  */
 export function categoriseerSerpDomein(domein: string): string {
   const d = domein.toLowerCase();
+
+  // Nederlandse en andere buitenlandse sites. Op stabiliteitstermen staat de
+  // halve Nederlandse markt in onze zoekresultaten -- constructieberekeningen,
+  // steunbalken, houthandels -- maar niemand daarvan neemt ons een dossier in
+  // Vlaanderen af. Ze bezetten wel posities, dus we blijven ze meten.
+  if (/\.(nl|de|fr|es|it|uk|co\.uk|pl)$/.test(d)) return "buitenland";
   const overheid =
     /(^|\.)(vlaanderen\.be|belgium\.be|fgov\.be|europa\.eu|brussels|vito\.be|energiesparen\.be|vlaio\.be|veka\.be)$/.test(d) ||
     /\.(gov|overheid)\./.test(d) ||

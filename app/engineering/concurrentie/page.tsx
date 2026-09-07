@@ -21,6 +21,7 @@ import { gscBeschikbaar } from "@/lib/searchConsole";
 import { num } from "@/lib/format";
 import { Kpi, Card } from "@/components/ui";
 import { SubNav } from "@/components/SubNav";
+import { Beoordeling } from "@/components/Beoordeling";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ const TABS = [
   { id: "leaders", label: "Leaders" },
   { id: "markt", label: "De markt" },
   { id: "concurrenten", label: "Concurrenten" },
+  { id: "nakijken", label: "Nakijken" },
   { id: "diensten", label: "Diensten" },
   { id: "zoekwoorden", label: "Zoekwoorden" },
   { id: "signalen", label: "Signalen" },
@@ -106,6 +108,7 @@ export default async function EngineeringConcurrentiePage({
   const actiefste = getActiefstePubliceerders(10, MARKT);
   const diensten = getDienstenDekking(MARKT);
   const concurrenten = getConcurrentenInMarkt(MARKT);
+  const rest = getConcurrentenInMarkt(MARKT, "rest");
   const signalen = getSignalen(40, MARKT);
   const wij = getConcurrentenInMarkt(MARKT, "eigen").find((c) => c.domein === ONS_DOMEIN);
   const zoekwoorden = getZoekwoorden(MARKT);
@@ -338,7 +341,11 @@ export default async function EngineeringConcurrentiePage({
       {/* ------------------------------------------------------------------ */}
       <section id="markt" className="scroll-mt-36 pt-8">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-          <Kpi label="Bedrijven" value={num(k.bedrijven || 0)} sub="in deze markt gevolgd" />
+          <Kpi
+            label="Bedrijven"
+            value={num(k.bedrijven || 0)}
+            sub={`${num(k.geen_concurrent || 0)} sites apart gezet — zie Nakijken`}
+          />
           <Kpi label="Sites gemeten" value={num(k.gemeten || 0)} sub={`${num(k.online || 0)} online`} />
           <Kpi
             label="Publiceert nog"
@@ -478,6 +485,7 @@ export default async function EngineeringConcurrentiePage({
                   <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Laatste post</th>
                   <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Diensten</th>
                   <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">CMS</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Klopt dit?</th>
                 </tr>
               </thead>
               <tbody>
@@ -511,6 +519,12 @@ export default async function EngineeringConcurrentiePage({
                     </td>
                     <td className="py-2 pr-4 last:pr-0"><Diensten json={c.diensten} /></td>
                     <td className="py-2 pr-4 last:pr-0 text-xs text-zinc-500">{c.cms || "—"}</td>
+                    <td className="py-2 pr-4 last:pr-0">
+                      <Beoordeling soort="domein" sleutel={c.domein} huidig={c.oordeel ?? null} />
+                      {c.oordeel_door && c.oordeel && (
+                        <div className="text-[11px] text-zinc-400">door {c.oordeel_door}</div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -518,11 +532,67 @@ export default async function EngineeringConcurrentiePage({
           </div>
           <p className="mt-3 text-xs text-zinc-500">
             Een bedrijf staat in deze lijst als het op onze zoektermen in de top 10 verschijnt, of
-            als er genoeg over stabiliteit op zijn site staat. Overheidssites, portalen en jobsites
-            zijn geen concurrenten maar bezetten wel posities — daarom staan ze er met een label bij.
-            &ldquo;Laatste post&rdquo; komt uit de <code>lastmod</code> van de sitemap: richtinggevend,
-            geen bewijs.
+            als er genoeg over stabiliteit op zijn site staat. Overheid, portalen, jobsites en
+            buitenlandse bureaus zijn er automatisch uit gehouden; die staan onder{" "}
+            <a href="#nakijken" className="text-blue-600 hover:underline">Nakijken</a>. Klopt een
+            indeling niet, zet ze dan recht met de knopjes rechts — dat oordeel gaat vóór op de
+            automatiek en blijft staan. &ldquo;Laatste post&rdquo; komt uit de <code>lastmod</code>{" "}
+            van de sitemap: richtinggevend, geen bewijs.
           </p>
+        </Card>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      <section id="nakijken" className="scroll-mt-36 pt-8">
+        <Card title={`Nakijken — ${num(rest.length)} sites die de automatiek buiten de markt hield`}>
+          <p className="mb-4 text-sm text-zinc-600">
+            Deze sites staan wél in onze zoekresultaten, maar zijn ingedeeld als overheid, portaal,
+            jobsite of buitenlands bureau. Ze tellen dus niet mee als concurrent. De indeling gebeurt
+            op de domeinnaam en zit er soms naast: een fabrikant of een detacheerder van ingenieurs
+            herkent geen enkele regel. Zit er een echte concurrent tussen, zet hem dan hier recht —
+            hij verschuift meteen naar de lijst hierboven.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Site</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Ingedeeld als</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Stab.-pag.</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Artikels</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Klopt dit?</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rest.map((c) => (
+                  <tr key={c.domein} className="border-b border-zinc-100 last:border-0">
+                    <td className="py-2 pr-4 last:pr-0">
+                      <div className="font-medium text-zinc-800">{c.naam}</div>
+                      <a href={`https://${c.domein}`} target="_blank" rel="noreferrer noopener"
+                         className="text-xs text-blue-600 hover:underline">{c.domein}</a>
+                    </td>
+                    <td className="py-2 pr-4 last:pr-0">
+                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-600">
+                        {c.categorie === "geen-concurrent" ? "geen concurrent (handmatig)" : c.categorie}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right tabular-nums text-zinc-600">
+                      {c.omvang === null ? <span className="text-zinc-300">—</span> : num(c.omvang)}
+                    </td>
+                    <td className="py-2 pr-4 last:pr-0 whitespace-nowrap text-right tabular-nums text-zinc-600">
+                      {c.blog_artikels === null ? <span className="text-zinc-300">—</span> : num(c.blog_artikels)}
+                    </td>
+                    <td className="py-2 pr-4 last:pr-0">
+                      <Beoordeling soort="domein" sleutel={c.domein} huidig={c.oordeel ?? null} />
+                      {c.oordeel_door && c.oordeel && (
+                        <div className="text-[11px] text-zinc-400">door {c.oordeel_door}</div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </section>
 

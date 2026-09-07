@@ -10,6 +10,18 @@ const KEUZES = [
 ];
 
 /**
+ * Bij een bedrijf in de concurrentielijst is de vraag een andere dan bij een
+ * verslaggever: niet "is dit een prospect" maar "hoort dit hier thuis". Dezelfde
+ * oordelen, andere woorden -- de API kent er maar vier en dat blijft zo.
+ */
+const KEUZES_DOMEIN = [
+  { key: "concurrent", label: "Concurrent", kleur: "bg-amber-100 text-amber-800 border-amber-300" },
+  { key: "geen-prospect", label: "Geen concurrent", kleur: "bg-zinc-200 text-zinc-700 border-zinc-400" },
+  { key: "klant", label: "Klant", kleur: "bg-blue-100 text-blue-800 border-blue-300" },
+  { key: "prospect", label: "Onderaanneming", kleur: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+];
+
+/**
  * Knopjes om een automatische indeling te corrigeren. Klikken op het actieve
  * oordeel zet het terug op automatisch.
  */
@@ -22,6 +34,7 @@ export function Beoordeling({
   sleutel: string;
   huidig: string | null;
 }) {
+  const keuzes = soort === "domein" ? KEUZES_DOMEIN : KEUZES;
   const [waarde, setWaarde] = useState<string | null>(huidig);
   const [bezig, setBezig] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
@@ -48,7 +61,7 @@ export function Beoordeling({
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {KEUZES.map((k) => (
+      {keuzes.map((k) => (
         <button
           key={k.key}
           onClick={() => kies(k.key)}

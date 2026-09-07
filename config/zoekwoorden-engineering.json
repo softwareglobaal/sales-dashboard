@@ -34,6 +34,16 @@
     { "term": "stabiliteitsonderzoek woning", "thema": "Schade en diagnose", "intentie": "dienst" },
     { "term": "ingenieur scheuren woning", "thema": "Schade en diagnose", "intentie": "probleem" },
 
+    { "term": "dakstudie zonnepanelen", "thema": "Dakstudie zonnepanelen", "intentie": "dienst" },
+    { "term": "stabiliteitsstudie zonnepanelen", "thema": "Dakstudie zonnepanelen", "intentie": "dienst" },
+    { "term": "draagkracht dak zonnepanelen", "thema": "Dakstudie zonnepanelen", "intentie": "kennis" },
+    { "term": "kan mijn dak zonnepanelen dragen", "thema": "Dakstudie zonnepanelen", "intentie": "kennis" },
+    { "term": "dakconstructie versterken", "thema": "Dakstudie zonnepanelen", "intentie": "dienst" },
+
+    { "term": "stabiliteitsstudie aanbouw", "thema": "Verbouwing", "intentie": "dienst" },
+    { "term": "stabiliteitsstudie optopping", "thema": "Verbouwing", "intentie": "dienst" },
+    { "term": "draagmuur doorbreken vergunning", "thema": "Verbouwing", "intentie": "probleem" },
+
     { "term": "stabiliteitsstudie onderaanneming", "thema": "Onderaanneming", "intentie": "dienst" },
     { "term": "stabiliteitsstudie voor architecten", "thema": "Onderaanneming", "intentie": "dienst" },
     { "term": "freelance stabiliteitsingenieur", "thema": "Onderaanneming", "intentie": "dienst" },

@@ -30,6 +30,8 @@ export type ConcurrentRij = {
   epb_paginas: number | null;
   eng_paginas: number | null;
   omvang: number | null;          // omvang in de opgevraagde markt
+  oordeel?: string | null;        // handmatige correctie, als iemand die zette
+  oordeel_door?: string | null;
   spam_verdacht: number | null;
   laatste_check: string | null;
   fout: string | null;
@@ -74,17 +76,36 @@ function termInMarkt(markt: Markt, alias = "z"): string {
 
 /**
  * Categorieën die geen concurrent zijn: overheid schrijft de wetgeving, portalen
- * verkopen niets, en een jobsite bedient werkzoekenden in plaats van klanten.
+ * verkopen niets, een jobsite bedient werkzoekenden in plaats van klanten, en een
+ * Nederlands bureau neemt ons geen dossier in Vlaanderen af. `geen-concurrent` is
+ * de handmatige variant: iemand heeft er zelf naar gekeken.
  */
-export const GEEN_CONCURRENT = ["overheid", "portaal", "vacature"];
+export const GEEN_CONCURRENT = ["overheid", "portaal", "vacature", "buitenland", "geen-concurrent"];
 
 /**
- * Overheid, portalen en jobsites bezetten posities maar zijn geen bedrijven waar
- * we klanten aan verliezen. Ze horen in het overzicht van zoekresultaten, niet in
- * een ranglijst van concurrenten.
+ * Het menselijk oordeel gaat voor op de automatische indeling.
+ *
+ * De regex kan een bureau niet van een fabrikant onderscheiden en weet niet dat
+ * arcadegroep.be ingenieurs detacheert. Wie de markt kent zet dat recht met de
+ * knopjes in de tabel; dat oordeel staat in `beoordelingen` en overleeft elke
+ * herclassificatie. Zonder oordeel blijft de automatische categorie staan.
+ */
+const OORDEEL_JOIN = "LEFT JOIN beoordelingen b ON b.soort = 'domein' AND b.sleutel = c.domein";
+
+function categorieExpr(alias = "c"): string {
+  return `CASE
+    WHEN b.oordeel = 'geen-prospect' THEN 'geen-concurrent'
+    WHEN b.oordeel IS NOT NULL AND b.oordeel <> '' THEN b.oordeel
+    ELSE COALESCE(${alias}.categorie,'onbekend') END`;
+}
+
+/**
+ * Overheid, portalen, jobsites en buitenlandse bureaus bezetten posities maar zijn
+ * geen bedrijven waar we klanten aan verliezen. Ze horen in het overzicht van
+ * zoekresultaten, niet in een ranglijst van concurrenten.
  */
 function echteConcurrent(alias = "c"): string {
-  return `COALESCE(${alias}.categorie,'onbekend') NOT IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})`;
+  return `(${categorieExpr(alias)}) NOT IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})`;
 }
 
 /**
@@ -113,7 +134,10 @@ export function getMarktKpis(markt: Markt = "energie") {
     SELECT
       (SELECT COUNT(*) FROM verslaggevers)                                   AS erkenningen,
       (SELECT COUNT(DISTINCT naam) FROM verslaggevers)                       AS personen,
-      (SELECT COUNT(*) FROM concurrenten c WHERE categorie<>'eigen' AND ${inMarkt(markt)})     AS bedrijven,
+      (SELECT COUNT(*) FROM concurrenten c ${OORDEEL_JOIN}
+        WHERE c.categorie<>'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent()})             AS bedrijven,
+      (SELECT COUNT(*) FROM concurrenten c ${OORDEEL_JOIN}
+        WHERE c.categorie<>'eigen' AND ${inMarkt(markt)} AND NOT (${echteConcurrent()}))       AS geen_concurrent,
       (SELECT COUNT(*) FROM concurrenten c WHERE categorie='concurrent' AND ${inMarkt(markt)}) AS concurrenten,
       (SELECT COUNT(*) FROM concurrenten c WHERE categorie='prospect' AND ${inMarkt(markt)})   AS prospects,
       (SELECT COUNT(*) FROM verslaggevers WHERE domein='')                   AS zonder_domein
@@ -153,22 +177,39 @@ export function getConcurrenten(categorie?: string, markt: Markt = "energie"): C
   return (categorie ? db.prepare(sql).all(categorie) : db.prepare(sql).all()) as ConcurrentRij[];
 }
 
-/** Idem, maar beperkt tot de bedrijven die in deze markt meespelen. */
-export function getConcurrentenInMarkt(markt: Markt, categorie?: string): ConcurrentRij[] {
+/**
+ * De bedrijven die in deze markt meespelen. `soort` bepaalt welke kant:
+ *   "concurrent" -- wie ons werk kan afnemen (standaard)
+ *   "rest"       -- overheid, portalen, jobsites en buitenland: geen concurrenten,
+ *                   maar ze bezetten wel posities en horen nagekeken te worden
+ *   "eigen"      -- onze eigen sites
+ */
+export function getConcurrentenInMarkt(
+  markt: Markt,
+  soort: "concurrent" | "rest" | "eigen" = "concurrent"
+): ConcurrentRij[] {
   const db = getDb();
   const omvang = omvangKolom(markt);
-  const sql = `
-    SELECT c.domein, c.naam, c.categorie, c.verslaggevers, c.provincie, c.gemeente, c.laatste_check,
+  const filter =
+    soort === "eigen"
+      ? "AND c.categorie = 'eigen'"
+      : soort === "rest"
+        ? `AND c.categorie <> 'eigen' AND NOT (${echteConcurrent()})`
+        : `AND c.categorie <> 'eigen' AND ${echteConcurrent()}`;
+  return db.prepare(`
+    SELECT c.domein, c.naam, ${categorieExpr()} AS categorie, c.verslaggevers,
+           c.provincie, c.gemeente, c.laatste_check,
+           b.oordeel, b.door AS oordeel_door,
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
            s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
            s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas,
            s.${omvang} AS omvang, s.spam_verdacht, s.fout
     FROM concurrenten c
+    ${OORDEEL_JOIN}
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
-    WHERE ${inMarkt(markt)} ${categorie ? "AND c.categorie = ?" : `AND c.categorie <> 'eigen' AND ${echteConcurrent()}`}
+    WHERE ${inMarkt(markt)} ${filter}
     ORDER BY COALESCE(s.${omvang},0) DESC, COALESCE(s.blog_artikels,0) DESC, c.domein
-  `;
-  return (categorie ? db.prepare(sql).all(categorie) : db.prepare(sql).all()) as ConcurrentRij[];
+  `).all() as ConcurrentRij[];
 }
 
 export type BureauRij = {
@@ -195,6 +236,7 @@ export function getSterksteOnline(limiet = 15, markt: Markt = "energie"): Bureau
   return db.prepare(`
     SELECT ${bureauKolommen(markt)}
     FROM concurrenten c
+    ${OORDEEL_JOIN}
     JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
     WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent()}
     ORDER BY COALESCE(s.${omvangKolom(markt)},0) DESC, COALESCE(s.blog_artikels,0) DESC
@@ -317,6 +359,7 @@ export function getActiefstePubliceerders(limiet = 10, markt: Markt = "energie")
   return db.prepare(`
     SELECT ${bureauKolommen(markt)}
     FROM concurrenten c
+    ${OORDEEL_JOIN}
     JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
     WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent()}
       AND COALESCE(s.spam_verdacht,0) < 3
@@ -460,15 +503,14 @@ export function getLeaderboard(aantalTermen = 8, diepte = 5, alles = false, mark
   // Het filter hoort vóór de rangschikking: anders levert "top 5" er drie op
   // zodra er twee portalen tussen staan. De getoonde positie blijft de echte
   // Google-positie, dus het gat naar plek 1 blijft eerlijk zichtbaar.
-  const geenConcurrent = alles
-    ? ""
-    : `AND COALESCE(c.categorie,'onbekend') NOT IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})`;
+  const geenConcurrent = alles ? "" : `AND ${echteConcurrent()}`;
 
   return db.prepare(`
     WITH gefilterd AS (
       SELECT p.term, p.domein, p.positie
       FROM posities p
       LEFT JOIN concurrenten c ON c.domein = p.domein
+      ${OORDEEL_JOIN}
       WHERE p.datum = ? AND p.soort = 'organisch' ${geenConcurrent}
     ),
     top AS (
@@ -689,13 +731,14 @@ export function getHerschrijfKansen(limiet = 20, markt: Markt = "energie"): Hers
   const laatste = laatstePositieDatum(markt);
   if (!laatste) return [];
   return db.prepare(`
-    SELECT p.term, z.volume, p.positie, p.domein, p.url, c.categorie
+    SELECT p.term, z.volume, p.positie, p.domein, p.url, ${categorieExpr()} AS categorie
     FROM posities p
     JOIN concurrenten c ON c.domein = p.domein
+    ${OORDEEL_JOIN}
     JOIN zoekwoorden z ON z.term = p.term
     WHERE p.datum = ? AND p.soort = 'organisch' AND p.positie <= 5
       AND ${termInMarkt(markt)}
-      AND c.categorie IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})
+      AND (${categorieExpr()}) IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})
     ORDER BY COALESCE(z.volume,0) DESC, p.positie
     LIMIT ?
   `).all(laatste, limiet) as HerschrijfKans[];
