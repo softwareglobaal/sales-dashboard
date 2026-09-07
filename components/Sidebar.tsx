@@ -19,6 +19,9 @@ const OVERZICHT: Item[] = [
 const AFDELINGEN: Afdeling[] = [
   {
     pad: "engineering", href: "/engineering", label: "Engineering", dot: "#16a34a",
+    onder: [
+      { href: "/engineering/concurrentie", label: "Concurrentie", icon: "◈" },
+    ],
   },
   {
     pad: "energy", href: "/energy", label: "Energy", dot: "#0891b2",

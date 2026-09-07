@@ -1,0 +1,55 @@
+{
+  "_uitleg": "Zoekwoorden die de Engineering-markt afbakenen: stabiliteitsstudies, plus de meetstaten van TKN-Buro. Het thema 'Uit Search Console' zijn termen waarop unabo.be al vertoningen haalt zonder dat wij ze volgden. Aan te vullen zonder code. thema = groepering op de pagina, intentie = dienst (koopklaar) / probleem (urgent, hoge waarde) / kennis (blogstof) / lokaal (regio) / vacature (zoekt werk, geen klant: 'stabiliteitsingenieur' haalt 1000 zoekopdrachten per maand maar de hele top 10 bestaat uit jobsites).",
+  "markt": "engineering",
+  "locatie": { "land": "BE", "taal": "nl", "geoTargetConstant": "2056" },
+  "zoekwoorden": [
+    { "term": "stabiliteitsstudie", "thema": "Stabiliteit kern", "intentie": "dienst" },
+    { "term": "stabiliteitsingenieur", "thema": "Stabiliteit kern", "intentie": "vacature" },
+    { "term": "studiebureau stabiliteit", "thema": "Stabiliteit kern", "intentie": "dienst" },
+    { "term": "ingenieursbureau stabiliteit", "thema": "Stabiliteit kern", "intentie": "dienst" },
+    { "term": "stabiliteitsstudie prijs", "thema": "Stabiliteit kern", "intentie": "dienst" },
+    { "term": "wat kost een stabiliteitsstudie", "thema": "Stabiliteit kern", "intentie": "kennis" },
+    { "term": "stabiliteitsstudie verbouwing", "thema": "Stabiliteit kern", "intentie": "dienst" },
+    { "term": "stabiliteitsstudie nieuwbouw", "thema": "Stabiliteit kern", "intentie": "dienst" },
+    { "term": "stabiliteitsplan", "thema": "Stabiliteit kern", "intentie": "dienst" },
+
+    { "term": "dragende muur verwijderen", "thema": "Dragende muur", "intentie": "probleem" },
+    { "term": "dragende muur uitbreken", "thema": "Dragende muur", "intentie": "probleem" },
+    { "term": "dragende muur weghalen prijs", "thema": "Dragende muur", "intentie": "probleem" },
+    { "term": "muurdoorbraak", "thema": "Dragende muur", "intentie": "dienst" },
+    { "term": "is mijn muur dragend", "thema": "Dragende muur", "intentie": "kennis" },
+    { "term": "stalen ligger berekenen", "thema": "Dragende muur", "intentie": "dienst" },
+    { "term": "balk plaatsen dragende muur", "thema": "Dragende muur", "intentie": "dienst" },
+
+    { "term": "betonstudie", "thema": "Berekening", "intentie": "dienst" },
+    { "term": "betonberekening", "thema": "Berekening", "intentie": "dienst" },
+    { "term": "balkberekening", "thema": "Berekening", "intentie": "dienst" },
+    { "term": "staalconstructie berekening", "thema": "Berekening", "intentie": "dienst" },
+    { "term": "funderingsberekening", "thema": "Berekening", "intentie": "dienst" },
+    { "term": "draagkracht berekenen vloer", "thema": "Berekening", "intentie": "kennis" },
+
+    { "term": "scheuren in muur oorzaak", "thema": "Schade en diagnose", "intentie": "probleem" },
+    { "term": "scheurvorming woning", "thema": "Schade en diagnose", "intentie": "probleem" },
+    { "term": "structurele diagnose woning", "thema": "Schade en diagnose", "intentie": "dienst" },
+    { "term": "stabiliteitsonderzoek woning", "thema": "Schade en diagnose", "intentie": "dienst" },
+    { "term": "ingenieur scheuren woning", "thema": "Schade en diagnose", "intentie": "probleem" },
+
+    { "term": "stabiliteitsstudie onderaanneming", "thema": "Onderaanneming", "intentie": "dienst" },
+    { "term": "stabiliteitsstudie voor architecten", "thema": "Onderaanneming", "intentie": "dienst" },
+    { "term": "freelance stabiliteitsingenieur", "thema": "Onderaanneming", "intentie": "dienst" },
+    { "term": "tekenwerk stabiliteit uitbesteden", "thema": "Onderaanneming", "intentie": "dienst" },
+
+    { "term": "stabiliteitsstudie verplicht", "thema": "Uit Search Console", "intentie": "kennis" },
+    { "term": "stabiliteitsingenieur prijs", "thema": "Uit Search Console", "intentie": "dienst" },
+    { "term": "stabiliteitsonderzoek", "thema": "Uit Search Console", "intentie": "dienst" },
+    { "term": "stabiliteitsstudie staalbouw", "thema": "Uit Search Console", "intentie": "dienst" },
+    { "term": "stabiliteitsstudie bestaande woning", "thema": "Uit Search Console", "intentie": "dienst" },
+    { "term": "meetstaat opmaken", "thema": "Meetstaten", "intentie": "dienst" },
+    { "term": "meetstaat woning", "thema": "Meetstaten", "intentie": "dienst" },
+    { "term": "wat is een meetstaat", "thema": "Meetstaten", "intentie": "kennis" },
+
+    { "term": "stabiliteitsingenieur Antwerpen", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "stabiliteitsstudie Gent", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "studiebureau stabiliteit West-Vlaanderen", "thema": "Regio", "intentie": "lokaal" }
+  ]
+}

@@ -1,5 +1,7 @@
 /**
- * Zoekwoorden en posities voor de EPB-markt.
+ * Zoekwoorden en posities per markt: `energie` (EPB, ventilatie) en
+ * `engineering` (stabiliteitsstudies). Elke markt heeft een eigen
+ * configbestand `config/zoekwoorden-<markt>.json`.
  *
  * Twee bronnen, bewust gescheiden:
  *  - Zoekvolume komt van Google Ads (Keyword Planner). Die koppeling bestaat al
@@ -14,30 +16,40 @@ import fs from "fs";
 import path from "path";
 import { getDb } from "./db";
 import { ADS_ACCOUNTS } from "./googleAdsConfig";
+import { markeerMarkt, MARKTEN, type Markt } from "./concurrentie";
 
 export type ZoekwoordBron = {
   locatie: { land: string; taal: string; geoTargetConstant: string };
   zoekwoorden: { term: string; thema: string; intentie: string }[];
 };
 
-export function leesZoekwoordenConfig(): ZoekwoordBron {
-  const bestand = path.join(process.cwd(), "config", "zoekwoorden-energie.json");
+export function leesZoekwoordenConfig(markt: Markt = "energie"): ZoekwoordBron {
+  const bestand = path.join(process.cwd(), "config", `zoekwoorden-${markt}.json`);
   return JSON.parse(fs.readFileSync(bestand, "utf8")) as ZoekwoordBron;
 }
 
-/** Zet de zoekwoorden uit de config in de database. Volumes blijven staan. */
-export function importeerZoekwoorden() {
-  const cfg = leesZoekwoordenConfig();
+/**
+ * Zet de zoekwoorden uit de config in de database. Volumes blijven staan.
+ * Zonder markt worden alle markten ingelezen.
+ */
+export function importeerZoekwoorden(markt?: Markt) {
   const db = getDb();
   const ins = db.prepare(
-    `INSERT INTO zoekwoorden (term, thema, intentie)
-     VALUES (?,?,?)
-     ON CONFLICT(term) DO UPDATE SET thema = excluded.thema, intentie = excluded.intentie`
+    `INSERT INTO zoekwoorden (term, thema, intentie, markt)
+     VALUES (?,?,?,?)
+     ON CONFLICT(term) DO UPDATE SET thema = excluded.thema,
+                                     intentie = excluded.intentie,
+                                     markt = excluded.markt`
   );
-  db.transaction(() => {
-    for (const z of cfg.zoekwoorden) ins.run(z.term, z.thema, z.intentie);
-  })();
-  return { zoekwoorden: cfg.zoekwoorden.length };
+  const uit: Record<string, number> = {};
+  for (const m of markt ? [markt] : MARKTEN) {
+    const cfg = leesZoekwoordenConfig(m);
+    db.transaction(() => {
+      for (const z of cfg.zoekwoorden) ins.run(z.term, z.thema, z.intentie, m);
+    })();
+    uit[m] = cfg.zoekwoorden.length;
+  }
+  return uit;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,11 +106,11 @@ export function adsBeschikbaar(): boolean {
  * Keyword Planner geeft afgeronde gemiddelden — dat is de bedoeling, het gaat
  * om de verhouding tussen termen, niet om exacte bezoekersaantallen.
  */
-export async function haalZoekvolumes() {
+export async function haalZoekvolumes(markt: Markt = "energie") {
   if (!adsBeschikbaar()) {
     return { ok: false, reden: "Google Ads-credentials ontbreken" };
   }
-  const cfg = leesZoekwoordenConfig();
+  const cfg = leesZoekwoordenConfig(markt);
   const klant = keywordKlantnummer();
   const token = await adsToken();
 
@@ -204,8 +216,20 @@ export function categoriseerSerpDomein(domein: string): string {
     d.endsWith(".brussels");
   if (overheid) return "overheid";
 
+  // Vacaturesites apart houden. Op "stabiliteitsingenieur" -- met 1000 zoekopdrachten
+  // per maand de grootste term van deze markt -- staat de hele top 10 vol met
+  // jobsites: dat zijn werkzoekenden, geen klanten. Zonder dit onderscheid lijkt
+  // die term een gemiste kans, terwijl er niets te winnen valt.
+  const vacature =
+    /(jobat|indeed|stepstone|michaelpage|werkenvoor|linkedin|freelancenetwork|recruitment|vdab|jobs?\.|vacature)/.test(d);
+  if (vacature) return "vacature";
+
+  // Informatiesites, vergelijkers en rekentools: ze staan hoog op onze termen,
+  // maar niemand koopt er een studie. Een fabrikant of leverancier laten we
+  // bewust op "onbekend" staan -- of die in de weg loopt, is een oordeel dat
+  // iemand met marktkennis moet vellen, niet een regex.
   const portaal =
-    /(premiezoeker|callmepower|bouwenwonen|livios|batibouw|zoekbedrijf|goudengids|trustlocal|solvari|bobex|werkspot|gidsduurzamegebouwen|wikipedia|reddit|facebook|linkedin|youtube|indeed|jobat)/.test(d);
+    /(premiezoeker|callmepower|bouwenwonen|bouwinfo|livios|batibouw|zoekbedrijf|zoekeenarchitect|goudengids|trustlocal|solvari|bobex|werkspot|gidsduurzamegebouwen|ie-net|buildsoft|rekensoftware|berekenen\.org|wikipedia|reddit|facebook|youtube|zimmo|nieuwsblad)/.test(d);
   if (portaal) return "portaal";
 
   return "onbekend";
@@ -283,14 +307,21 @@ async function serpDataForSeo(term: string): Promise<SerpRij[]> {
  * Meet de posities voor alle zoekwoorden en bewaart per domein dat we volgen.
  * We slaan alleen op wat over onze markt gaat; de rest van de SERP bewaren we niet.
  */
-export async function meetPosities(limiet?: number) {
+export async function meetPosities(limiet?: number, markt?: Markt) {
   const bron = serpBron();
   if (!bron.klaar) return { ok: false, reden: bron.reden };
 
   const db = getDb();
+  // Eén meting = één zoekopdracht bij de SERP-bron, en het gratis quotum is
+  // 250 per maand voor alle markten samen. Daarom kiest de cron per markt hoeveel
+  // termen er meegaan, altijd die met het meeste zoekvolume eerst.
   const termen = db
-    .prepare(`SELECT term FROM zoekwoorden ORDER BY COALESCE(volume,0) DESC ${limiet ? "LIMIT " + Number(limiet) : ""}`)
-    .all() as { term: string }[];
+    .prepare(
+      `SELECT term FROM zoekwoorden
+        ${markt ? "WHERE markt = @markt" : ""}
+        ORDER BY COALESCE(volume,0) DESC ${limiet ? "LIMIT " + Number(limiet) : ""}`
+    )
+    .all(markt ? { markt } : {}) as { term: string }[];
 
   const gevolgd = new Set(
     (db.prepare("SELECT domein FROM concurrenten").all() as { domein: string }[]).map((r) => r.domein)
@@ -305,6 +336,9 @@ export async function meetPosities(limiet?: number) {
   let gemeten = 0;
   let opgeslagen = 0;
   const ontdekt = new Set<string>();
+  // Alle bedrijven die in de top 10 van deze markt staan -- ook wie we al volgden
+  // vanuit de andere markt. Dat is precies hoe een bureau in twee markten belandt.
+  const inMarkt = new Set<string>();
   const fouten: { term: string; fout: string }[] = [];
 
   for (const t of termen) {
@@ -321,7 +355,10 @@ export async function meetPosities(limiet?: number) {
           if (r.positie > 10 && !volgenWij) continue;
           ins.run(t.term, kaal, datum, r.soort, r.positie, r.url, bron.naam);
           opgeslagen++;
-          if (!volgenWij && r.soort === "organisch" && r.positie <= 10) ontdekt.add(kaal);
+          if (r.soort === "organisch" && r.positie <= 10) {
+            inMarkt.add(kaal);
+            if (!volgenWij) ontdekt.add(kaal);
+          }
         }
       })();
     } catch (e) {
@@ -339,13 +376,15 @@ export async function meetPosities(limiet?: number) {
   let nieuw = 0;
   db.transaction(() => {
     for (const d of ontdekt) {
-      if (gevolgd.has(d)) continue;
       insDom.run(d, d.replace(/\.(be|com|eu|nl)$/, ""), categoriseerSerpDomein(d), nu);
       nieuw++;
     }
+    // Wie op onze zoektermen rankt, hoort per definitie in die markt thuis --
+    // ook als hij al gevolgd werd vanuit de andere markt.
+    if (markt) for (const d of inMarkt) markeerMarkt(d, markt, "serp");
   })();
 
-  return { ok: true, bron: bron.naam, gemeten, opgeslagen, nieuweDomeinen: nieuw, fouten };
+  return { ok: true, markt: markt || "alle", bron: bron.naam, gemeten, opgeslagen, nieuweDomeinen: nieuw, fouten };
 }
 
 /** Deelt eerder als "concurrent" opgeslagen SERP-vondsten opnieuw in. */

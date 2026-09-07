@@ -200,7 +200,45 @@ de actiefste blogger van de markt.
 **Ritme**
 `scripts/concurrentie-cron.sh` controleert dagelijks de 90 langst niet gemeten domeinen;
 de volledige lijst is zo elke vier dagen rond. Nieuwe URL's worden signalen. Posities
-wekelijks op maandag, zoekvolumes maandelijks op de eerste.
+wekelijks op maandag (Energie 30 termen, Engineering 15 termen in de even weken),
+zoekvolumes maandelijks op de eerste voor beide markten.
+
+## 12. Concurrentiemonitor Engineering (september 2026)
+
+Tweede markt op dezelfde motor, onder `/engineering/concurrentie`. Onderwerp:
+**stabiliteitsstudies** (UNABO Engineering + TKN-Buro), plus de meetstaten van TKN.
+
+**Eén crawl, twee markten.** De crawler is marktloos: hij meet elk domein één keer en
+telt de omvang apart per markt (`epb_paginas`, `eng_paginas`). Welke markten een domein
+bedient staat in de koppeltabel `concurrent_markt` — een koppeltabel en geen kolom, want
+een bureau kan in beide markten zitten. Zoekwoorden dragen een `markt`-kolom en staan in
+`config/zoekwoorden-<markt>.json`.
+
+**Geen register.** Voor EPB bestaat het VEKA-register; voor stabiliteit bestaat niets
+vergelijkbaars. Deze markt wordt van onderaf opgebouwd uit twee bronnen, en de pagina zegt
+dat ook met zoveel woorden:
+- **zoekresultaten** — wie op onze zoektermen in de top 10 staat, hoort in de markt;
+- **de crawl zelf** — een site telt mee bij minstens 3 stabiliteitspagina's *én* minstens
+  1% van de site. Beide grenzen zijn nodig: de absolute grens houdt losse vermeldingen
+  buiten, de verhouding houdt de reuzen buiten. Zonder die tweede grens belandden Sweco,
+  een isolatiefabrikant, een scoutsfederatie en een politieke partij in de lijst.
+  Een indeling uit de crawl wordt bij elke run herzien; wat uit het register, de SERP of
+  onze eigen lijst komt blijft staan.
+
+**Jobsites zijn een aparte categorie.** `stabiliteitsingenieur` is met 1.000 zoekopdrachten
+per maand de grootste term van deze markt, maar de hele top 10 bestaat uit vacaturesites:
+dat zijn werkzoekenden, geen klanten. Categorie `vacature` staat daarom naast `overheid` en
+`portaal` in `GEEN_CONCURRENT`, en de zoekwoordenlijst kent de intentie `vacature`.
+
+**Wat Search Console meteen liet zien.** unabo.be staat **#1 op "stabiliteitsstudie"**
+(278 vertoningen) en #1,5 op "stabiliteitsstudie prijs", maar laat termen liggen waarop het
+al vertoningen haalt: "stabiliteitsstudie verplicht" (#11), "stabiliteitsonderzoek" (#30),
+"meetstaat opmaken" (#4,6). Die staan nu als eigen thema in de zoekwoordenlijst.
+
+**Afbakening.** Sloopopvolging hoort hier niet (dat gaat over afval), meetstaten wel
+(TKN-Buro valt onder Engineering). unabo.be draagt beide markten; de Engineering-pagina
+filtert de Search Console-termen op stabiliteitswoorden, zodat de EPB-termen van datzelfde
+domein op de Energie-pagina blijven.
 
 ## Aanvullingen (feedback-ronde)
 - **Grafiek "aanvragen vs. direct gewonnen omzet (zelfde maand)"**: SAME-MONTH cohort — balken = leads
@@ -238,6 +276,7 @@ wekelijks op maandag, zoekvolumes maandelijks op de eerste.
 
 ## Config-bestanden (aanpasbaar zonder code)
 - `config/engineering.json` — label→kanaal + hoofdkanaal-groepen, genegeerde labels/pipelines, `offerteStages`.
+- `config/zoekwoorden-energie.json` / `config/zoekwoorden-engineering.json` — de zoektermen per markt.
 - `config/themes.json` — thema → match-regels (productkeywords/afdelingen).
 - `config/lossReasons.json` — variant → genormaliseerde verlies-reden.
 - `config/customFields.json` — per account: vriendelijke naam → Pipedrive-veld-key (custom_json).

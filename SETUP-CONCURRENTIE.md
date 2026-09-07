@@ -5,8 +5,14 @@ werkt en heeft niets nodig. Drie bronnen maken het beeld compleet. Alle drie zij
 gratis; de enige stappen die overblijven kan alleen jij zetten, omdat er ergens
 ingelogd moet worden.
 
-Op de pagina `/energy/concurrentie` staat bovenaan een rij met vier bolletjes:
-groen = gekoppeld, grijs = ontbreekt nog. Daar zie je altijd de actuele stand.
+Op de pagina's `/energy/concurrentie` en `/engineering/concurrentie` staat bovenaan een
+rij met vier bolletjes: groen = gekoppeld, grijs = ontbreekt nog. Daar zie je altijd de
+actuele stand.
+
+**Twee markten, één motor.** Energie (EPB, ventilatie) en Engineering (stabiliteit) delen
+de crawl en de koppelingen. Wat per markt verschilt zijn de zoektermen
+(`config/zoekwoorden-energie.json`, `config/zoekwoorden-engineering.json`) en de vraag welke
+bedrijven meespelen. De API-routes nemen daarvoor `?markt=energie` of `?markt=engineering`.
 
 ---
 
@@ -101,10 +107,14 @@ SERPAPI_KEY=...
 **Uitvoeren:**
 
 ```
-curl "http://localhost:3008/api/zoekwoorden?posities=1"
+curl "http://localhost:3008/api/zoekwoorden?markt=energie&posities=1&limiet=30"
+curl "http://localhost:3008/api/zoekwoorden?markt=engineering&posities=1&limiet=15"
 ```
 
-Daarna wekelijks (maandag) via de cron.
+Daarna via de cron: Energie elke maandag, Engineering de maandag van de even weken. Het
+gratis quotum is 250 zoekopdrachten per maand **voor beide markten samen** — vandaar de
+limieten. Wie er meer uit wil halen, verhoogt niet de limiet maar schrapt termen die toch
+niets opleveren (zie de intentie `vacature`).
 
 **Alternatief:** DataForSEO is per zoekopdracht goedkoper (0,0006 dollar, dus 12
 dollarcent per maand voor onze lijst) maar vraagt 50 dollar vooruitbetaling. Werkt ook:
@@ -121,8 +131,13 @@ krijgt die voorrang.
 |---|---|
 | 90 concurrentsites hercrawlen | dagelijks (volledige lijst elke 4 dagen rond) |
 | Search Console ophalen | dagelijks |
-| Posities meten | maandag |
-| Zoekvolumes ophalen | de eerste van de maand |
+| Posities meten — Energie (30 termen) | maandag |
+| Posities meten — Engineering (15 termen) | maandag van de even weken |
+| Zoekvolumes ophalen (beide markten) | de eerste van de maand |
+
+Na een crawl of een herberekening deelt de app de domeinen zelf opnieuw in bij een markt.
+Handmatig kan dat met `/api/concurrentie?markten=1`; `?herbereken=1` leidt bovendien de
+pagina-tellingen opnieuw af uit de opgeslagen URL's, zonder één site te bezoeken.
 
 Crontab op de server:
 

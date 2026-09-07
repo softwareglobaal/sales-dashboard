@@ -169,6 +169,19 @@ function initSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_conc_cat ON concurrenten(categorie);
 
+    -- In welke markt(en) speelt dit domein mee. Een bureau kan in twee markten
+    -- zitten: Egeon doet EPB en stabiliteit. Daarom een koppeltabel en geen
+    -- kolom op de tabel concurrenten -- anders moet je kiezen, en dan verdwijnt zo'n
+    -- bureau uit de ene lijst zodra het in de andere staat.
+    CREATE TABLE IF NOT EXISTS concurrent_markt (
+      domein      TEXT NOT NULL,
+      markt       TEXT NOT NULL,    -- energie / engineering
+      bron        TEXT,             -- register / serp / crawl / handmatig
+      eerste_zien TEXT,
+      PRIMARY KEY (domein, markt)
+    );
+    CREATE INDEX IF NOT EXISTS idx_cm_markt ON concurrent_markt(markt);
+
     -- Momentopname per domein per crawl. Verschil tussen twee snapshots = signaal.
     CREATE TABLE IF NOT EXISTS site_snapshots (
       domein          TEXT NOT NULL,
@@ -234,7 +247,8 @@ function initSchema(db: Database.Database) {
       cpc_laag     REAL,
       cpc_hoog     REAL,
       volume_bron  TEXT,             -- google-ads / handmatig
-      volume_datum TEXT
+      volume_datum TEXT,
+      markt        TEXT DEFAULT 'energie'   -- welke markt deze term afbakent
     );
 
     -- Posities per zoekwoord per domein. Eén rij per meting.
@@ -306,7 +320,30 @@ function initSchema(db: Database.Database) {
     ["epb_paginas", "INTEGER"],
     ["spam_verdacht", "INTEGER"],
     ["laatste_blog_url", "TEXT"],
+    // Omvang in de Engineering-markt (stabiliteit), naast epb_paginas voor Energie.
+    // Twee aparte kolommen omdat hetzelfde domein in beide markten kan meespelen.
+    ["eng_paginas", "INTEGER"],
   ] as const) {
     if (!snapCols.includes(naam)) db.exec(`ALTER TABLE site_snapshots ADD COLUMN ${naam} ${type}`);
+  }
+
+  const zwCols = (db.prepare("PRAGMA table_info(zoekwoorden)").all() as any[]).map((c) => c.name);
+  if (!zwCols.includes("markt")) {
+    db.exec("ALTER TABLE zoekwoorden ADD COLUMN markt TEXT DEFAULT 'energie'");
+    db.exec("UPDATE zoekwoorden SET markt = 'energie' WHERE markt IS NULL OR markt = ''");
+  }
+
+  const urlCols2 = (db.prepare("PRAGMA table_info(site_urls)").all() as any[]).map((c) => c.name);
+  if (!urlCols2.includes("markt_eng")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_eng INTEGER");
+
+  // Eenmalig: alles wat al gevolgd werd, is via het VEKA-register of via de
+  // energie-zoektermen binnengekomen. Dat is dus de energiemarkt.
+  const nogGeenMarkt = (db.prepare("SELECT COUNT(*) n FROM concurrent_markt").get() as { n: number }).n;
+  if (nogGeenMarkt === 0) {
+    db.exec(
+      `INSERT OR IGNORE INTO concurrent_markt (domein, markt, bron, eerste_zien)
+       SELECT domein, 'energie', COALESCE(bron,'register'), COALESCE(eerste_zien, date('now'))
+         FROM concurrenten`
+    );
   }
 }

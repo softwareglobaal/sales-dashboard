@@ -1,5 +1,8 @@
 #!/bin/sh
-# Concurrentiemonitor Energie — dagelijkse controle van de concurrentiesites.
+# Concurrentiemonitor — dagelijkse controle van de concurrentiesites.
+# Bedient beide markten: Energie (EPB) en Engineering (stabiliteit). De crawl is
+# marktloos; alleen de positiemeting gaat per markt, omdat het SERP-quotum
+# gedeeld wordt.
 #
 # Crontab op de server:
 #   30 5 * * * /home/ubuntu/appportal/sales/scripts/concurrentie-cron.sh >> /home/ubuntu/concurrentie.log 2>&1
@@ -34,15 +37,23 @@ roep '/api/searchconsole?dagen=28' || echo '{"ok":false}'
 
 # Posities wekelijks (maandag), zoekvolumes maandelijks (de eerste).
 # Beide zijn no-ops zolang de betreffende bron niet gekoppeld is.
+# Posities: het gratis SerpApi-quotum is 250 zoekopdrachten per maand voor beide
+# markten samen. Energie wekelijks op 30 termen (~130 per maand), Engineering om
+# de twee weken op 15 termen (~30 per maand). Samen blijft dat onder het quotum.
 if [ "$(date +%u)" = "1" ]; then
-  echo "$(date -Is) posities"
-  # Beperkt tot de 30 termen met het meeste volume: het gratis SerpApi-quotum is
-  # 250 zoekopdrachten per maand, en 48 termen wekelijks zou daar overheen gaan.
-  roep '/api/zoekwoorden?posities=1&limiet=30' || echo '{"ok":false}'
+  echo "$(date -Is) posities energie"
+  roep '/api/zoekwoorden?markt=energie&posities=1&limiet=30' || echo '{"ok":false}'
+
+  # Even weeknummer: dan is het om de twee weken.
+  if [ "$(( $(date +%V) % 2 ))" = "0" ]; then
+    echo "$(date -Is) posities engineering"
+    roep '/api/zoekwoorden?markt=engineering&posities=1&limiet=15' || echo '{"ok":false}'
+  fi
 fi
 if [ "$(date +%d)" = "01" ]; then
   echo "$(date -Is) zoekvolumes"
-  roep '/api/zoekwoorden?volumes=1' || echo '{"ok":false}'
+  roep '/api/zoekwoorden?markt=energie&volumes=1' || echo '{"ok":false}'
+  roep '/api/zoekwoorden?markt=engineering&volumes=1' || echo '{"ok":false}'
 fi
 
 # Niet-nul afsluiten als de crawl mislukte, zodat het opvalt in de log.

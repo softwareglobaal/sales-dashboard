@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { importeerVerslaggevers, crawlDomeinen, teCrawlenDomeinen, herberekenAfleidingen } from "@/lib/concurrentie";
+import {
+  importeerVerslaggevers, crawlDomeinen, teCrawlenDomeinen, herberekenAfleidingen, bepaalMarkten,
+} from "@/lib/concurrentie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +12,8 @@ export const maxDuration = 800;
  *   ?import=1        leest het VEKA-register opnieuw in
  *   ?limiet=50       crawlt maximaal 50 domeinen (oudste check eerst)
  *   ?domein=x.be     crawlt één domein
+ *   ?markten=1       deelt de gevolgde domeinen opnieuw in bij een markt
+ *   ?herbereken=1    leidt de afgeleide cijfers opnieuw af, zonder te crawlen
  * Zonder parameters: import + crawl van de 60 domeinen die het langst geleden
  * gecontroleerd zijn. Zo blijft één run binnen de tijdslimiet en is de hele
  * lijst na een paar dagen rond.
@@ -26,6 +30,9 @@ async function draai(url: URL) {
   if (url.searchParams.get("herbereken") === "1") {
     return { ...uit, ...herberekenAfleidingen() };
   }
+  if (url.searchParams.get("markten") === "1") {
+    return { ...uit, markten: bepaalMarkten() };
+  }
 
   if (doeImport) uit.register = importeerVerslaggevers();
 
@@ -34,6 +41,10 @@ async function draai(url: URL) {
 
   uit.gecrawld = resultaten.length;
   uit.online = resultaten.filter((r) => r.ok).length;
+  // Een verse crawl kan een domein in een markt duwen (of er in houden), dus de
+  // indeling meteen bijwerken -- anders staat een nieuwe speler dagen op de
+  // verkeerde pagina.
+  uit.markten = bepaalMarkten();
   uit.fouten = resultaten.filter((r) => !r.ok).map((r) => ({ domein: r.domein, fout: r.fout }));
   return uit;
 }

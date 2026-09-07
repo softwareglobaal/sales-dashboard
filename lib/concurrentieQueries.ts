@@ -28,6 +28,8 @@ export type ConcurrentRij = {
   blog_artikels: number | null;
   laatste_blog_url: string | null;
   epb_paginas: number | null;
+  eng_paginas: number | null;
+  omvang: number | null;          // omvang in de opgevraagde markt
   spam_verdacht: number | null;
   laatste_check: string | null;
   fout: string | null;
@@ -39,21 +41,81 @@ const LAATSTE_SNAPSHOT = `
     ON m.domein = s.domein AND m.d = s.datum
 `;
 
-export function concurrentieHeeftData(): boolean {
-  const db = getDb();
-  const r = db.prepare("SELECT COUNT(*) n FROM verslaggevers").get() as { n: number };
-  return r.n > 0;
+// ---------------------------------------------------------------------------
+// Markten
+//
+// Dezelfde crawl bedient twee markten. Wat per markt verschilt is (1) welke
+// domeinen meetellen, (2) welke kolom de omvang meet en (3) welke van onze
+// eigen sites er speelt. De rest van de vragen is identiek, en dat is precies
+// waarom hier geen tweede set queries staat.
+// ---------------------------------------------------------------------------
+
+export type Markt = "energie" | "engineering";
+
+/** Nooit een marktnaam uit een parameter rechtstreeks in SQL. */
+function veiligeMarkt(markt: Markt): string {
+  return markt === "engineering" ? "engineering" : "energie";
 }
 
-export function getMarktKpis() {
+/** De kolom die de omvang in díé markt meet. */
+function omvangKolom(markt: Markt): "epb_paginas" | "eng_paginas" {
+  return markt === "engineering" ? "eng_paginas" : "epb_paginas";
+}
+
+/** Beperkt tot de domeinen die in deze markt meespelen. */
+function inMarkt(markt: Markt, alias = "c"): string {
+  return `${alias}.domein IN (SELECT domein FROM concurrent_markt WHERE markt = '${veiligeMarkt(markt)}')`;
+}
+
+/** Alleen de zoektermen van deze markt. */
+function termInMarkt(markt: Markt, alias = "z"): string {
+  return `${alias}.markt = '${veiligeMarkt(markt)}'`;
+}
+
+/**
+ * Categorieën die geen concurrent zijn: overheid schrijft de wetgeving, portalen
+ * verkopen niets, en een jobsite bedient werkzoekenden in plaats van klanten.
+ */
+export const GEEN_CONCURRENT = ["overheid", "portaal", "vacature"];
+
+/**
+ * Overheid, portalen en jobsites bezetten posities maar zijn geen bedrijven waar
+ * we klanten aan verliezen. Ze horen in het overzicht van zoekresultaten, niet in
+ * een ranglijst van concurrenten.
+ */
+function echteConcurrent(alias = "c"): string {
+  return `COALESCE(${alias}.categorie,'onbekend') NOT IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})`;
+}
+
+/**
+ * Onze eigen sites per markt. unabo.be draagt beide afdelingen; het is dus geen
+ * fout dat dat domein twee keer voorkomt.
+ */
+const ONZE_SITES: Record<Markt, string[]> = {
+  energie: ["energie-efficient.be", "unabo.be"],
+  engineering: ["unabo.be"],
+};
+
+export function concurrentieHeeftData(markt: Markt = "energie"): boolean {
+  const db = getDb();
+  if (markt === "energie") {
+    return (db.prepare("SELECT COUNT(*) n FROM verslaggevers").get() as { n: number }).n > 0;
+  }
+  // De Engineering-markt kent geen register: hier is de crawl de eerste bron.
+  return (db.prepare(
+    `SELECT COUNT(*) n FROM concurrent_markt WHERE markt = 'engineering'`
+  ).get() as { n: number }).n > 0;
+}
+
+export function getMarktKpis(markt: Markt = "energie") {
   const db = getDb();
   const k = db.prepare(`
     SELECT
       (SELECT COUNT(*) FROM verslaggevers)                                   AS erkenningen,
       (SELECT COUNT(DISTINCT naam) FROM verslaggevers)                       AS personen,
-      (SELECT COUNT(*) FROM concurrenten WHERE categorie<>'eigen')           AS bedrijven,
-      (SELECT COUNT(*) FROM concurrenten WHERE categorie='concurrent')       AS concurrenten,
-      (SELECT COUNT(*) FROM concurrenten WHERE categorie='prospect')         AS prospects,
+      (SELECT COUNT(*) FROM concurrenten c WHERE categorie<>'eigen' AND ${inMarkt(markt)})     AS bedrijven,
+      (SELECT COUNT(*) FROM concurrenten c WHERE categorie='concurrent' AND ${inMarkt(markt)}) AS concurrenten,
+      (SELECT COUNT(*) FROM concurrenten c WHERE categorie='prospect' AND ${inMarkt(markt)})   AS prospects,
       (SELECT COUNT(*) FROM verslaggevers WHERE domein='')                   AS zonder_domein
   `).get() as Record<string, number>;
 
@@ -64,39 +126,62 @@ export function getMarktKpis() {
       SUM(CASE WHEN blog_artikels > 0 THEN 1 ELSE 0 END)    AS met_blog,
       SUM(CASE WHEN laatste_blog >= date('now','-90 days') THEN 1 ELSE 0 END) AS actief_bloggend,
       SUM(CASE WHEN spam_verdacht > 0 THEN 1 ELSE 0 END)    AS gehackt,
-      AVG(NULLIF(paginas,0))                                AS gem_paginas
-    FROM (${LAATSTE_SNAPSHOT})
+      AVG(NULLIF(paginas,0))                                AS gem_paginas,
+      AVG(NULLIF(${omvangKolom(markt)},0))                  AS gem_omvang
+    FROM (${LAATSTE_SNAPSHOT}) s
+    WHERE ${inMarkt(markt, "s")}
   `).get() as Record<string, number>;
 
   return { ...k, ...web };
 }
 
-export function getConcurrenten(categorie?: string): ConcurrentRij[] {
+export function getConcurrenten(categorie?: string, markt: Markt = "energie"): ConcurrentRij[] {
   const db = getDb();
+  const omvang = omvangKolom(markt);
   const waar = categorie ? "WHERE c.categorie = ?" : "";
   const sql = `
     SELECT c.domein, c.naam, c.categorie, c.verslaggevers, c.provincie, c.gemeente, c.laatste_check,
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
            s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
-           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.spam_verdacht, s.fout
+           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas,
+           s.${omvang} AS omvang, s.spam_verdacht, s.fout
     FROM concurrenten c
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
     ${waar}
-    ORDER BY COALESCE(s.epb_paginas,0) DESC, c.verslaggevers DESC, c.domein
+    ORDER BY COALESCE(s.${omvang},0) DESC, c.verslaggevers DESC, c.domein
+  `;
+  return (categorie ? db.prepare(sql).all(categorie) : db.prepare(sql).all()) as ConcurrentRij[];
+}
+
+/** Idem, maar beperkt tot de bedrijven die in deze markt meespelen. */
+export function getConcurrentenInMarkt(markt: Markt, categorie?: string): ConcurrentRij[] {
+  const db = getDb();
+  const omvang = omvangKolom(markt);
+  const sql = `
+    SELECT c.domein, c.naam, c.categorie, c.verslaggevers, c.provincie, c.gemeente, c.laatste_check,
+           s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
+           s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
+           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas,
+           s.${omvang} AS omvang, s.spam_verdacht, s.fout
+    FROM concurrenten c
+    LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
+    WHERE ${inMarkt(markt)} ${categorie ? "AND c.categorie = ?" : `AND c.categorie <> 'eigen' AND ${echteConcurrent()}`}
+    ORDER BY COALESCE(s.${omvang},0) DESC, COALESCE(s.blog_artikels,0) DESC, c.domein
   `;
   return (categorie ? db.prepare(sql).all(categorie) : db.prepare(sql).all()) as ConcurrentRij[];
 }
 
 export type BureauRij = {
   naam: string; domein: string; verslaggevers: number; provincie: string;
-  paginas: number | null; epb_paginas: number | null; blog_artikels: number | null;
+  paginas: number | null; epb_paginas: number | null; omvang: number | null; blog_artikels: number | null;
   laatste_blog: string | null; laatste_blog_url: string | null;
   bereikbaar: number | null; heeft_sitemap: number | null; spam_verdacht: number | null;
 };
 
-const BUREAU_KOLOMMEN = `
+const bureauKolommen = (markt: Markt) => `
   c.naam, c.domein, c.verslaggevers, c.provincie,
-  s.paginas, s.epb_paginas, s.blog_artikels, s.laatste_blog, s.laatste_blog_url,
+  s.paginas, s.epb_paginas, s.${omvangKolom(markt)} AS omvang,
+  s.blog_artikels, s.laatste_blog, s.laatste_blog_url,
   s.bereikbaar, s.heeft_sitemap, s.spam_verdacht
 `;
 
@@ -105,14 +190,14 @@ const BUREAU_KOLOMMEN = `
  * aantal pagina's: Arcadis en Sweco hebben duizenden pagina's maar zijn geen
  * EPB-bureau, en mijnEPB heeft maar drie verslaggevers maar staat overal.
  */
-export function getSterksteOnline(limiet = 15): BureauRij[] {
+export function getSterksteOnline(limiet = 15, markt: Markt = "energie"): BureauRij[] {
   const db = getDb();
   return db.prepare(`
-    SELECT ${BUREAU_KOLOMMEN}
+    SELECT ${bureauKolommen(markt)}
     FROM concurrenten c
     JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
-    WHERE c.categorie <> 'eigen'
-    ORDER BY COALESCE(s.epb_paginas,0) DESC, COALESCE(s.blog_artikels,0) DESC
+    WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent()}
+    ORDER BY COALESCE(s.${omvangKolom(markt)},0) DESC, COALESCE(s.blog_artikels,0) DESC
     LIMIT ?
   `).all(limiet) as BureauRij[];
 }
@@ -121,7 +206,7 @@ export function getSterksteOnline(limiet = 15): BureauRij[] {
 export function getGrootsteBureaus(limiet = 10): BureauRij[] {
   const db = getDb();
   return db.prepare(`
-    SELECT ${BUREAU_KOLOMMEN}
+    SELECT ${bureauKolommen("energie")}
     FROM concurrenten c
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
     WHERE c.categorie <> 'eigen'
@@ -141,9 +226,12 @@ export function getPerProvincie() {
 }
 
 /** Welke diensten bieden concurrenten aan, en hoe vaak. Dit legt de gaten bloot. */
-export function getDienstenDekking() {
+export function getDienstenDekking(markt: Markt = "energie") {
   const db = getDb();
-  const rijen = db.prepare(`SELECT diensten FROM (${LAATSTE_SNAPSHOT}) WHERE diensten IS NOT NULL`).all() as { diensten: string }[];
+  const rijen = db.prepare(
+    `SELECT diensten FROM (${LAATSTE_SNAPSHOT}) s
+      WHERE diensten IS NOT NULL AND ${inMarkt(markt, "s")}`
+  ).all() as { diensten: string }[];
   const telling = new Map<string, number>();
   for (const r of rijen) {
     let lijst: string[] = [];
@@ -156,12 +244,13 @@ export function getDienstenDekking() {
     .sort((a, b) => b.aantal - a.aantal);
 }
 
-export function getSignalen(limiet = 50) {
+export function getSignalen(limiet = 50, markt?: Markt) {
   const db = getDb();
   return db.prepare(`
     SELECT s.id, s.domein, s.datum, s.soort, s.omschrijving, s.url, s.gezien,
            COALESCE(NULLIF(c.naam,''), s.domein) naam
     FROM signalen s LEFT JOIN concurrenten c ON c.domein = s.domein
+    ${markt ? `WHERE ${inMarkt(markt, "s")}` : ""}
     ORDER BY s.datum DESC, s.id DESC LIMIT ?
   `).all(limiet) as {
     id: number; domein: string; datum: string; soort: string;
@@ -205,12 +294,45 @@ export function telAfgekeurdeProspects(): number {
   ).get() as { n: number }).n;
 }
 
-export function getCrawlStatus() {
+/**
+ * Waar komt deze marktlijst vandaan? De energiemarkt begint bij het VEKA-register;
+ * de Engineering-markt heeft dat niet en wordt opgebouwd uit de zoekresultaten en
+ * uit wat de crawl op de sites zelf vindt. Dat verschil hoort zichtbaar te zijn,
+ * anders lijken beide lijsten even hard.
+ */
+export function getMarktBronnen(markt: Markt) {
+  const db = getDb();
+  return db.prepare(
+    `SELECT bron, COUNT(*) n FROM concurrent_markt
+      WHERE markt = '${veiligeMarkt(markt)}' GROUP BY bron ORDER BY n DESC`
+  ).all() as { bron: string; n: number }[];
+}
+
+/**
+ * De bureaus die het meest over deze markt publiceren. Omvang zegt hoe groot
+ * iemand is, dit zegt of hij nog beweegt -- en dat is wat een inhaalslag duur maakt.
+ */
+export function getActiefstePubliceerders(limiet = 10, markt: Markt = "energie"): BureauRij[] {
   const db = getDb();
   return db.prepare(`
+    SELECT ${bureauKolommen(markt)}
+    FROM concurrenten c
+    JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
+    WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent()}
+      AND COALESCE(s.spam_verdacht,0) < 3
+      AND s.laatste_blog >= date('now','-365 days')
+    ORDER BY COALESCE(s.blog_per_maand,0) DESC, COALESCE(s.blog_artikels,0) DESC
+    LIMIT ?
+  `).all(limiet) as BureauRij[];
+}
+
+export function getCrawlStatus(markt?: Markt) {
+  const db = getDb();
+  const beperk = markt ? `AND ${inMarkt(markt)}` : "";
+  return db.prepare(`
     SELECT (SELECT MAX(datum) FROM site_snapshots)                        AS laatste_crawl,
-           (SELECT COUNT(*) FROM concurrenten WHERE laatste_check IS NULL) AS nooit_gecrawld,
-           (SELECT COUNT(*) FROM concurrenten WHERE substr(COALESCE(laatste_check,''),1,10) < date('now','-7 days')) AS ouder_dan_week,
+           (SELECT COUNT(*) FROM concurrenten c WHERE laatste_check IS NULL ${beperk}) AS nooit_gecrawld,
+           (SELECT COUNT(*) FROM concurrenten c WHERE substr(COALESCE(laatste_check,''),1,10) < date('now','-7 days') ${beperk}) AS ouder_dan_week,
            (SELECT COUNT(*) FROM site_snapshots WHERE datum = (SELECT MAX(datum) FROM site_snapshots)) AS gisteren_gemeten,
            (SELECT COUNT(*) FROM (${LAATSTE_SNAPSHOT}) WHERE fout <> '' AND fout IS NOT NULL) AS met_fout
   `).get() as {
@@ -236,12 +358,22 @@ export type ZoekwoordRij = {
   adverteerders: number;
 };
 
-const ONZE_DOMEINEN = ["energie-efficient.be", "unabo.be"];
+const ONZE_DOMEINEN = ONZE_SITES.energie;
 
-export function getZoekwoorden(): ZoekwoordRij[] {
+/** Laatste positiemeting binnen één markt -- markten worden op eigen dagen gemeten. */
+function laatstePositieDatum(markt?: Markt): string | null {
   const db = getDb();
-  const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
-  const params = ONZE_DOMEINEN.map(() => "?").join(",");
+  const sql = markt
+    ? `SELECT MAX(p.datum) d FROM posities p JOIN zoekwoorden z ON z.term = p.term WHERE ${termInMarkt(markt)}`
+    : "SELECT MAX(datum) d FROM posities";
+  return (db.prepare(sql).get() as { d: string | null }).d;
+}
+
+export function getZoekwoorden(markt: Markt = "energie"): ZoekwoordRij[] {
+  const db = getDb();
+  const laatste = laatstePositieDatum(markt);
+  const onze = ONZE_SITES[markt];
+  const params = onze.map(() => "?").join(",");
 
   return db.prepare(`
     SELECT z.term, z.thema, z.intentie, z.volume, z.concurrentie, z.cpc_hoog,
@@ -258,18 +390,20 @@ export function getZoekwoorden(): ZoekwoordRij[] {
            (SELECT COUNT(DISTINCT p.domein) FROM posities p
              WHERE p.term = z.term AND p.datum = ? AND p.soort = 'advertentie') AS adverteerders
     FROM zoekwoorden z
+    WHERE ${termInMarkt(markt)}
     ORDER BY COALESCE(z.volume, -1) DESC, z.thema, z.term
-  `).all(laatste, ...ONZE_DOMEINEN, laatste, ...ONZE_DOMEINEN, laatste, ...ONZE_DOMEINEN, laatste) as ZoekwoordRij[];
+  `).all(laatste, ...onze, laatste, ...onze, laatste, ...onze, laatste) as ZoekwoordRij[];
 }
 
-export function getZoekwoordStatus() {
+export function getZoekwoordStatus(markt: Markt = "energie") {
   const db = getDb();
+  const inLijst = `p.term IN (SELECT z.term FROM zoekwoorden z WHERE ${termInMarkt(markt)})`;
   return db.prepare(`
-    SELECT (SELECT COUNT(*) FROM zoekwoorden)                          AS termen,
-           (SELECT COUNT(*) FROM zoekwoorden WHERE volume IS NOT NULL) AS met_volume,
-           (SELECT MAX(volume_datum) FROM zoekwoorden)                 AS volume_datum,
-           (SELECT MAX(datum) FROM posities)                           AS positie_datum,
-           (SELECT COUNT(*) FROM posities)                             AS metingen
+    SELECT (SELECT COUNT(*) FROM zoekwoorden z WHERE ${termInMarkt(markt)})                          AS termen,
+           (SELECT COUNT(*) FROM zoekwoorden z WHERE volume IS NOT NULL AND ${termInMarkt(markt)})   AS met_volume,
+           (SELECT MAX(volume_datum) FROM zoekwoorden z WHERE ${termInMarkt(markt)})                 AS volume_datum,
+           (SELECT MAX(p.datum) FROM posities p WHERE ${inLijst})                                    AS positie_datum,
+           (SELECT COUNT(*) FROM posities p WHERE ${inLijst})                                        AS metingen
   `).get() as {
     termen: number; met_volume: number; volume_datum: string | null;
     positie_datum: string | null; metingen: number;
@@ -277,15 +411,17 @@ export function getZoekwoordStatus() {
 }
 
 /** Wie adverteert er op onze termen. Alleen betrouwbaar zodra een SERP-bron gekoppeld is. */
-export function getAdverteerders(limiet = 15) {
+export function getAdverteerders(limiet = 15, markt: Markt = "energie") {
   const db = getDb();
-  const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
+  const laatste = laatstePositieDatum(markt);
   if (!laatste) return [];
   return db.prepare(`
     SELECT p.domein, COUNT(DISTINCT p.term) termen, MIN(p.positie) beste,
            COALESCE(NULLIF(c.naam,''), p.domein) naam
-    FROM posities p LEFT JOIN concurrenten c ON c.domein = p.domein
-    WHERE p.datum = ? AND p.soort = 'advertentie'
+    FROM posities p
+    LEFT JOIN concurrenten c ON c.domein = p.domein
+    JOIN zoekwoorden z ON z.term = p.term
+    WHERE p.datum = ? AND p.soort = 'advertentie' AND ${termInMarkt(markt)}
     GROUP BY p.domein ORDER BY termen DESC LIMIT ?
   `).all(laatste, limiet) as { domein: string; termen: number; beste: number; naam: string }[];
 }
@@ -305,8 +441,6 @@ export type LeaderboardRij = {
  * Toont wie er werkelijk bovenaan staat — inclusief spelers die niet in het
  * verslaggeversregister voorkomen.
  */
-/** Categorieën die geen concurrent zijn: overheid schrijft de wetgeving, portalen verkopen niets. */
-export const GEEN_CONCURRENT = ["overheid", "portaal"];
 
 /**
  * De top per zoekterm. `alles = false` laat overheid en portalen weg — je gaat
@@ -316,22 +450,35 @@ export const GEEN_CONCURRENT = ["overheid", "portaal"];
  * op 1 en mijnEPB op 2, dan blijft mijnEPB #2. Anders lieg je tegen jezelf over
  * hoe hoog je moet klimmen.
  */
-export function getLeaderboard(aantalTermen = 8, diepte = 5, alles = false): LeaderboardRij[] {
+export function getLeaderboard(aantalTermen = 8, diepte = 5, alles = false, markt: Markt = "energie"): LeaderboardRij[] {
   const db = getDb();
-  const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
+  const laatste = laatstePositieDatum(markt);
   if (!laatste) return [];
-  const params = ONZE_DOMEINEN.map(() => "?").join(",");
+  const onze = ONZE_SITES[markt];
+  const params = onze.map(() => "?").join(",");
+
+  // Het filter hoort vóór de rangschikking: anders levert "top 5" er drie op
+  // zodra er twee portalen tussen staan. De getoonde positie blijft de echte
+  // Google-positie, dus het gat naar plek 1 blijft eerlijk zichtbaar.
+  const geenConcurrent = alles
+    ? ""
+    : `AND COALESCE(c.categorie,'onbekend') NOT IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})`;
 
   return db.prepare(`
-    WITH top AS (
-      SELECT p.term, p.domein, p.positie,
-             ROW_NUMBER() OVER (PARTITION BY p.term ORDER BY p.positie) AS rang
+    WITH gefilterd AS (
+      SELECT p.term, p.domein, p.positie
       FROM posities p
-      WHERE p.datum = ? AND p.soort = 'organisch'
+      LEFT JOIN concurrenten c ON c.domein = p.domein
+      WHERE p.datum = ? AND p.soort = 'organisch' ${geenConcurrent}
+    ),
+    top AS (
+      SELECT term, domein, positie,
+             ROW_NUMBER() OVER (PARTITION BY term ORDER BY positie) AS rang
+      FROM gefilterd
     ),
     termen AS (
       SELECT z.term, z.thema, z.volume FROM zoekwoorden z
-      WHERE z.term IN (SELECT DISTINCT term FROM top)
+      WHERE z.term IN (SELECT DISTINCT term FROM top) AND ${termInMarkt(markt)}
       ORDER BY COALESCE(z.volume, -1) DESC, z.term
       LIMIT ?
     )
@@ -342,7 +489,7 @@ export function getLeaderboard(aantalTermen = 8, diepte = 5, alles = false): Lea
     JOIN top ON top.term = t.term AND top.rang <= ?
     LEFT JOIN concurrenten c ON c.domein = top.domein
     ORDER BY COALESCE(t.volume,-1) DESC, t.term, top.positie
-  `).all(laatste, aantalTermen, ...ONZE_DOMEINEN, diepte) as LeaderboardRij[];
+  `).all(laatste, aantalTermen, ...onze, diepte) as LeaderboardRij[];
 }
 
 // ---------------------------------------------------------------------------
@@ -374,7 +521,7 @@ export type GscRij = {
  * en houdt alleen onze eigen domeinen over. Het account bevat namelijk ook
  * contrax.be, h-architects.be en highdesignstudio.in, die hier niets te zoeken hebben.
  */
-const GSC_EIGEN = `
+const gscEigen = (markt: Markt = "energie") => `
   WITH genormaliseerd AS (
     SELECT g.*,
            rtrim(replace(replace(replace(replace(g.site,'sc-domain:',''),'https://',''),'http://',''),'www.',''),'/') AS domein
@@ -392,43 +539,62 @@ const GSC_EIGEN = `
   eigen AS (
     SELECT n.* FROM genormaliseerd n
     JOIN gekozen k ON k.domein = n.domein AND k.site = n.site
-    WHERE n.domein IN (${ONZE_DOMEINEN.map((d) => `'${d}'`).join(",")})
+    WHERE n.domein IN (${ONZE_SITES[markt].map((d) => `'${d}'`).join(",")})
   )
 `;
 
-export function getOnzeGscPosities(limiet = 50): GscRij[] {
+/**
+ * Search Console kent onze markten niet: unabo.be levert EPB-termen én
+ * stabiliteitstermen door elkaar. Op de Engineering-pagina horen alleen die
+ * laatste thuis, anders vult de lijst zich met EPB-termen die daar niets
+ * verklaren. Een term telt mee als hij in de engineering-zoekwoordenlijst
+ * staat, of als het woord zelf de markt al aanwijst.
+ */
+const ENG_TERMWOORDEN = [
+  "stabilit", "beton", "staal", "stalen", "draag", "dragende", "muurdoorbraak",
+  "ingenieur", "funder", "scheur", "ligger", "structur", "meetstaat",
+];
+
+function termFilter(markt: Markt, kolom = "e.term"): string {
+  if (markt !== "engineering") return "1=1";
+  const woorden = ENG_TERMWOORDEN.map((w) => `lower(${kolom}) LIKE '%${w}%'`).join(" OR ");
+  return `(${woorden} OR ${kolom} IN (SELECT term FROM zoekwoorden WHERE markt = 'engineering'))`;
+}
+
+export function getOnzeGscPosities(limiet = 50, markt: Markt = "energie"): GscRij[] {
   const db = getDb();
   const laatste = (db.prepare("SELECT MAX(datum) d FROM gsc_metingen").get() as { d: string | null }).d;
   if (!laatste) return [];
   return db.prepare(`
-    ${GSC_EIGEN}
+    ${gscEigen(markt)}
     SELECT e.term, z.thema, e.site, e.positie, e.vertoningen, e.klikken, e.url,
            CASE WHEN z.term IS NULL THEN 0 ELSE 1 END AS in_lijst
     FROM eigen e
     LEFT JOIN zoekwoorden z ON lower(z.term) = lower(e.term)
-    WHERE e.datum = ?
+    WHERE e.datum = ? AND ${termFilter(markt)}
     ORDER BY e.vertoningen DESC, e.positie
     LIMIT ?
   `).all(laatste, limiet) as GscRij[];
 }
 
 /** Voor welke van onze domeinen ontbreekt er een Search Console-property? */
-export function gscOntbrekendeSites(): string[] {
+export function gscOntbrekendeSites(markt: Markt = "energie"): string[] {
   const db = getDb();
   const rijen = db.prepare("SELECT DISTINCT site FROM gsc_metingen").all() as { site: string }[];
-  return ONZE_DOMEINEN.filter((d) => !rijen.some((r) => r.site.includes(d)));
+  return ONZE_SITES[markt].filter((d) => !rijen.some((r) => r.site.includes(d)));
 }
 
-export function gscStatus() {
+export function gscStatus(markt: Markt = "energie") {
   const db = getDb();
   return db.prepare(`
-    ${GSC_EIGEN}
+    ${gscEigen(markt)}
     SELECT COUNT(*)               AS metingen,
            MAX(datum)             AS datum,
            COUNT(DISTINCT domein) AS sites,
            SUM(CASE WHEN datum = (SELECT MAX(datum) FROM eigen) THEN vertoningen ELSE 0 END) AS vertoningen,
            SUM(CASE WHEN datum = (SELECT MAX(datum) FROM eigen) THEN klikken     ELSE 0 END) AS klikken
-    FROM eigen
+    FROM eigen e
+    WHERE ${termFilter(markt)}
   `).get() as {
     metingen: number; datum: string | null; sites: number;
     vertoningen: number | null; klikken: number | null;
@@ -518,16 +684,17 @@ export type HerschrijfKans = {
  * zoekterm horen, geschreven in ambtelijke taal. Zoals in de meeting gezegd:
  * die teksten kunnen wij beter en duidelijker maken.
  */
-export function getHerschrijfKansen(limiet = 20): HerschrijfKans[] {
+export function getHerschrijfKansen(limiet = 20, markt: Markt = "energie"): HerschrijfKans[] {
   const db = getDb();
-  const laatste = (db.prepare("SELECT MAX(datum) d FROM posities").get() as { d: string | null }).d;
+  const laatste = laatstePositieDatum(markt);
   if (!laatste) return [];
   return db.prepare(`
     SELECT p.term, z.volume, p.positie, p.domein, p.url, c.categorie
     FROM posities p
     JOIN concurrenten c ON c.domein = p.domein
-    LEFT JOIN zoekwoorden z ON z.term = p.term
+    JOIN zoekwoorden z ON z.term = p.term
     WHERE p.datum = ? AND p.soort = 'organisch' AND p.positie <= 5
+      AND ${termInMarkt(markt)}
       AND c.categorie IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})
     ORDER BY COALESCE(z.volume,0) DESC, p.positie
     LIMIT ?
