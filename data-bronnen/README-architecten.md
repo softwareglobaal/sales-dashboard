@@ -43,6 +43,15 @@ vennoten van een vennootschap.
 Er is dus geen enkele reden om de zoektool na te bootsen: de site geeft zelf de
 volledige lijst, en die lijst is bedoeld om gevonden te worden.
 
+**Wat het opleverde** (9 september 2026)
+
+11.950 van de 11.965 profielen; de vijftien overige geven een 404 — die inschrijvingen
+zijn verdwenen sinds de sitemap werd opgebouwd. Verdeling per tabel: Antwerpen 3.230,
+Oost-Vlaanderen 3.122, Vlaams-Brabant 2.492, West-Vlaanderen 1.757, Limburg 1.340,
+onbekend 9. Naar soort: 8.923 natuurlijke personen en 3.027 vennootschappen. 1.519
+inschrijvingen gaven zelf een website op; met het e-maildomein erbij levert dat
+**1.945 unieke domeinen** op, waarvan er 1.456 gecrawld worden (zie DASHBOARD-SPEC §13).
+
 **Hoe we ons gedragen hebben**
 
 - `robots.txt` van vind.architect.be staat crawlen volledig toe
@@ -76,7 +85,7 @@ Per record:
 | `naam` | zoals de Orde hem publiceert |
 | `soort` | `persoon` of `vennootschap` |
 | `rechtsvorm` | BV, NV, CommV, … (leeg bij personen) |
-| `straat`, `postcode`, `gemeente` | het adres van de inschrijving |
+| `straat`, `postcode`, `gemeente` | het adres van de inschrijving — vaak leeg bij personen |
 | `provincie` | de **tabel** waarop de inschrijving staat |
 | `telefoon`, `email`, `website` | zoals gepubliceerd op de profielpagina |
 | `domein` | afgeleid: de website, anders het e-maildomein |
@@ -94,11 +103,16 @@ wordt dus nooit gecrawld.
 
 ## Beperkingen — wat dit bestand níét is
 
-- **Niet iedereen heeft een adres.** De inschrijvingen uit de reeks `9xxxxx`
-  (recente en buitenlandse vennootschappen) hebben bij de Orde zelf geen adres
-  staan, en dus geen provincie en geen gemeente. Dat is geen leesfout van ons: de
-  eigen API van de site geeft daar ook `null` terug. Zij vallen in het dashboard
-  onder "onbekend".
+- **De meeste personen hebben geen adres.** Van de 8.923 natuurlijke personen
+  publiceert de Orde er maar 294 met adres; bij de 3.027 vennootschappen zijn dat
+  er 2.339. Dat is geen leesfout van ons — de profielpagina van een persoon toont
+  meestal gewoon geen adres. Praktisch valt het mee: van de **1.945 domeinen die
+  wij volgen heeft 97 % (1.895) wél een gemeente, en 100 % een provincie**, want
+  het domein hangt bijna altijd aan een vennootschap. Waar het wél schuurt is de
+  tabel "drukste gemeenten": die telt alleen wie een adres publiceerde, en zegt
+  dat er ook bij.
+- **Negen inschrijvingen hebben zelfs geen provincie.** Die vallen in het
+  dashboard onder "onbekend".
 - **De provincie is een inschrijvingstabel, geen werkgebied.** Een architect
   ingeschreven op de tabel Vlaams-Brabant werkt vaak ook in Antwerpen. Het
   regiofilter op de pagina zegt dus waar bureaus *zitten*, niet waar ze *werken*.
@@ -152,6 +166,6 @@ enkele pagina wordt twee keer opgehaald.
 Daarna in het dashboard:
 
 ```
-/api/concurrentie?import=1&limiet=0    # registers inlezen
+/api/concurrentie?import=1&crawl=0     # registers inlezen, geen site bezoeken
 /api/concurrentie?herbereken=1         # marktindeling opnieuw afleiden
 ```

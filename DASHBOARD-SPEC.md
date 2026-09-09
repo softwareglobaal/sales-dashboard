@@ -266,6 +266,14 @@ stabiliteitswerk uitbesteedt; hier is hij precies degene die om dezelfde bouwhee
 overheid, portalen, jobsites, buitenland en fabrikanten buiten de markt — aannemers níét:
 een sleutel-op-de-deurbouwer neemt een particuliere bouwheer net zo goed weg.
 
+**De crawl deelt hier niemand in.** Bij Engineering bouwt de crawl de marktlijst zelf op,
+want daar bestaat geen register. Hier wel, dus `bepaalMarkten` laat de architectuurmarkt
+met rust: de lijst komt uit het register en uit de zoekresultaten. Zou de crawl het toch
+doen, dan sleept hij de halve EPB-lijst mee — "omgevingsvergunning" en "bouwaanvraag"
+staan op elke verslaggeverssite, en drie zulke pagina's maken van een EPB-bureau geen
+architect. `arch_paginas` wordt nog steeds voor élk domein geteld; dat cijfer meet de
+omvang, niet het lidmaatschap.
+
 **Niet alles wordt gecrawld, en dat staat op de pagina.** Het register is vijf keer zo
 groot als dat van VEKA. Een domein wordt gevolgd als de architect zelf een website
 opgaf, of als er meerdere inschrijvingen op dat domein staan. De rest is een domein dat

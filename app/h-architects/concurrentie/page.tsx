@@ -100,7 +100,7 @@ export default async function ArchitectuurConcurrentiePage({
             (Vlaamse Raad). Het bronbestand staat in{" "}
             <code className="rounded bg-white px-1.5 py-0.5">data-bronnen/architecten-orde-2026-09.json</code>.
             Draai{" "}
-            <code className="rounded bg-white px-1.5 py-0.5">/api/concurrentie?import=1&amp;limiet=0</code>{" "}
+            <code className="rounded bg-white px-1.5 py-0.5">/api/concurrentie?import=1&amp;crawl=0</code>{" "}
             om het in te lezen, en daarna{" "}
             <code className="rounded bg-white px-1.5 py-0.5">/api/concurrentie?herbereken=1</code>{" "}
             om de indeling te maken.
@@ -127,7 +127,8 @@ export default async function ArchitectuurConcurrentiePage({
   const bronnen0 = getMarktBronnen(MARKT);
   const reg = getArchitectRegisterStatus();
   const perProvincie = getArchitectenPerProvincie();
-  const perGemeente = getArchitectenPerGemeente(provincie, 20);
+  const gemeenten = getArchitectenPerGemeente(provincie, 20);
+  const perGemeente = gemeenten.rijen;
   const nietGevolgd = telNietGevolgdeArchitecten(regio);
   const sterkste = getSterksteOnline(15, MARKT, regio);
   const actiefste = getActiefstePubliceerders(10, MARKT, regio);
@@ -271,15 +272,16 @@ export default async function ArchitectuurConcurrentiePage({
             Anders dan bij stabiliteit bestaat hier wél een register: elke architect in België moet
             ingeschreven zijn bij de Orde van Architecten, en de Orde publiceert dat register.{" "}
             <span className="font-medium text-zinc-800">{num(uitRegister)}</span> domeinen komen
-            daaruit,{" "}
+            daaruit en{" "}
             <span className="font-medium text-zinc-800">{num(uitSerp)}</span> uit de zoekresultaten
-            op onze zoektermen en{" "}
-            <span className="font-medium text-zinc-800">{num(uitCrawl)}</span> uit sites waar de
-            crawler zelf genoeg ontwerpwerk vond. Dat maakt deze lijst een stuk vollediger dan de
-            Engineering-lijst — maar een register zegt wie ingeschreven is, niet wie er om dezelfde
-            bouwheer vecht. Van de {num(reg.inschrijvingen)} inschrijvingen gaven er{" "}
-            {num(reg.met_website)} zelf een website op; {num(reg.zonder_domein)} hebben geen enkel
-            eigen domein en zijn online dus onvindbaar.
+            op onze zoektermen — dat tweede spoor vangt de spelers die géén architect zijn maar wel
+            om dezelfde bouwheer vechten, zoals sleutel-op-de-deurbouwers. De crawler zelf mag hier
+            niemand toevoegen{uitCrawl > 0 ? ` (${num(uitCrawl)} oude indelingen staan nog open)` : ""}:
+            met een volledig register hoeft hij niet te raden, en zou hij vooral EPB-bureaus
+            binnenhalen die toevallig over omgevingsvergunningen schrijven. Van de{" "}
+            {num(reg.inschrijvingen)} inschrijvingen gaven er {num(reg.met_website)} zelf een
+            website op; {num(reg.zonder_domein)} hebben geen enkel eigen domein en zijn online dus
+            onvindbaar.
           </p>
         </div>
 
@@ -481,8 +483,8 @@ export default async function ArchitectuurConcurrentiePage({
                 <thead>
                   <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
                     <th className="pb-2 pr-3 font-medium">Gemeente</th>
-                    <th className="pb-2 pr-3 text-right font-medium">Inschrijvingen</th>
-                    <th className="pb-2 text-right font-medium">Domeinen</th>
+                    <th className="pb-2 pr-3 text-right font-medium">Bureaus</th>
+                    <th className="pb-2 text-right font-medium">Inschrijvingen</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -498,8 +500,8 @@ export default async function ArchitectuurConcurrentiePage({
                           <span className="text-zinc-800">{g.gemeente}</span>
                         )}
                       </td>
-                      <td className="py-1.5 pr-3 text-right tabular-nums font-semibold text-zinc-800">{num(g.inschrijvingen)}</td>
-                      <td className="py-1.5 text-right tabular-nums text-zinc-600">{num(g.domeinen)}</td>
+                      <td className="py-1.5 pr-3 text-right tabular-nums font-semibold text-zinc-800">{num(g.domeinen)}</td>
+                      <td className="py-1.5 text-right tabular-nums text-zinc-600">{num(g.inschrijvingen)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -509,8 +511,15 @@ export default async function ArchitectuurConcurrentiePage({
               {provincie
                 ? "Klik een gemeente om de hele pagina daarop te zetten."
                 : "Kies eerst een provincie om per gemeente te kunnen doorklikken."}{" "}
+              Gerangschikt op bureaus, niet op inschrijvingen: dat is wat de bouwheer tegenkomt.
               Leuven en Antwerpen zijn het zwaartepunt van H-Architects; hoe hoger die hier staan,
-              hoe drukker het terrein waar wij het meest werken.
+              hoe drukker het terrein waar wij het meest werken.{" "}
+              <strong className="font-medium text-zinc-700">
+                {num(gemeenten.zonderAdres)} inschrijvingen staan hier niet in
+              </strong>{" "}
+              omdat de Orde er geen adres van publiceert — dat is bijna altijd een architect in
+              loondienst, zonder eigen bureau. Van de domeinen die wij volgen heeft 97 % wél een
+              gemeente.
             </p>
           </Card>
         </div>

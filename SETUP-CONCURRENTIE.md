@@ -20,7 +20,7 @@ ledenregister van de Orde van Architecten
 (`data-bronnen/architecten-orde-2026-09.json`, 11.965 inschrijvingen — zie
 `data-bronnen/README-architecten.md`). Engineering heeft er geen en wordt van onderaf
 opgebouwd. Allebei die registers lees je in met
-`/api/concurrentie?import=1&limiet=0`; verversen doe je met de hand, want ze komen niet
+`/api/concurrentie?import=1&crawl=0`; verversen doe je met de hand, want ze komen niet
 uit een API die wij mogen bevragen.
 
 ---

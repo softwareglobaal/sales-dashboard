@@ -969,19 +969,30 @@ export function getArchitectenPerProvincie() {
  */
 export function getArchitectenPerGemeente(provincie?: string, limiet = 25) {
   const db = getDb();
-  const waar = provincie ? "WHERE provincie = ?" : "WHERE gemeente <> ''";
+  const waar = provincie ? "WHERE provincie = ? AND gemeente <> ''" : "WHERE gemeente <> ''";
   const params: (string | number)[] = provincie ? [provincie, limiet] : [limiet];
-  return db.prepare(`
+  const rijen = db.prepare(`
     SELECT gemeente, postcode,
            COUNT(*) inschrijvingen,
            COUNT(DISTINCT NULLIF(domein,'')) domeinen
     FROM architecten ${waar}
     GROUP BY gemeente
-    ORDER BY inschrijvingen DESC, gemeente
+    ORDER BY domeinen DESC, inschrijvingen DESC, gemeente
     LIMIT ?
   `).all(...params) as {
     gemeente: string; postcode: string; inschrijvingen: number; domeinen: number;
   }[];
+
+  // De Orde publiceert het adres van een vennootschap meestal wel en dat van een
+  // natuurlijke persoon meestal niet: 8.923 personen, waarvan 294 met adres. Deze
+  // tabel telt dus alleen wie een adres publiceerde, en dat cijfer hoort erbij --
+  // anders lijkt een gemeente leeg terwijl er alleen niets van bekend is.
+  const zonderAdres = (db.prepare(
+    `SELECT COUNT(*) n FROM architecten
+      WHERE gemeente = '' ${provincie ? "AND provincie = ?" : ""}`
+  ).get(...(provincie ? [provincie] : [])) as { n: number }).n;
+
+  return { rijen, zonderAdres };
 }
 
 /**

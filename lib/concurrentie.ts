@@ -607,10 +607,16 @@ export function bepaalMarkten() {
   let ingetrokken = 0;
   db.transaction(() => {
     for (const r of rijen) {
+      // Architectuur staat hier bewust niet bij. Voor die markt bestaat een
+      // volledig register -- niemand mag in België architect zijn zonder
+      // inschrijving bij de Orde -- dus de crawl hoeft niet te raden wie er in
+      // hoort. Zou hij dat wel doen, dan sleept hij de halve EPB-lijst mee:
+      // "omgevingsvergunning" en "bouwaanvraag" staan op elke verslaggeverssite,
+      // en drie zulke pagina's maken van een EPB-bureau geen architect. De
+      // marktlijst komt daar dus uit het register en uit de zoekresultaten.
       for (const [markt, aantal] of [
         ["engineering", r.eng_paginas],
         ["energie", r.epb_paginas],
-        ["architectuur", r.arch_paginas],
       ] as const) {
         if (hoortErbij(aantal, r.paginas)) {
           markeerMarkt(r.domein, markt, "crawl");
