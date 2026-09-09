@@ -1,16 +1,19 @@
 /**
- * Concurrentiemonitor. Bedient twee markten met dezelfde crawl:
- *   - energie     EPB en ventilatie
- *   - engineering stabiliteitsstudies
+ * Concurrentiemonitor. Bedient drie markten met dezelfde crawl:
+ *   - energie      EPB en ventilatie
+ *   - engineering  stabiliteitsstudies
+ *   - architectuur bouwontwerp voor particuliere bouwheren (H-Architects)
  *
  * Bronnen:
- *  1. het VEKA-register van erkende verslaggevers (alleen de energiemarkt)
- *  2. de zoekresultaten op onze zoektermen (beide markten, zie lib/zoekwoorden.ts)
+ *  1. twee openbare registers: het VEKA-register van erkende verslaggevers
+ *     (energiemarkt) en het ledenregister van de Orde van Architecten
+ *     (architectuurmarkt). Engineering heeft er geen.
+ *  2. de zoekresultaten op onze zoektermen (alle markten, zie lib/zoekwoorden.ts)
  *  3. een eigen crawl van hun websites (wie is er zichtbaar, en wat verandert er)
  *
- * Eén domein kan in beide markten meespelen; welke markten dat zijn staat in
+ * Eén domein kan in meerdere markten meespelen; welke markten dat zijn staat in
  * `concurrent_markt`. De crawl zelf is marktloos: die meet elk domein één keer
- * en telt de omvang apart per markt (`epb_paginas`, `eng_paginas`).
+ * en telt de omvang apart per markt (`epb_paginas`, `eng_paginas`, `arch_paginas`).
  *
  * Alles wat we ophalen is publiek: sitemap, robots.txt en de homepage.
  * We lezen alleen; er wordt nergens naar buiten geschreven.
@@ -55,6 +58,14 @@ const DIENSTEN: { key: string; patronen: RegExp }[] = [
   // "Architect, aannemer of projectontwikkelaar" is een doelgroep, geen dienst.
   // Daarom een bureau- of studiewoord eisen in plaats van het kale "architect".
   { key: "Architectuur", patronen: /architect(en|uur)[- ]?bureau|architectuurstudie|\/architectuur/i },
+  // Architectuur-markt: waar een architectenbureau voor particulieren zijn geld
+  // mee verdient. "Renovatie" en "nieuwbouw" alleen zijn te breed -- die staan op
+  // elke aannemerssite -- dus koppelen we ze aan ontwerp, plan of architect.
+  { key: "Nieuwbouw", patronen: /nieuwbouw(woning|project|ontwerp|plannen)?|nieuw te bouwen woning|bouwen van een woning/i },
+  { key: "Renovatie & verbouwing", patronen: /(verbouwing|renovatie|verbouwen)[a-z]*[- ]?(project|ontwerp|plan|advies|begeleiding)|totaalrenovatie|renovatiearchitect|verbouwingsarchitect/i },
+  { key: "Regularisatie", patronen: /regularisat|bouwovertreding|regulariser|planologisch attest/i },
+  { key: "Interieurarchitectuur", patronen: /interieurarchitect|interieurontwerp|binnenhuisarchitect/i },
+  { key: "Aankoopbegeleiding", patronen: /aankoopbegeleid|bouwtechnisch(e)? (keuring|advies)|woningcheck|aankoopkeuring/i },
 ];
 
 // Een categorie- of paginatie-archief is geen artikel. Zonder deze filter telt
@@ -79,6 +90,22 @@ const EPB_RELEVANT =
  */
 const ENG_RELEVANT =
   /(stabilit|draagstructuur|draagkracht|draagvermogen|dragende[- ]?muur|muurdoorbraak|funderin|betonstud|betonberek|betonconstruct|gewapend[- ]?beton|staalconstruct|staalbouw|stalen[- ]?(ligger|balk|profiel)|balkberekening|ingenieursbureau|ingenieursstud|studiebureau|structurele[- ](schade|diagnose|analyse|studie|berekening|stabiliteit)|structuurberekening|scheurvorming|meetstaat|meetstaten|eurocode)/i;
+
+/**
+ * Hetzelfde, maar voor de Architectuur-markt: het ontwerpwerk van een
+ * architectenbureau voor particuliere bouwheren.
+ *
+ * Bewust géén kaal "renovatie", "verbouwing" of "nieuwbouw": die woorden staan
+ * op elke aannemers-, keuken- en isolatiesite in Vlaanderen, en dan telt de
+ * omvang van deze markt in duizenden pagina's die niets met ontwerp te maken
+ * hebben. Wat er wél in staat is ofwel het vak zelf (architect, ontwerp,
+ * omgevingsvergunning), ofwel een projectsoort die een bouwheer bij een
+ * architect brengt en niet bij een aannemer: een regularisatie, een uitbouw,
+ * een dakkapel, aankoopbegeleiding. "renovatieproject" en "nieuwbouwwoning"
+ * mogen wel: dat zijn projectpagina's, geen dienstenlijstjes.
+ */
+const ARCH_RELEVANT =
+  /(architect|architectuur|ontwerpbureau|bouwontwerp|woningontwerp|interieurontwerp|binnenhuis|regularisat|bouwovertreding|omgevingsvergunning|bouwaanvraag|stedenbouwkundig|bouwheer|aankoopbegeleid|nieuwbouw(woning|project|ontwerp)|renovatie(project|ontwerp|advies)|verbouwings?(project|ontwerp|plan|advies)|totaalrenovatie|uitbouw|aanbouw|dakkapel|gevelrenovatie|maquette|3d[- ]?visualisat)/i;
 
 // Wijst op een gehackte site: gok- en adultspam. Dat is geen concurrentie maar een
 // waarschuwing dat de meting van die site niets voorstelt.
@@ -219,6 +246,7 @@ export function classificeer(url: string, lastmod = "", bron = "") {
     spam: isSpam(pad),
     epb: EPB_RELEVANT.test(pad),
     eng: ENG_RELEVANT.test(pad),
+    arch: ARCH_RELEVANT.test(pad),
   };
 }
 
@@ -248,9 +276,10 @@ export type Snapshot = {
   blog_artikels: number;
   epb_paginas: number;
   eng_paginas: number;
+  arch_paginas: number;
   spam_verdacht: number;
   fout: string;
-  urls: { url: string; soort: string; lastmod: string; bron: string; archief: boolean; spam: boolean; epb: boolean; eng: boolean }[];
+  urls: { url: string; soort: string; lastmod: string; bron: string; archief: boolean; spam: boolean; epb: boolean; eng: boolean; arch: boolean }[];
 };
 
 /**
@@ -275,7 +304,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
   const leeg: Snapshot = {
     domein, datum, bereikbaar: 0, http_status: 0, ttfb_ms: 0, eind_url: "", titel: "",
     meta_desc: "", cms: "", paginas: 0, blog_paginas: 0, laatste_blog: "", laatste_blog_url: "", blog_per_maand: 0,
-    diensten: "[]", heeft_schema: 0, heeft_localbiz: 0, woorden_home: 0, heeft_sitemap: 0, blog_artikels: 0, epb_paginas: 0, eng_paginas: 0, spam_verdacht: 0, fout: "", urls: [],
+    diensten: "[]", heeft_schema: 0, heeft_localbiz: 0, woorden_home: 0, heeft_sitemap: 0, blog_artikels: 0, epb_paginas: 0, eng_paginas: 0, arch_paginas: 0, spam_verdacht: 0, fout: "", urls: [],
   };
 
   // Sommige bureaus draaien alleen op www, of alleen op http. Probeer die varianten
@@ -317,6 +346,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
   const spam = gerangschikt.filter((u) => u.spam);
   const epbPaginas = gerangschikt.filter((u) => u.epb && !u.spam);
   const engPaginas = gerangschikt.filter((u) => u.eng && !u.spam);
+  const archPaginas = gerangschikt.filter((u) => u.arch && !u.spam);
   const metDatum = artikels.filter((a) => a.lastmod).sort((a, b) => a.lastmod.localeCompare(b.lastmod));
   const nieuwste = metDatum[metDatum.length - 1];
   const blogDatums = metDatum.map((b) => b.lastmod);
@@ -344,6 +374,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
     blog_artikels: artikels.length,
     epb_paginas: epbPaginas.length,
     eng_paginas: engPaginas.length,
+    arch_paginas: archPaginas.length,
     spam_verdacht: spam.length,
     laatste_blog: laatsteBlog,
     laatste_blog_url: nieuwste?.url || "",
@@ -367,13 +398,13 @@ function bewaarSnapshot(s: Snapshot) {
     `INSERT OR REPLACE INTO site_snapshots
      (domein,datum,bereikbaar,http_status,ttfb_ms,eind_url,titel,meta_desc,cms,paginas,
       blog_paginas,laatste_blog,laatste_blog_url,blog_per_maand,diensten,heeft_schema,heeft_localbiz,woorden_home,heeft_sitemap,
-      blog_artikels,epb_paginas,eng_paginas,spam_verdacht,fout)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+      blog_artikels,epb_paginas,eng_paginas,arch_paginas,spam_verdacht,fout)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run(
     s.domein, s.datum, s.bereikbaar, s.http_status, s.ttfb_ms, s.eind_url, s.titel, s.meta_desc,
     s.cms, s.paginas, s.blog_paginas, s.laatste_blog, s.laatste_blog_url, s.blog_per_maand, s.diensten,
     s.heeft_schema, s.heeft_localbiz, s.woorden_home, s.heeft_sitemap,
-    s.blog_artikels, s.epb_paginas, s.eng_paginas, s.spam_verdacht, s.fout
+    s.blog_artikels, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.spam_verdacht, s.fout
   );
 
   // Nieuwe URL's = signaal. De eerste crawl van een domein levert géén signalen op,
@@ -387,12 +418,12 @@ function bewaarSnapshot(s: Snapshot) {
   const bekend = new Set(bestaat.map((r) => r.url));
 
   const upsert = db.prepare(
-    `INSERT INTO site_urls (domein,url,soort,lastmod,sitemap_bron,artikel,markt_eng,eerste_zien,laatste_zien)
-     VALUES (?,?,?,?,?,?,?,?,?)
+    `INSERT INTO site_urls (domein,url,soort,lastmod,sitemap_bron,artikel,markt_eng,markt_arch,eerste_zien,laatste_zien)
+     VALUES (?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(domein,url) DO UPDATE SET
        lastmod=excluded.lastmod, soort=excluded.soort, artikel=excluded.artikel,
-       markt_eng=excluded.markt_eng, sitemap_bron=excluded.sitemap_bron,
-       laatste_zien=excluded.laatste_zien`
+       markt_eng=excluded.markt_eng, markt_arch=excluded.markt_arch,
+       sitemap_bron=excluded.sitemap_bron, laatste_zien=excluded.laatste_zien`
   );
   const signaal = db.prepare(
     "INSERT INTO signalen (domein,datum,soort,omschrijving,url) VALUES (?,?,?,?,?)"
@@ -401,7 +432,10 @@ function bewaarSnapshot(s: Snapshot) {
   db.transaction(() => {
     for (const u of s.urls) {
       const isArtikel = u.soort === "blog" && !u.archief && !u.spam ? 1 : 0;
-      upsert.run(s.domein, u.url, u.soort, u.lastmod, u.bron || "", isArtikel, u.eng && !u.spam ? 1 : 0, s.datum, s.datum);
+      upsert.run(
+        s.domein, u.url, u.soort, u.lastmod, u.bron || "", isArtikel,
+        u.eng && !u.spam ? 1 : 0, u.arch && !u.spam ? 1 : 0, s.datum, s.datum
+      );
       if (!isEersteKeer && !bekend.has(u.url) && !u.spam) {
         signaal.run(
           s.domein,
@@ -444,10 +478,14 @@ export const EIGEN_DOMEINEN = [
   { domein: "energie-efficient.be", naam: "Energie-Efficient (wij)", markten: ["energie"] },
   // unabo.be draagt beide afdelingen: EPB én de stabiliteitsstudies.
   { domein: "unabo.be", naam: "Unabo (wij)", markten: ["energie", "engineering"] },
+  { domein: "h-architects.be", naam: "H-Architects (wij)", markten: ["architectuur"] },
+  // De proefomgeving meten we mee: daar staat wat nog niet live is, en het
+  // verschil tussen die twee is precies wat er nog te publiceren valt.
+  { domein: "h-architects.globaal.be", naam: "H-Architects proef (wij)", markten: ["architectuur"] },
 ];
 
-export type Markt = "energie" | "engineering";
-export const MARKTEN: Markt[] = ["energie", "engineering"];
+export type Markt = "energie" | "engineering" | "architectuur";
+export const MARKTEN: Markt[] = ["energie", "engineering", "architectuur"];
 
 /** Zet een domein in een markt. Blijft staan zodra het er in zit. */
 export function markeerMarkt(domein: string, markt: Markt, bron: string) {
@@ -541,14 +579,14 @@ export function bepaalMarkten() {
   const db = getDb();
   const rijen = db
     .prepare(
-      `SELECT s.domein, s.epb_paginas, s.eng_paginas, s.paginas, s.heeft_sitemap
+      `SELECT s.domein, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.paginas, s.heeft_sitemap
          FROM site_snapshots s
          JOIN (SELECT domein, MAX(datum) d FROM site_snapshots GROUP BY domein) m
            ON m.domein = s.domein AND m.d = s.datum`
     )
     .all() as {
       domein: string; epb_paginas: number | null; eng_paginas: number | null;
-      paginas: number | null; heeft_sitemap: number | null;
+      arch_paginas: number | null; paginas: number | null; heeft_sitemap: number | null;
     }[];
 
   const MIN_PAGINAS = 3;
@@ -565,25 +603,31 @@ export function bepaalMarkten() {
     "DELETE FROM concurrent_markt WHERE domein = ? AND markt = ? AND bron = 'crawl'"
   );
 
-  let energie = 0;
-  let engineering = 0;
+  const geteld: Record<Markt, number> = { energie: 0, engineering: 0, architectuur: 0 };
   let ingetrokken = 0;
   db.transaction(() => {
     for (const r of rijen) {
+      // Architectuur staat hier bewust niet bij. Voor die markt bestaat een
+      // volledig register -- niemand mag in België architect zijn zonder
+      // inschrijving bij de Orde -- dus de crawl hoeft niet te raden wie er in
+      // hoort. Zou hij dat wel doen, dan sleept hij de halve EPB-lijst mee:
+      // "omgevingsvergunning" en "bouwaanvraag" staan op elke verslaggeverssite,
+      // en drie zulke pagina's maken van een EPB-bureau geen architect. De
+      // marktlijst komt daar dus uit het register en uit de zoekresultaten.
       for (const [markt, aantal] of [
         ["engineering", r.eng_paginas],
         ["energie", r.epb_paginas],
       ] as const) {
         if (hoortErbij(aantal, r.paginas)) {
           markeerMarkt(r.domein, markt, "crawl");
-          if (markt === "engineering") engineering++; else energie++;
+          geteld[markt]++;
         } else {
           ingetrokken += verwijder.run(r.domein, markt).changes;
         }
       }
     }
   })();
-  return { bekeken: rijen.length, energie, engineering, ingetrokken, uitSite: categoriseerUitSite() };
+  return { bekeken: rijen.length, ...geteld, ingetrokken, uitSite: categoriseerUitSite() };
 }
 
 export function importeerVerslaggevers() {
@@ -646,6 +690,15 @@ export function importeerVerslaggevers() {
     }
   })();
 
+  const eigen = registreerEigenDomeinen();
+
+  return { verslaggevers: bron.records.length, domeinen: perDomein.length, eigen, bron: bron.bron };
+}
+
+/** Onze eigen sites als gevolgd domein wegzetten. Wordt door elke register-import geroepen. */
+export function registreerEigenDomeinen() {
+  const db = getDb();
+  const nu = vandaag();
   const eigen = db.prepare(
     `INSERT INTO concurrenten (domein,naam,bron,volgen,categorie,verslaggevers,eerste_zien)
      VALUES (?,?,'eigen',1,'eigen',0,?)
@@ -657,8 +710,126 @@ export function importeerVerslaggevers() {
       for (const m of e.markten) markeerMarkt(e.domein, m as Markt, "eigen");
     }
   })();
+  return EIGEN_DOMEINEN.length;
+}
 
-  return { verslaggevers: bron.records.length, domeinen: perDomein.length, eigen: EIGEN_DOMEINEN.length, bron: bron.bron };
+/**
+ * Leest het ledenregister van de Orde van Architecten in.
+ *
+ * Zelfde vorm als het VEKA-register, met twee verschillen die er toe doen:
+ *
+ *  1. Een inschrijving is een persoon (stamnummer A...) óf een vennootschap
+ *     (B...). De vennootschap is het bureau; de persoon is de architect. Beide
+ *     staan in dezelfde tabel, want ze delen vaak hetzelfde e-maildomein en het
+ *     is dat domein dat wij crawlen.
+ *  2. De Orde publiceert wél een website per lid. Bij VEKA moesten we het domein
+ *     uit het e-mailadres afleiden; hier is de website de eerste bron en het
+ *     e-maildomein pas de terugval. Dat gebeurt in het exportscript, zodat het
+ *     bronbestand zelfstandig leesbaar blijft.
+ *
+ * Indeling: twee of meer inschrijvingen op één domein = een bureau met omvang
+ * (`concurrent`); één inschrijving = `prospect`. Dezelfde vuistregel als bij
+ * energie, en net zo goed handmatig te corrigeren.
+ */
+export function importeerArchitecten() {
+  const bestand = path.join(process.cwd(), "data-bronnen", "architecten-orde-2026-09.json");
+  if (!fs.existsSync(bestand)) throw new Error(`Bronbestand ontbreekt: ${bestand}`);
+  const bron = JSON.parse(fs.readFileSync(bestand, "utf8")) as {
+    bron: string; opgehaald: string;
+    records: {
+      stamnummer: string; naam: string; soort: string; rechtsvorm: string;
+      straat: string; postcode: string; gemeente: string; provincie: string;
+      telefoon: string; email: string; website: string; domein: string; profiel_url: string;
+    }[];
+  };
+  const db = getDb();
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO architecten
+     (stamnummer,naam,soort,rechtsvorm,straat,postcode,gemeente,provincie,telefoon,email,website,domein,profiel_url,bron_datum)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+  );
+  db.transaction(() => {
+    for (const r of bron.records) {
+      ins.run(
+        r.stamnummer, r.naam, r.soort, r.rechtsvorm, r.straat, r.postcode, r.gemeente,
+        r.provincie, r.telefoon, r.email, r.website, r.domein, r.profiel_url, bron.opgehaald
+      );
+    }
+  })();
+
+  // De bureaunaam is de naam die het vaakst bij dat domein hoort, en bij gelijk
+  // spel die van een vennootschap: op info@bureau.be staan vaak drie vennoten en
+  // één vennootschap, en dan is de vennootschap de naam die iemand herkent.
+  const perDomein = db.prepare(
+    `SELECT a.domein,
+            COUNT(*) n,
+            SUM(CASE WHEN a.website <> '' THEN 1 ELSE 0 END) met_site,
+            SUM(CASE WHEN a.soort = 'vennootschap' THEN 1 ELSE 0 END) vennootschappen,
+            COALESCE(
+              (SELECT b.naam FROM architecten b
+                WHERE b.domein = a.domein AND b.naam <> ''
+                ORDER BY CASE WHEN b.soort = 'vennootschap' THEN 0 ELSE 1 END, b.naam LIMIT 1),
+              ''
+            ) naam,
+            (SELECT p.provincie FROM architecten p
+              WHERE p.domein = a.domein AND p.provincie <> ''
+              GROUP BY p.provincie ORDER BY COUNT(*) DESC LIMIT 1) provincie,
+            (SELECT g.gemeente FROM architecten g
+              WHERE g.domein = a.domein AND g.gemeente <> ''
+              GROUP BY g.gemeente ORDER BY COUNT(*) DESC LIMIT 1) gemeente
+     FROM architecten a WHERE a.domein <> '' GROUP BY a.domein`
+  ).all() as {
+    domein: string; n: number; met_site: number; vennootschappen: number;
+    naam: string; provincie: string; gemeente: string;
+  }[];
+
+  // Onze eigen domeinen mogen nooit als concurrent binnenkomen; H-Architects
+  // staat zelf in dit register.
+  const onze = new Set(EIGEN_DOMEINEN.map((e) => e.domein));
+
+  const upsert = db.prepare(
+    `INSERT INTO concurrenten (domein,naam,bron,volgen,categorie,architecten,provincie,gemeente,eerste_zien)
+     VALUES (?,?,'register',?,?,?,?,?,?)
+     ON CONFLICT(domein) DO UPDATE SET
+       architecten = excluded.architecten,
+       volgen = MAX(concurrenten.volgen, excluded.volgen),
+       naam = COALESCE(NULLIF(concurrenten.naam,''), excluded.naam),
+       provincie = COALESCE(NULLIF(concurrenten.provincie,''), excluded.provincie),
+       gemeente = COALESCE(NULLIF(concurrenten.gemeente,''), excluded.gemeente)`
+  );
+  const nu = vandaag();
+  let gevolgd = 0;
+  let alleen_register = 0;
+  db.transaction(() => {
+    for (const d of perDomein) {
+      if (onze.has(d.domein)) continue;
+      const categorie = d.n >= 2 ? "concurrent" : "prospect";
+      const naam = d.naam || d.domein.replace(/^www\./, "").replace(/\.(be|com|eu|nl)$/, "");
+      // Dit register is vijf keer zo groot als dat van VEKA. Alles dagelijks
+      // meten zou de hele crawl vertragen zonder dat het iets oplevert, dus we
+      // volgen wat een zichtbare speler is: wie zelf een website opgeeft, of
+      // wie met meerdere inschrijvingen op één domein zit. De rest is een
+      // domein dat we uit een e-mailadres afleidden en waarvan we niet weten of
+      // er een site achter zit; die staat wél in het register en in de
+      // marktlijst, maar wordt niet gecrawld tot iemand hem aanzet.
+      const volgen = d.met_site > 0 || d.n >= 2 ? 1 : 0;
+      upsert.run(d.domein, naam, volgen, categorie, d.n, d.provincie || "", d.gemeente || "", nu);
+      markeerMarkt(d.domein, "architectuur", "register");
+      if (volgen) gevolgd++; else alleen_register++;
+    }
+  })();
+
+  const eigen = registreerEigenDomeinen();
+
+  return {
+    inschrijvingen: bron.records.length,
+    zonderDomein: bron.records.filter((r) => !r.domein).length,
+    domeinen: perDomein.length,
+    gevolgd,
+    alleen_register,
+    eigen,
+    bron: bron.bron,
+  };
 }
 
 /**
@@ -671,11 +842,13 @@ export function herberekenAfleidingen() {
   const domeinen = db.prepare("SELECT DISTINCT domein FROM site_urls").all() as { domein: string }[];
   const upd = db.prepare(
     `UPDATE site_snapshots
-        SET blog_artikels = ?, epb_paginas = ?, eng_paginas = ?, spam_verdacht = ?,
+        SET blog_artikels = ?, epb_paginas = ?, eng_paginas = ?, arch_paginas = ?, spam_verdacht = ?,
             laatste_blog = ?, laatste_blog_url = ?
       WHERE domein = ? AND datum = (SELECT MAX(datum) FROM site_snapshots WHERE domein = ?)`
   );
-  const updUrl = db.prepare("UPDATE site_urls SET artikel = ?, markt_eng = ? WHERE domein = ? AND url = ?");
+  const updUrl = db.prepare(
+    "UPDATE site_urls SET artikel = ?, markt_eng = ?, markt_arch = ? WHERE domein = ? AND url = ?"
+  );
   let n = 0;
   db.transaction(() => {
     for (const d of domeinen) {
@@ -687,6 +860,7 @@ export function herberekenAfleidingen() {
         updUrl.run(
           u.soort === "blog" && !u.archief && !u.spam ? 1 : 0,
           u.eng && !u.spam ? 1 : 0,
+          u.arch && !u.spam ? 1 : 0,
           d.domein, u.url
         );
       }
@@ -696,6 +870,7 @@ export function herberekenAfleidingen() {
         artikels.length,
         ingedeeld.filter((u) => u.epb && !u.spam).length,
         ingedeeld.filter((u) => u.eng && !u.spam).length,
+        ingedeeld.filter((u) => u.arch && !u.spam).length,
         ingedeeld.filter((u) => u.spam).length,
         nieuwste?.lastmod || "",
         nieuwste?.url || "",

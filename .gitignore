@@ -44,3 +44,6 @@ next-env.d.ts
 *.db
 *.sqlite
 data/
+
+# tussenbestanden van het architectenregister (11.965 ruwe profielen)
+data-bronnen/.architecten-werk/

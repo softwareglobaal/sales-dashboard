@@ -30,6 +30,11 @@ Klik rechtsboven op **"↻ Data verversen"**. Dan haalt het de meest recente dea
   deal value ernaast. Onder Energy zitten ook de **Concurrentie**-monitor en het
   **Verslaggevers**-register.
 
+- **H-Architects** — de afdelingspagina zelf is nog in aanbouw, maar de
+  **Concurrentie**-monitor eronder werkt al: wie zijn de andere architectenbureaus in
+  Vlaanderen, waar zitten ze, en wat zetten ze online. Je kan filteren per provincie en
+  per gemeente — Leuven en Antwerpen zijn het zwaartepunt.
+
 Later komen er meer afdelings-dashboards bij (Safety, 3D Scanning, …).
 
 > **Toegang afschermen:** zolang dit lokaal op je Mac draait, ziet iedereen alles. Pas wanneer het

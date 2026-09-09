@@ -34,7 +34,14 @@ const AFDELINGEN: Afdeling[] = [
   { pad: "safety", href: "/safety", label: "Safety", dot: "#3a4459", soon: true },
   { pad: "plaatsbeschrijving", href: "/plaatsbeschrijving", label: "Plaatsbeschrijving", dot: "#3a4459", soon: true },
   { pad: "meetstaten", href: "/meetstaten", label: "Meetstaten", dot: "#3a4459", soon: true },
-  { pad: "h-architects", href: "/h-architects", label: "H-Architects", dot: "#3a4459", soon: true },
+  {
+    // De afdelingspagina zelf is nog in aanbouw; de concurrentiemonitor eronder
+    // niet. Daarom blijft "soon" op de tab staan maar hangt het onderdeel er wel al.
+    pad: "h-architects", href: "/h-architects", label: "H-Architects", dot: "#3a4459", soon: true,
+    onder: [
+      { href: "/h-architects/concurrentie", label: "Concurrentie", icon: "◈" },
+    ],
+  },
 ];
 
 const MARKETING: Item[] = [

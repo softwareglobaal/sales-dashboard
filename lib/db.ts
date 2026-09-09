@@ -153,6 +153,38 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_vsl_domein ON verslaggevers(domein);
     CREATE INDEX IF NOT EXISTS idx_vsl_prov   ON verslaggevers(provincie);
 
+    -- ---------------------------------------------------------------
+    -- Concurrentiemonitor Architectuur (H-Architects)
+    -- ---------------------------------------------------------------
+
+    -- Ingeschreven architecten, bron: het publieke ledenregister van de Orde van
+    -- Architecten (Vlaamse Raad) op vind.architect.be. Twee soorten inschrijving
+    -- in één tabel: een natuurlijke persoon (stamnummer A...) en een
+    -- architectenvennootschap (stamnummer B...). De tabel waarop iemand
+    -- ingeschreven staat is een provincie, en dat is hier de regio-indeling.
+    --
+    -- Net als bij het VEKA-register: openbaar, maar wél persoonsgegevens.
+    -- Intern gebruik achter Authentik, niet exporteren, niet verrijken.
+    CREATE TABLE IF NOT EXISTS architecten (
+      stamnummer  TEXT PRIMARY KEY,   -- A123456 (persoon) of B123456 (vennootschap)
+      naam        TEXT,
+      soort       TEXT,               -- persoon / vennootschap
+      rechtsvorm  TEXT,               -- BV, NV, ... (alleen bij vennootschappen)
+      straat      TEXT,
+      postcode    TEXT,
+      gemeente    TEXT,
+      provincie   TEXT,               -- de "tabel" waarop de inschrijving staat
+      telefoon    TEXT,
+      email       TEXT,
+      website     TEXT,
+      domein      TEXT,               -- uit de website, anders uit het e-maildomein
+      profiel_url TEXT,               -- de publieke profielpagina bij de Orde
+      bron_datum  TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_arch_domein ON architecten(domein);
+    CREATE INDEX IF NOT EXISTS idx_arch_prov   ON architecten(provincie);
+    CREATE INDEX IF NOT EXISTS idx_arch_gem    ON architecten(gemeente);
+
     -- Eén rij per gevolgd domein.
     CREATE TABLE IF NOT EXISTS concurrenten (
       domein        TEXT PRIMARY KEY,
@@ -161,6 +193,7 @@ function initSchema(db: Database.Database) {
       volgen        INTEGER DEFAULT 1,
       categorie     TEXT,            -- concurrent / prospect / portaal / onbekend
       verslaggevers INTEGER DEFAULT 0,
+      architecten   INTEGER DEFAULT 0,  -- ingeschreven architecten op dit domein
       provincie     TEXT,
       gemeente      TEXT,
       notitie       TEXT,
@@ -175,7 +208,7 @@ function initSchema(db: Database.Database) {
     -- bureau uit de ene lijst zodra het in de andere staat.
     CREATE TABLE IF NOT EXISTS concurrent_markt (
       domein      TEXT NOT NULL,
-      markt       TEXT NOT NULL,    -- energie / engineering
+      markt       TEXT NOT NULL,    -- energie / engineering / architectuur
       bron        TEXT,             -- register / serp / crawl / handmatig
       eerste_zien TEXT,
       PRIMARY KEY (domein, markt)
@@ -193,6 +226,7 @@ function initSchema(db: Database.Database) {
       titel           TEXT,
       meta_desc       TEXT,
       cms             TEXT,
+      arch_paginas    INTEGER,         -- pagina's die over architectuur/bouwontwerp gaan
       paginas         INTEGER,         -- indexeerbare URL's in de sitemap
       blog_paginas    INTEGER,
       laatste_blog    TEXT,            -- lastmod van het nieuwste artikel
@@ -323,8 +357,16 @@ function initSchema(db: Database.Database) {
     // Omvang in de Engineering-markt (stabiliteit), naast epb_paginas voor Energie.
     // Twee aparte kolommen omdat hetzelfde domein in beide markten kan meespelen.
     ["eng_paginas", "INTEGER"],
+    // Idem voor de Architectuur-markt (H-Architects). Derde kolom, geen derde
+    // tabel: dezelfde crawl meet elk domein één keer en telt per markt apart.
+    ["arch_paginas", "INTEGER"],
   ] as const) {
     if (!snapCols.includes(naam)) db.exec(`ALTER TABLE site_snapshots ADD COLUMN ${naam} ${type}`);
+  }
+
+  const concCols = (db.prepare("PRAGMA table_info(concurrenten)").all() as any[]).map((c) => c.name);
+  if (!concCols.includes("architecten")) {
+    db.exec("ALTER TABLE concurrenten ADD COLUMN architecten INTEGER DEFAULT 0");
   }
 
   const zwCols = (db.prepare("PRAGMA table_info(zoekwoorden)").all() as any[]).map((c) => c.name);
@@ -335,6 +377,7 @@ function initSchema(db: Database.Database) {
 
   const urlCols2 = (db.prepare("PRAGMA table_info(site_urls)").all() as any[]).map((c) => c.name);
   if (!urlCols2.includes("markt_eng")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_eng INTEGER");
+  if (!urlCols2.includes("markt_arch")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_arch INTEGER");
 
   // Eenmalig: alles wat al gevolgd werd, is via het VEKA-register of via de
   // energie-zoektermen binnengekomen. Dat is dus de energiemarkt.

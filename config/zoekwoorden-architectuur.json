@@ -1,0 +1,42 @@
+{
+  "_uitleg": "Zoekwoorden die de Architectuur-markt afbakenen: het ontwerpwerk van H-Architects voor particuliere bouwheren. Aan te vullen zonder code. thema = groepering op de pagina, intentie = dienst (koopklaar) / probleem (urgent, hoge waarde) / kennis (blogstof) / lokaal (regio) / vacature (zoekt werk, geen klant). De regiotermen volgen het werkgebied: heel Vlaanderen, met Leuven en Antwerpen als zwaartepunt. 'architect' alleen is bewust géén term: die zoekopdracht is half informatief, half vacature, en zegt niets over een dossier.",
+  "markt": "architectuur",
+  "locatie": { "land": "BE", "taal": "nl", "geoTargetConstant": "2056" },
+  "zoekwoorden": [
+    { "term": "architect Leuven", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "architect Antwerpen", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "architect Mechelen", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "architect Hasselt", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "architect Genk", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "architect Diest", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "architect Aarschot", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "architectenbureau Vlaams-Brabant", "thema": "Regio", "intentie": "lokaal" },
+
+    { "term": "architect verbouwing", "thema": "Projecttype", "intentie": "dienst" },
+    { "term": "architect nieuwbouw", "thema": "Projecttype", "intentie": "dienst" },
+    { "term": "architect renovatie", "thema": "Projecttype", "intentie": "dienst" },
+    { "term": "architect uitbouw", "thema": "Projecttype", "intentie": "dienst" },
+    { "term": "bouwplannen laten maken", "thema": "Projecttype", "intentie": "dienst" },
+    { "term": "interieurarchitect verbouwing", "thema": "Projecttype", "intentie": "dienst" },
+
+    { "term": "architect regularisatie", "thema": "Regularisatie", "intentie": "dienst" },
+    { "term": "bouwovertreding regulariseren", "thema": "Regularisatie", "intentie": "probleem" },
+    { "term": "regularisatie bouwvergunning", "thema": "Regularisatie", "intentie": "probleem" },
+    { "term": "bouwen zonder vergunning gevolgen", "thema": "Regularisatie", "intentie": "probleem" },
+
+    { "term": "aankoopbegeleiding architect", "thema": "Aankoopbegeleiding", "intentie": "dienst" },
+    { "term": "bouwtechnisch advies aankoop woning", "thema": "Aankoopbegeleiding", "intentie": "dienst" },
+    { "term": "woning laten keuren voor aankoop", "thema": "Aankoopbegeleiding", "intentie": "probleem" },
+
+    { "term": "architect prijs", "thema": "Prijs en ereloon", "intentie": "dienst" },
+    { "term": "ereloon architect", "thema": "Prijs en ereloon", "intentie": "dienst" },
+    { "term": "hoeveel kost een architect", "thema": "Prijs en ereloon", "intentie": "kennis" },
+    { "term": "ereloonpercentage architect verbouwing", "thema": "Prijs en ereloon", "intentie": "kennis" },
+
+    { "term": "omgevingsvergunning aanvragen", "thema": "Vergunning", "intentie": "dienst" },
+    { "term": "architect verplicht verbouwing", "thema": "Vergunning", "intentie": "kennis" },
+    { "term": "dakkapel plaatsen vergunning", "thema": "Vergunning", "intentie": "kennis" },
+    { "term": "gevelrenovatie vergunning", "thema": "Vergunning", "intentie": "kennis" },
+    { "term": "ramen vervangen vergunning nodig", "thema": "Vergunning", "intentie": "kennis" }
+  ]
+}
