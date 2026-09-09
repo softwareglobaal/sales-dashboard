@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
-  importeerVerslaggevers, crawlDomeinen, teCrawlenDomeinen, herberekenAfleidingen, bepaalMarkten,
+  importeerVerslaggevers, importeerArchitecten, crawlDomeinen, teCrawlenDomeinen,
+  herberekenAfleidingen, bepaalMarkten,
 } from "@/lib/concurrentie";
 
 export const runtime = "nodejs";
@@ -9,7 +10,7 @@ export const maxDuration = 800;
 
 /**
  * Draait de concurrentiemonitor.
- *   ?import=1        leest het VEKA-register opnieuw in
+ *   ?import=1        leest beide registers opnieuw in (VEKA + Orde van Architecten)
  *   ?limiet=50       crawlt maximaal 50 domeinen (oudste check eerst)
  *   ?domein=x.be     crawlt één domein
  *   ?markten=1       deelt de gevolgde domeinen opnieuw in bij een markt
@@ -34,7 +35,16 @@ async function draai(url: URL) {
     return { ...uit, markten: bepaalMarkten() };
   }
 
-  if (doeImport) uit.register = importeerVerslaggevers();
+  if (doeImport) {
+    uit.register = importeerVerslaggevers();
+    // Het architectenregister mag ontbreken -- dan is de rest van de run nog
+    // steeds zinvol, en zegt het antwoord waarom die markt leeg blijft.
+    try {
+      uit.architectenregister = importeerArchitecten();
+    } catch (e) {
+      uit.architectenregister = { ok: false, fout: String((e as Error)?.message || e) };
+    }
+  }
 
   const domeinen = enkel ? [enkel] : teCrawlenDomeinen(limiet);
   const resultaten = await crawlDomeinen(domeinen);

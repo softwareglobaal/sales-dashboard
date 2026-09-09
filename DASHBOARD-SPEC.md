@@ -112,7 +112,8 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
   `/energy/concurrentie` en `/energy/register`) — volledig uitgewerkt.
 - **Onder constructie** (nette placeholder, exacte tekst
   "Under construction — Siyan is doing his best to finish this as soon as possible."):
-  3D Scanning, Safety, Plaatsbeschrijving, Meetstaten, H-Architects.
+  3D Scanning, Safety, Plaatsbeschrijving, Meetstaten, H-Architects. Onder
+  H-Architects hangt wél al `/h-architects/concurrentie` (zie §13).
   SEO/SEA = afdeling (Google Ads + zoekdata), geen Pipedrive-account.
 - Nieuwe afdelings-tab moet met minimale moeite toegevoegd kunnen worden (Engineering als template).
 
@@ -198,21 +199,24 @@ de actiefste blogger van de markt.
   omdat die www en non-www samen dekt.
 
 **Ritme**
-`scripts/concurrentie-cron.sh` controleert dagelijks de 90 langst niet gemeten domeinen;
-de volledige lijst is zo elke vier dagen rond. Nieuwe URL's worden signalen. Posities
-wekelijks op maandag (Energie 30 termen, Engineering 15 termen in de even weken),
-zoekvolumes maandelijks op de eerste voor beide markten.
+`scripts/concurrentie-cron.sh` controleert dagelijks de 250 langst niet gemeten domeinen.
+Dat was 90 zolang er ~360 domeinen waren; met het architectenregister erbij staan er een
+paar duizend in de lijst, en op 90 per dag zou een site nog maar een paar keer per jaar
+gemeten worden. Op 250 is de hele lijst in ruim een week rond. Nieuwe URL's worden
+signalen. Posities wekelijks op maandag (Energie 30 termen, Engineering 15 termen in de
+even weken, Architectuur 15 termen in de oneven weken), zoekvolumes maandelijks op de
+eerste voor alle drie de markten.
 
 ## 12. Concurrentiemonitor Engineering (september 2026)
 
 Tweede markt op dezelfde motor, onder `/engineering/concurrentie`. Onderwerp:
 **stabiliteitsstudies** (UNABO Engineering + TKN-Buro), plus de meetstaten van TKN.
 
-**Eén crawl, twee markten.** De crawler is marktloos: hij meet elk domein één keer en
-telt de omvang apart per markt (`epb_paginas`, `eng_paginas`). Welke markten een domein
-bedient staat in de koppeltabel `concurrent_markt` — een koppeltabel en geen kolom, want
-een bureau kan in beide markten zitten. Zoekwoorden dragen een `markt`-kolom en staan in
-`config/zoekwoorden-<markt>.json`.
+**Eén crawl, drie markten.** De crawler is marktloos: hij meet elk domein één keer en
+telt de omvang apart per markt (`epb_paginas`, `eng_paginas`, `arch_paginas`). Welke
+markten een domein bedient staat in de koppeltabel `concurrent_markt` — een koppeltabel
+en geen kolom, want een bureau kan in meerdere markten zitten. Zoekwoorden dragen een
+`markt`-kolom en staan in `config/zoekwoorden-<markt>.json`.
 
 **Geen register.** Voor EPB bestaat het VEKA-register; voor stabiliteit bestaat niets
 vergelijkbaars. Deze markt wordt van onderaf opgebouwd uit twee bronnen, en de pagina zegt
@@ -239,6 +243,55 @@ al vertoningen haalt: "stabiliteitsstudie verplicht" (#11), "stabiliteitsonderzo
 (TKN-Buro valt onder Engineering). unabo.be draagt beide markten; de Engineering-pagina
 filtert de Search Console-termen op stabiliteitswoorden, zodat de EPB-termen van datzelfde
 domein op de Energie-pagina blijven.
+
+## 13. Concurrentiemonitor Architectuur (september 2026)
+
+Derde markt op dezelfde motor, onder `/h-architects/concurrentie`. Onderwerp: het
+ontwerpwerk van **H-Architects** voor particuliere bouwheren — verbouwing, nieuwbouw,
+regularisatie en aankoopbegeleiding. Werkgebied heel Vlaanderen, zwaartepunt Leuven en
+Antwerpen. Eigen sites: `h-architects.be` en de proefomgeving `h-architects.globaal.be`.
+
+**Wél een register, en een groot.** Anders dan bij stabiliteit bestaat hier een volledig
+register: niemand mag in België architect zijn zonder inschrijving bij de Orde van
+Architecten, en de Vlaamse Raad publiceert dat op vind.architect.be. Bron:
+`data-bronnen/architecten-orde-2026-09.json`, opgehaald uit de eigen sitemap van die site
+(11.965 profielpagina's) — niet uit hun zoektool, want die geeft er hard drie per
+zoekopdracht terug. Methode, gedragsregels en beperkingen staan in
+`data-bronnen/README-architecten.md`; het script in `scripts/architecten-register.py`.
+
+**De architect is hier de concurrent, niet de klant.** Dat is het spiegelbeeld van
+Engineering. Daar staat `architect` in `GEEN_CONCURRENT` omdat een architect
+stabiliteitswerk uitbesteedt; hier is hij precies degene die om dezelfde bouwheer vecht.
+`geenConcurrentVoor(markt)` regelt dat verschil. Voor architectuur blijven alleen
+overheid, portalen, jobsites, buitenland en fabrikanten buiten de markt — aannemers níét:
+een sleutel-op-de-deurbouwer neemt een particuliere bouwheer net zo goed weg.
+
+**Niet alles wordt gecrawld, en dat staat op de pagina.** Het register is vijf keer zo
+groot als dat van VEKA. Een domein wordt gevolgd als de architect zelf een website
+opgaf, of als er meerdere inschrijvingen op dat domein staan. De rest is een domein dat
+we uit een e-mailadres afleidden bij één inschrijving; daarvan weten we niet eens of er
+een site achter zit. Die staan wél in het register en in de marktlijst, met `volgen = 0`
+en een teller op de pagina — anders lijkt de gemeten markt de hele markt.
+
+**Omvang meten we in ONZE markt**, net als elders: `arch_paginas` telt pagina's over
+ontwerpwerk. De regex is bewust strak. Kaal "renovatie", "verbouwing" en "nieuwbouw"
+staan er níét in: die woorden staan op elke aannemers-, keuken- en isolatiesite in
+Vlaanderen. Wat er wél in staat is het vak zelf (architect, ontwerp, omgevingsvergunning)
+of een projectsoort die een bouwheer bij een architect brengt en niet bij een aannemer —
+een regularisatie, een uitbouw, een dakkapel, aankoopbegeleiding.
+
+**Regio is hier een filter, geen kolom.** Duizenden inschrijvingen over heel Vlaanderen
+zeggen niets: een bouwheer zoekt zijn architect in zijn eigen streek. De pagina filtert
+daarom op provincie en gemeente uit het register (`RegioFilter`), en de gemeentelijst
+volgt de gekozen provincie. Twee dingen die die cijfers níét zeggen: de provincie is de
+tabel waarop iemand ingeschreven staat en niet waar hij werkt, en Google-posities gelden
+voor heel Vlaanderen en zijn dus niet per gemeente te filteren — met een regio gekozen
+toont de pagina daarom de eigen meting in plaats van het Google-leaderboard.
+
+**Inschrijvingen zijn geen bureaus.** Een bureau met drie vennoten en een BV staat vier
+keer in het register. Wie de markt in bureaus telt, telt domeinen; dat is ook wat de
+crawler doet. Beide getallen staan naast elkaar op de pagina, net als de twee lenzen bij
+Energie.
 
 ## Aanvullingen (feedback-ronde)
 - **Grafiek "aanvragen vs. direct gewonnen omzet (zelfde maand)"**: SAME-MONTH cohort — balken = leads
@@ -276,7 +329,7 @@ domein op de Energie-pagina blijven.
 
 ## Config-bestanden (aanpasbaar zonder code)
 - `config/engineering.json` — label→kanaal + hoofdkanaal-groepen, genegeerde labels/pipelines, `offerteStages`.
-- `config/zoekwoorden-energie.json` / `config/zoekwoorden-engineering.json` — de zoektermen per markt.
+- `config/zoekwoorden-energie.json` / `-engineering.json` / `-architectuur.json` — de zoektermen per markt.
 - `config/themes.json` — thema → match-regels (productkeywords/afdelingen).
 - `config/lossReasons.json` — variant → genormaliseerde verlies-reden.
 - `config/customFields.json` — per account: vriendelijke naam → Pipedrive-veld-key (custom_json).

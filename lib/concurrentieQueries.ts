@@ -12,6 +12,7 @@ export type ConcurrentRij = {
   naam: string;
   categorie: string;
   verslaggevers: number;
+  architecten: number;
   provincie: string;
   gemeente: string;
   bereikbaar: number | null;
@@ -29,6 +30,7 @@ export type ConcurrentRij = {
   laatste_blog_url: string | null;
   epb_paginas: number | null;
   eng_paginas: number | null;
+  arch_paginas: number | null;
   omvang: number | null;          // omvang in de opgevraagde markt
   oordeel?: string | null;        // handmatige correctie, als iemand die zette
   oordeel_door?: string | null;
@@ -46,22 +48,39 @@ const LAATSTE_SNAPSHOT = `
 // ---------------------------------------------------------------------------
 // Markten
 //
-// Dezelfde crawl bedient twee markten. Wat per markt verschilt is (1) welke
-// domeinen meetellen, (2) welke kolom de omvang meet en (3) welke van onze
-// eigen sites er speelt. De rest van de vragen is identiek, en dat is precies
-// waarom hier geen tweede set queries staat.
+// Dezelfde crawl bedient drie markten. Wat per markt verschilt is (1) welke
+// domeinen meetellen, (2) welke kolom de omvang meet, (3) welke van onze
+// eigen sites er speelt en (4) welke categorieën géén concurrent zijn. De rest
+// van de vragen is identiek, en dat is precies waarom hier geen tweede en derde
+// set queries staat.
 // ---------------------------------------------------------------------------
 
-export type Markt = "energie" | "engineering";
+export type Markt = "energie" | "engineering" | "architectuur";
 
 /** Nooit een marktnaam uit een parameter rechtstreeks in SQL. */
 function veiligeMarkt(markt: Markt): string {
-  return markt === "engineering" ? "engineering" : "energie";
+  return markt === "engineering" ? "engineering" : markt === "architectuur" ? "architectuur" : "energie";
 }
 
 /** De kolom die de omvang in díé markt meet. */
-function omvangKolom(markt: Markt): "epb_paginas" | "eng_paginas" {
-  return markt === "engineering" ? "eng_paginas" : "epb_paginas";
+function omvangKolom(markt: Markt): "epb_paginas" | "eng_paginas" | "arch_paginas" {
+  return markt === "engineering" ? "eng_paginas" : markt === "architectuur" ? "arch_paginas" : "epb_paginas";
+}
+
+/**
+ * Regio-filter op de register-gegevens van een domein. Alleen de
+ * Architectuur-pagina gebruikt dit: dat register is groot genoeg dat "de markt"
+ * pas iets betekent zodra je hem tot een provincie of een gemeente inperkt.
+ * Provincie en gemeente komen uit het register, niet uit de crawl.
+ */
+export type RegioFilter = { provincie?: string; gemeente?: string };
+
+function regioWaar(f: RegioFilter, alias = "c"): { sql: string; params: string[] } {
+  const delen: string[] = [];
+  const params: string[] = [];
+  if (f.provincie) { delen.push(`${alias}.provincie = ?`); params.push(f.provincie); }
+  if (f.gemeente) { delen.push(`${alias}.gemeente = ?`); params.push(f.gemeente); }
+  return { sql: delen.length ? " AND " + delen.join(" AND ") : "", params };
 }
 
 /** Beperkt tot de domeinen die in deze markt meespelen. */
@@ -88,6 +107,22 @@ export const GEEN_CONCURRENT = [
 ];
 
 /**
+ * In de Architectuur-markt draait die redenering om: dáár is de architect niet
+ * de klant maar dé concurrent, want hij vecht om dezelfde bouwheer. Alleen wat
+ * geen ontwerpopdracht verkoopt blijft er buiten: overheid, portalen,
+ * jobsites, buitenlandse bureaus en fabrikanten. Aannemers blijven er wél in
+ * staan -- een sleutel-op-de-deurbouwer neemt een particuliere bouwheer net zo
+ * goed weg als een collega-architect.
+ */
+const GEEN_CONCURRENT_ARCHITECTUUR = [
+  "overheid", "portaal", "vacature", "buitenland", "fabrikant", "geen-concurrent",
+];
+
+export function geenConcurrentVoor(markt: Markt): string[] {
+  return markt === "architectuur" ? GEEN_CONCURRENT_ARCHITECTUUR : GEEN_CONCURRENT;
+}
+
+/**
  * Het menselijk oordeel gaat voor op de automatische indeling.
  *
  * De regex kan een bureau niet van een fabrikant onderscheiden en weet niet dat
@@ -109,8 +144,9 @@ function categorieExpr(alias = "c"): string {
  * geen bedrijven waar we klanten aan verliezen. Ze horen in het overzicht van
  * zoekresultaten, niet in een ranglijst van concurrenten.
  */
-function echteConcurrent(alias = "c"): string {
-  return `(${categorieExpr(alias)}) NOT IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})`;
+function echteConcurrent(markt: Markt, alias = "c"): string {
+  const lijst = geenConcurrentVoor(markt).map((x) => `'${x}'`).join(",");
+  return `(${categorieExpr(alias)}) NOT IN (${lijst})`;
 }
 
 /**
@@ -120,6 +156,9 @@ function echteConcurrent(alias = "c"): string {
 const ONZE_SITES: Record<Markt, string[]> = {
   energie: ["energie-efficient.be", "unabo.be"],
   engineering: ["unabo.be"],
+  // h-architects.globaal.be is de proefomgeving. Die meten we mee, maar hij mag
+  // nooit als "onze positie" in Google gelden -- daar staat hij niet in.
+  architectuur: ["h-architects.be", "h-architects.globaal.be"],
 };
 
 export function concurrentieHeeftData(markt: Markt = "energie"): boolean {
@@ -127,39 +166,67 @@ export function concurrentieHeeftData(markt: Markt = "energie"): boolean {
   if (markt === "energie") {
     return (db.prepare("SELECT COUNT(*) n FROM verslaggevers").get() as { n: number }).n > 0;
   }
+  if (markt === "architectuur") {
+    return (db.prepare("SELECT COUNT(*) n FROM architecten").get() as { n: number }).n > 0;
+  }
   // De Engineering-markt kent geen register: hier is de crawl de eerste bron.
   return (db.prepare(
     `SELECT COUNT(*) n FROM concurrent_markt WHERE markt = 'engineering'`
   ).get() as { n: number }).n > 0;
 }
 
-export function getMarktKpis(markt: Markt = "energie") {
+/**
+ * Het register achter een markt. Energie steunt op het VEKA-register,
+ * architectuur op het ledenregister van de Orde; engineering heeft er geen en
+ * krijgt daarom nullen in plaats van cijfers uit een vreemde tabel.
+ */
+const REGISTERTABEL: Partial<Record<Markt, string>> = {
+  energie: "verslaggevers",
+  architectuur: "architecten",
+};
+
+export function getMarktKpis(markt: Markt = "energie", regio: RegioFilter = {}) {
   const db = getDb();
+  const tabel = REGISTERTABEL[markt];
+  const r = regioWaar(regio);
+  // Het register-deel van de KPI's volgt hetzelfde regiofilter als de rest van
+  // de pagina: anders staat er "3.100 inschrijvingen" boven een lijst van Leuven.
+  const regReg = regioWaar(regio, "r");
+  const registerSql = tabel
+    ? `(SELECT COUNT(*) FROM ${tabel} r WHERE 1=1 ${regReg.sql})                AS erkenningen,
+       (SELECT COUNT(DISTINCT r.naam) FROM ${tabel} r WHERE 1=1 ${regReg.sql})  AS personen,
+       (SELECT COUNT(*) FROM ${tabel} r WHERE r.domein='' ${regReg.sql})        AS zonder_domein,`
+    : "0 AS erkenningen, 0 AS personen, 0 AS zonder_domein,";
+
   const k = db.prepare(`
     SELECT
-      (SELECT COUNT(*) FROM verslaggevers)                                   AS erkenningen,
-      (SELECT COUNT(DISTINCT naam) FROM verslaggevers)                       AS personen,
+      ${registerSql}
       (SELECT COUNT(*) FROM concurrenten c ${OORDEEL_JOIN}
-        WHERE c.categorie<>'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent()})             AS bedrijven,
+        WHERE c.categorie<>'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql})       AS bedrijven,
       (SELECT COUNT(*) FROM concurrenten c ${OORDEEL_JOIN}
-        WHERE c.categorie<>'eigen' AND ${inMarkt(markt)} AND NOT (${echteConcurrent()}))       AS geen_concurrent,
-      (SELECT COUNT(*) FROM concurrenten c WHERE categorie='concurrent' AND ${inMarkt(markt)}) AS concurrenten,
-      (SELECT COUNT(*) FROM concurrenten c WHERE categorie='prospect' AND ${inMarkt(markt)})   AS prospects,
-      (SELECT COUNT(*) FROM verslaggevers WHERE domein='')                   AS zonder_domein
-  `).get() as Record<string, number>;
+        WHERE c.categorie<>'eigen' AND ${inMarkt(markt)} AND NOT (${echteConcurrent(markt)}) ${r.sql}) AS geen_concurrent,
+      (SELECT COUNT(*) FROM concurrenten c WHERE categorie='concurrent' AND ${inMarkt(markt)} ${r.sql}) AS concurrenten,
+      (SELECT COUNT(*) FROM concurrenten c WHERE categorie='prospect' AND ${inMarkt(markt)} ${r.sql})   AS prospects
+  `).get(
+    // Drie subquery's over het register (alleen als er een register is), daarna
+    // vier over de gevolgde domeinen. De volgorde moet die van de SQL volgen.
+    ...(tabel ? [...regReg.params, ...regReg.params, ...regReg.params] : []),
+    ...r.params, ...r.params, ...r.params, ...r.params
+  ) as Record<string, number>;
 
   const web = db.prepare(`
     SELECT
       COUNT(*)                                              AS gemeten,
-      SUM(CASE WHEN bereikbaar=1 THEN 1 ELSE 0 END)         AS online,
-      SUM(CASE WHEN blog_artikels > 0 THEN 1 ELSE 0 END)    AS met_blog,
-      SUM(CASE WHEN laatste_blog >= date('now','-90 days') THEN 1 ELSE 0 END) AS actief_bloggend,
-      SUM(CASE WHEN spam_verdacht > 0 THEN 1 ELSE 0 END)    AS gehackt,
-      AVG(NULLIF(paginas,0))                                AS gem_paginas,
-      AVG(NULLIF(${omvangKolom(markt)},0))                  AS gem_omvang
+      SUM(CASE WHEN s.bereikbaar=1 THEN 1 ELSE 0 END)       AS online,
+      SUM(CASE WHEN s.blog_artikels > 0 THEN 1 ELSE 0 END)  AS met_blog,
+      SUM(CASE WHEN s.laatste_blog >= date('now','-90 days') THEN 1 ELSE 0 END) AS actief_bloggend,
+      SUM(CASE WHEN s.spam_verdacht > 0 THEN 1 ELSE 0 END)  AS gehackt,
+      AVG(NULLIF(s.paginas,0))                              AS gem_paginas,
+      AVG(NULLIF(s.${omvangKolom(markt)},0))                AS gem_omvang
     FROM (${LAATSTE_SNAPSHOT}) s
-    WHERE ${inMarkt(markt, "s")}
-  `).get() as Record<string, number>;
+    JOIN concurrenten c ON c.domein = s.domein
+    WHERE ${inMarkt(markt, "s")} ${r.sql}
+  `).get(...r.params) as Record<string, number>;
 
   return { ...k, ...web };
 }
@@ -169,10 +236,11 @@ export function getConcurrenten(categorie?: string, markt: Markt = "energie"): C
   const omvang = omvangKolom(markt);
   const waar = categorie ? "WHERE c.categorie = ?" : "";
   const sql = `
-    SELECT c.domein, c.naam, c.categorie, c.verslaggevers, c.provincie, c.gemeente, c.laatste_check,
+    SELECT c.domein, c.naam, c.categorie, c.verslaggevers, c.architecten,
+           c.provincie, c.gemeente, c.laatste_check,
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
            s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
-           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas,
+           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas, s.arch_paginas,
            s.${omvang} AS omvang, s.spam_verdacht, s.fout
     FROM concurrenten c
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
@@ -191,41 +259,46 @@ export function getConcurrenten(categorie?: string, markt: Markt = "energie"): C
  */
 export function getConcurrentenInMarkt(
   markt: Markt,
-  soort: "concurrent" | "rest" | "eigen" = "concurrent"
+  soort: "concurrent" | "rest" | "eigen" = "concurrent",
+  regio: RegioFilter = {}
 ): ConcurrentRij[] {
   const db = getDb();
   const omvang = omvangKolom(markt);
+  // Onze eigen sites blijven altijd zichtbaar: die horen niet in een provincie
+  // thuis, en ze wegfilteren zou de vergelijking wegnemen waar de pagina om draait.
+  const r = soort === "eigen" ? { sql: "", params: [] as string[] } : regioWaar(regio);
   const filter =
     soort === "eigen"
       ? "AND c.categorie = 'eigen'"
       : soort === "rest"
-        ? `AND c.categorie <> 'eigen' AND NOT (${echteConcurrent()})`
-        : `AND c.categorie <> 'eigen' AND ${echteConcurrent()}`;
+        ? `AND c.categorie <> 'eigen' AND NOT (${echteConcurrent(markt)})`
+        : `AND c.categorie <> 'eigen' AND ${echteConcurrent(markt)}`;
   return db.prepare(`
-    SELECT c.domein, c.naam, ${categorieExpr()} AS categorie, c.verslaggevers,
+    SELECT c.domein, c.naam, ${categorieExpr()} AS categorie, c.verslaggevers, c.architecten,
            c.provincie, c.gemeente, c.laatste_check,
            b.oordeel, b.door AS oordeel_door,
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
            s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
-           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas,
+           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas, s.arch_paginas,
            s.${omvang} AS omvang, s.spam_verdacht, s.fout
     FROM concurrenten c
     ${OORDEEL_JOIN}
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
-    WHERE ${inMarkt(markt)} ${filter}
+    WHERE ${inMarkt(markt)} ${filter} ${r.sql}
     ORDER BY COALESCE(s.${omvang},0) DESC, COALESCE(s.blog_artikels,0) DESC, c.domein
-  `).all() as ConcurrentRij[];
+  `).all(...r.params) as ConcurrentRij[];
 }
 
 export type BureauRij = {
-  naam: string; domein: string; verslaggevers: number; provincie: string;
+  naam: string; domein: string; verslaggevers: number; architecten: number;
+  provincie: string; gemeente: string;
   paginas: number | null; epb_paginas: number | null; omvang: number | null; blog_artikels: number | null;
   laatste_blog: string | null; laatste_blog_url: string | null;
   bereikbaar: number | null; heeft_sitemap: number | null; spam_verdacht: number | null;
 };
 
 const bureauKolommen = (markt: Markt) => `
-  c.naam, c.domein, c.verslaggevers, c.provincie,
+  c.naam, c.domein, c.verslaggevers, c.architecten, c.provincie, c.gemeente,
   s.paginas, s.epb_paginas, s.${omvangKolom(markt)} AS omvang,
   s.blog_artikels, s.laatste_blog, s.laatste_blog_url,
   s.bereikbaar, s.heeft_sitemap, s.spam_verdacht
@@ -236,17 +309,18 @@ const bureauKolommen = (markt: Markt) => `
  * aantal pagina's: Arcadis en Sweco hebben duizenden pagina's maar zijn geen
  * EPB-bureau, en mijnEPB heeft maar drie verslaggevers maar staat overal.
  */
-export function getSterksteOnline(limiet = 15, markt: Markt = "energie"): BureauRij[] {
+export function getSterksteOnline(limiet = 15, markt: Markt = "energie", regio: RegioFilter = {}): BureauRij[] {
   const db = getDb();
+  const r = regioWaar(regio);
   return db.prepare(`
     SELECT ${bureauKolommen(markt)}
     FROM concurrenten c
     ${OORDEEL_JOIN}
     JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
-    WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent()}
+    WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql}
     ORDER BY COALESCE(s.${omvangKolom(markt)},0) DESC, COALESCE(s.blog_artikels,0) DESC
     LIMIT ?
-  `).all(limiet) as BureauRij[];
+  `).all(...r.params, limiet) as BureauRij[];
 }
 
 /** De andere lens: wie heeft de meeste mensen in dienst. */
@@ -273,12 +347,14 @@ export function getPerProvincie() {
 }
 
 /** Welke diensten bieden concurrenten aan, en hoe vaak. Dit legt de gaten bloot. */
-export function getDienstenDekking(markt: Markt = "energie") {
+export function getDienstenDekking(markt: Markt = "energie", regio: RegioFilter = {}) {
   const db = getDb();
+  const r = regioWaar(regio);
   const rijen = db.prepare(
-    `SELECT diensten FROM (${LAATSTE_SNAPSHOT}) s
-      WHERE diensten IS NOT NULL AND ${inMarkt(markt, "s")}`
-  ).all() as { diensten: string }[];
+    `SELECT s.diensten FROM (${LAATSTE_SNAPSHOT}) s
+      JOIN concurrenten c ON c.domein = s.domein
+      WHERE s.diensten IS NOT NULL AND ${inMarkt(markt, "s")} ${r.sql}`
+  ).all(...r.params) as { diensten: string }[];
   const telling = new Map<string, number>();
   for (const r of rijen) {
     let lijst: string[] = [];
@@ -359,19 +435,20 @@ export function getMarktBronnen(markt: Markt) {
  * De bureaus die het meest over deze markt publiceren. Omvang zegt hoe groot
  * iemand is, dit zegt of hij nog beweegt -- en dat is wat een inhaalslag duur maakt.
  */
-export function getActiefstePubliceerders(limiet = 10, markt: Markt = "energie"): BureauRij[] {
+export function getActiefstePubliceerders(limiet = 10, markt: Markt = "energie", regio: RegioFilter = {}): BureauRij[] {
   const db = getDb();
+  const r = regioWaar(regio);
   return db.prepare(`
     SELECT ${bureauKolommen(markt)}
     FROM concurrenten c
     ${OORDEEL_JOIN}
     JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
-    WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent()}
+    WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql}
       AND COALESCE(s.spam_verdacht,0) < 3
       AND s.laatste_blog >= date('now','-365 days')
     ORDER BY COALESCE(s.blog_per_maand,0) DESC, COALESCE(s.blog_artikels,0) DESC
     LIMIT ?
-  `).all(limiet) as BureauRij[];
+  `).all(...r.params, limiet) as BureauRij[];
 }
 
 export function getCrawlStatus(markt?: Markt) {
@@ -508,7 +585,7 @@ export function getLeaderboard(aantalTermen = 8, diepte = 5, alles = false, mark
   // Het filter hoort vóór de rangschikking: anders levert "top 5" er drie op
   // zodra er twee portalen tussen staan. De getoonde positie blijft de echte
   // Google-positie, dus het gat naar plek 1 blijft eerlijk zichtbaar.
-  const geenConcurrent = alles ? "" : `AND ${echteConcurrent()}`;
+  const geenConcurrent = alles ? "" : `AND ${echteConcurrent(markt)}`;
 
   return db.prepare(`
     WITH gefilterd AS (
@@ -743,7 +820,7 @@ export function getHerschrijfKansen(limiet = 20, markt: Markt = "energie"): Hers
     JOIN zoekwoorden z ON z.term = p.term
     WHERE p.datum = ? AND p.soort = 'organisch' AND p.positie <= 5
       AND ${termInMarkt(markt)}
-      AND (${categorieExpr()}) IN (${GEEN_CONCURRENT.map((x) => `'${x}'`).join(",")})
+      AND (${categorieExpr()}) IN (${geenConcurrentVoor(markt).map((x) => `'${x}'`).join(",")})
     ORDER BY COALESCE(z.volume,0) DESC, p.positie
     LIMIT ?
   `).all(laatste, limiet) as HerschrijfKans[];
@@ -830,4 +907,116 @@ export function getProvincieKeuzes(): string[] {
     SELECT DISTINCT COALESCE(NULLIF(provincie,''),'onbekend') p
     FROM verslaggevers ORDER BY p
   `).all() as { p: string }[]).map((r) => r.p);
+}
+
+// ---------------------------------------------------------------------------
+// Het architectenregister (Orde van Architecten, Vlaamse Raad)
+// ---------------------------------------------------------------------------
+
+/**
+ * De keuzelijsten voor het regiofilter, en meteen de reden waarom dat filter er
+ * is: dit register telt duizenden inschrijvingen over heel Vlaanderen, terwijl
+ * een bouwheer zijn architect in zijn eigen streek zoekt. Een ranglijst zonder
+ * regio meet dus iets wat niemand koopt.
+ *
+ * De gemeentelijst hangt aan de gekozen provincie. Zonder die beperking staan er
+ * driehonderd gemeenten in één keuzelijst.
+ */
+export function getArchitectRegios(provincie?: string) {
+  const db = getDb();
+  const provincies = (db.prepare(
+    `SELECT provincie p, COUNT(*) n FROM architecten
+      WHERE provincie <> '' GROUP BY provincie ORDER BY n DESC`
+  ).all() as { p: string; n: number }[]);
+
+  const gemeenten = provincie
+    ? (db.prepare(
+        `SELECT gemeente g, COUNT(*) n FROM architecten
+          WHERE gemeente <> '' AND provincie = ?
+          GROUP BY gemeente ORDER BY n DESC, gemeente`
+      ).all(provincie) as { g: string; n: number }[])
+    : [];
+
+  return { provincies, gemeenten };
+}
+
+/**
+ * Hoe de markt over de provincies verdeeld ligt. Twee kolommen die niet
+ * hetzelfde zeggen: het aantal inschrijvingen (hoeveel architecten er zijn) en
+ * het aantal domeinen (hoeveel bureaus er online zichtbaar zijn). Waar die twee
+ * ver uit elkaar liggen, staat een provincie vol architecten die niet op internet
+ * te vinden zijn -- dat is open terrein, geen drukke markt.
+ */
+export function getArchitectenPerProvincie() {
+  const db = getDb();
+  return db.prepare(`
+    SELECT COALESCE(NULLIF(provincie,''),'onbekend') provincie,
+           COUNT(*)                                  inschrijvingen,
+           SUM(CASE WHEN soort='vennootschap' THEN 1 ELSE 0 END) vennootschappen,
+           COUNT(DISTINCT NULLIF(domein,''))         domeinen,
+           SUM(CASE WHEN website <> '' THEN 1 ELSE 0 END) met_website
+    FROM architecten GROUP BY 1 ORDER BY inschrijvingen DESC
+  `).all() as {
+    provincie: string; inschrijvingen: number; vennootschappen: number;
+    domeinen: number; met_website: number;
+  }[];
+}
+
+/**
+ * De gemeenten waar de meeste architecten zitten binnen het gekozen gebied.
+ * Dit is de lens waar H-Architects om vroeg: Leuven en Antwerpen zijn het
+ * zwaartepunt, en dan wil je weten hoe druk het daar precies is.
+ */
+export function getArchitectenPerGemeente(provincie?: string, limiet = 25) {
+  const db = getDb();
+  const waar = provincie ? "WHERE provincie = ?" : "WHERE gemeente <> ''";
+  const params: (string | number)[] = provincie ? [provincie, limiet] : [limiet];
+  return db.prepare(`
+    SELECT gemeente, postcode,
+           COUNT(*) inschrijvingen,
+           COUNT(DISTINCT NULLIF(domein,'')) domeinen
+    FROM architecten ${waar}
+    GROUP BY gemeente
+    ORDER BY inschrijvingen DESC, gemeente
+    LIMIT ?
+  `).all(...params) as {
+    gemeente: string; postcode: string; inschrijvingen: number; domeinen: number;
+  }[];
+}
+
+/**
+ * Wat het register over zichzelf zegt: hoeveel inschrijvingen, hoeveel daarvan
+ * een eigen website opgaven, en wanneer het opgehaald is. Zonder dat laatste
+ * cijfer lijkt een lijst van vandaag even hard als een lijst van vorig jaar.
+ */
+export function getArchitectRegisterStatus() {
+  const db = getDb();
+  return db.prepare(`
+    SELECT COUNT(*)                                            AS inschrijvingen,
+           SUM(CASE WHEN soort='vennootschap' THEN 1 ELSE 0 END) AS vennootschappen,
+           SUM(CASE WHEN soort='persoon' THEN 1 ELSE 0 END)      AS personen,
+           SUM(CASE WHEN website <> '' THEN 1 ELSE 0 END)        AS met_website,
+           SUM(CASE WHEN domein = '' THEN 1 ELSE 0 END)          AS zonder_domein,
+           COUNT(DISTINCT NULLIF(domein,''))                     AS domeinen,
+           MAX(bron_datum)                                       AS bron_datum
+    FROM architecten
+  `).get() as {
+    inschrijvingen: number; vennootschappen: number; personen: number;
+    met_website: number; zonder_domein: number; domeinen: number; bron_datum: string | null;
+  };
+}
+
+/**
+ * Bureaus uit het register die we (nog) niet crawlen: wel ingeschreven, maar
+ * zonder gepubliceerde website en met één inschrijving op het domein. Ze staan
+ * in de markt, niet in de meting. Zichtbaar maken hoort erbij -- anders lijkt de
+ * gemeten markt de hele markt.
+ */
+export function telNietGevolgdeArchitecten(regio: RegioFilter = {}) {
+  const db = getDb();
+  const r = regioWaar(regio);
+  return (db.prepare(`
+    SELECT COUNT(*) n FROM concurrenten c
+     WHERE c.volgen = 0 AND ${inMarkt("architectuur")} ${r.sql}
+  `).get(...r.params) as { n: number }).n;
 }

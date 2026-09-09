@@ -1,25 +1,35 @@
 # Concurrentiemonitor aanzetten
 
-De module draait al zonder externe koppelingen: de sitecrawl van alle 360 domeinen
-werkt en heeft niets nodig. Drie bronnen maken het beeld compleet. Alle drie zijn
-gratis; de enige stappen die overblijven kan alleen jij zetten, omdat er ergens
-ingelogd moet worden.
+De module draait al zonder externe koppelingen: de sitecrawl werkt en heeft niets
+nodig. Drie bronnen maken het beeld compleet. Alle drie zijn gratis; de enige
+stappen die overblijven kan alleen jij zetten, omdat er ergens ingelogd moet worden.
 
-Op de pagina's `/energy/concurrentie` en `/engineering/concurrentie` staat bovenaan een
-rij met vier bolletjes: groen = gekoppeld, grijs = ontbreekt nog. Daar zie je altijd de
-actuele stand.
+Op de pagina's `/energy/concurrentie`, `/engineering/concurrentie` en
+`/h-architects/concurrentie` staat bovenaan een rij met vier bolletjes:
+groen = gekoppeld, grijs = ontbreekt nog. Daar zie je altijd de actuele stand.
 
-**Twee markten, één motor.** Energie (EPB, ventilatie) en Engineering (stabiliteit) delen
-de crawl en de koppelingen. Wat per markt verschilt zijn de zoektermen
-(`config/zoekwoorden-energie.json`, `config/zoekwoorden-engineering.json`) en de vraag welke
-bedrijven meespelen. De API-routes nemen daarvoor `?markt=energie` of `?markt=engineering`.
+**Drie markten, één motor.** Energie (EPB, ventilatie), Engineering (stabiliteit) en
+Architectuur (H-Architects) delen de crawl en de koppelingen. Wat per markt verschilt
+zijn de zoektermen (`config/zoekwoorden-<markt>.json`) en de vraag welke bedrijven
+meespelen. De API-routes nemen daarvoor `?markt=energie`, `?markt=engineering` of
+`?markt=architectuur`.
+
+**Twee registers.** Energie steunt op het VEKA-register
+(`data-bronnen/verslaggevers-2026-08.json`, 792 erkenningen), Architectuur op het
+ledenregister van de Orde van Architecten
+(`data-bronnen/architecten-orde-2026-09.json`, 11.965 inschrijvingen — zie
+`data-bronnen/README-architecten.md`). Engineering heeft er geen en wordt van onderaf
+opgebouwd. Allebei die registers lees je in met
+`/api/concurrentie?import=1&limiet=0`; verversen doe je met de hand, want ze komen niet
+uit een API die wij mogen bevragen.
 
 ---
 
 ## 1. Zoekvolume — Google Ads Keyword Planner
 
 **Wat het oplevert:** hoeveel mensen er per maand op elke term zoeken. Zonder dit
-weet je niet of "EPB verslaggever Genk" tien of duizend keer per maand gezocht wordt.
+weet je niet of "EPB verslaggever Genk" tien of duizend keer per maand gezocht wordt,
+of "architect Diest" bestaat als zoekopdracht.
 
 **Wat er nodig is:** niets nieuws. De koppeling gebruikt dezelfde OAuth-client als
 de advertentiesync, en valt voor het klantnummer terug op het eerste account uit
@@ -109,12 +119,15 @@ SERPAPI_KEY=...
 ```
 curl "http://localhost:3008/api/zoekwoorden?markt=energie&posities=1&limiet=30"
 curl "http://localhost:3008/api/zoekwoorden?markt=engineering&posities=1&limiet=15"
+curl "http://localhost:3008/api/zoekwoorden?markt=architectuur&posities=1&limiet=15"
 ```
 
-Daarna via de cron: Energie elke maandag, Engineering de maandag van de even weken. Het
-gratis quotum is 250 zoekopdrachten per maand **voor beide markten samen** — vandaar de
-limieten. Wie er meer uit wil halen, verhoogt niet de limiet maar schrapt termen die toch
-niets opleveren (zie de intentie `vacature`).
+Daarna via de cron: Energie elke maandag, Engineering de maandag van de even weken,
+Architectuur de maandag van de oneven weken. Het gratis quotum is 250 zoekopdrachten per
+maand **voor alle drie de markten samen** — vandaar de limieten. Samen komt dat op
+ongeveer 190 per maand, met marge voor een handmatige meting tussendoor. Wie er meer uit
+wil halen, verhoogt niet de limiet maar schrapt termen die toch niets opleveren (zie de
+intentie `vacature`).
 
 **Alternatief:** DataForSEO is per zoekopdracht goedkoper (0,0006 dollar, dus 12
 dollarcent per maand voor onze lijst) maar vraagt 50 dollar vooruitbetaling. Werkt ook:
@@ -129,11 +142,16 @@ krijgt die voorrang.
 
 | Wat | Wanneer |
 |---|---|
-| 90 concurrentsites hercrawlen | dagelijks (volledige lijst elke 4 dagen rond) |
+| 250 concurrentsites hercrawlen | dagelijks (volledige lijst in ruim een week rond) |
 | Search Console ophalen | dagelijks |
 | Posities meten — Energie (30 termen) | maandag |
 | Posities meten — Engineering (15 termen) | maandag van de even weken |
-| Zoekvolumes ophalen (beide markten) | de eerste van de maand |
+| Posities meten — Architectuur (15 termen) | maandag van de oneven weken |
+| Zoekvolumes ophalen (alle markten) | de eerste van de maand |
+
+Waarom 250 en niet 90: met het architectenregister erbij staan er een paar duizend
+domeinen in de lijst in plaats van 360. Op 90 per dag zou een site nog maar een paar keer
+per jaar gemeten worden, en dan meet je geen verandering meer.
 
 Na een crawl of een herberekening deelt de app de domeinen zelf opnieuw in bij een markt.
 Handmatig kan dat met `/api/concurrentie?markten=1`; `?herbereken=1` leidt bovendien de

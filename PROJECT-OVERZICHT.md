@@ -35,9 +35,13 @@ voor SEO/SEA-advies.
 ## 4. Structuur — drie dashboards (menu links)
 
 - **Algemeen** (`/`) — alle sales over de 4 accounts samen.
-- **Engineering** (`/engineering`) — enkel UNABO Engineering + TKN-Buro, met diepere analyse.
+- **Engineering** (`/engineering`) — enkel UNABO Engineering + TKN-Buro, met diepere analyse,
+  plus de concurrentiemonitor voor stabiliteitsstudies.
 - **Energy** (`/energy`) — UNABO Energy, zelfde diepgang als Engineering (eigen querymodule
   `lib/energyQueries.ts`), plus concurrentiemonitor en verslaggeversregister.
+- **H-Architects** (`/h-architects`) — de afdelingspagina is nog in aanbouw, maar
+  `/h-architects/concurrentie` draait al: de derde markt van de concurrentiemonitor,
+  gebouwd op het ledenregister van de Orde van Architecten.
 - Opzet is voorbereid om later meer afdelings-dashboards toe te voegen (Safety, 3D Scanning, …).
 
 ---
