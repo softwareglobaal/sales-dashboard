@@ -1,8 +1,8 @@
 #!/bin/sh
 # Concurrentiemonitor — dagelijkse controle van de concurrentiesites.
-# Bedient drie markten: Energie (EPB), Engineering (stabiliteit) en Architectuur
-# (H-Architects). De crawl is marktloos; alleen de positiemeting gaat per markt,
-# omdat het SERP-quotum gedeeld wordt.
+# Bedient vier markten: Energie (EPB), Engineering (stabiliteit), Architectuur
+# (H-Architects) en Regularisatie (regulariseren.be). De crawl is marktloos;
+# alleen de positiemeting gaat per markt, omdat het SERP-quotum gedeeld wordt.
 #
 # Crontab op de server:
 #   30 5 * * * /home/ubuntu/appportal/sales/scripts/concurrentie-cron.sh >> /home/ubuntu/concurrentie.log 2>&1
@@ -41,22 +41,25 @@ roep '/api/searchconsole?dagen=28' || echo '{"ok":false}'
 # Posities wekelijks (maandag), zoekvolumes maandelijks (de eerste).
 # Beide zijn no-ops zolang de betreffende bron niet gekoppeld is.
 # Posities: het gratis SerpApi-quotum is 250 zoekopdrachten per maand voor alle
-# drie de markten samen. Energie wekelijks op 30 termen (~130 per maand),
-# Engineering in de even weken op 15 termen (~30 per maand) en Architectuur in de
-# oneven weken op 15 termen (~30 per maand). Samen ~190: dat past, met marge voor
-# een handmatige meting tussendoor.
+# vier de markten samen. Energie wekelijks op 30 termen (~130 per maand), de drie
+# kleinere markten om de twee weken op 15 termen (~30 per maand elk): Engineering
+# in de even weken, Architectuur en Regularisatie in de oneven weken. Samen ~220:
+# dat past nog, met een kleine marge voor een handmatige meting tussendoor. Komt
+# er een vijfde markt bij, dan moet er een term af of een betaald plan bij.
 if [ "$(date +%u)" = "1" ]; then
   echo "$(date -Is) posities energie"
   roep '/api/zoekwoorden?markt=energie&posities=1&limiet=30' || echo '{"ok":false}'
 
-  # De twee kleinere markten wisselen elkaar af: even week Engineering,
-  # oneven week Architectuur. Zo betaalt geen van beide voor de andere.
+  # De kleinere markten wisselen elkaar af: even week Engineering, oneven week
+  # de twee H-Architects-markten. Zo betaalt geen van hen voor de andere.
   if [ "$(( $(date +%V) % 2 ))" = "0" ]; then
     echo "$(date -Is) posities engineering"
     roep '/api/zoekwoorden?markt=engineering&posities=1&limiet=15' || echo '{"ok":false}'
   else
     echo "$(date -Is) posities architectuur"
     roep '/api/zoekwoorden?markt=architectuur&posities=1&limiet=15' || echo '{"ok":false}'
+    echo "$(date -Is) posities regularisatie"
+    roep '/api/zoekwoorden?markt=regularisatie&posities=1&limiet=15' || echo '{"ok":false}'
   fi
 fi
 if [ "$(date +%d)" = "01" ]; then
@@ -64,6 +67,7 @@ if [ "$(date +%d)" = "01" ]; then
   roep '/api/zoekwoorden?markt=energie&volumes=1' || echo '{"ok":false}'
   roep '/api/zoekwoorden?markt=engineering&volumes=1' || echo '{"ok":false}'
   roep '/api/zoekwoorden?markt=architectuur&volumes=1' || echo '{"ok":false}'
+  roep '/api/zoekwoorden?markt=regularisatie&volumes=1' || echo '{"ok":false}'
 fi
 
 # Niet-nul afsluiten als de crawl mislukte, zodat het opvalt in de log.

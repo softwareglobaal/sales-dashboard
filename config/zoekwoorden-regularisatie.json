@@ -1,0 +1,68 @@
+{
+  "_uitleg": "Zoekwoorden die de Regularisatie-markt afbakenen: bouwovertredingen regulariseren, zoals regulariseren.be (specialist), mijnregularisatie.be (zelfcheck) en h-architects.be (moederbureau) die bedienen. Gebaseerd op het keywordonderzoek van 4 augustus 2026 en het concurrentieonderzoek van 11 augustus 2026 (marketing/seo/firmas/Regulariseren/onderzoek). Aan te vullen zonder code. thema = groepering op de pagina, intentie = dienst (koopklaar) / probleem (urgent, hoge waarde) / kennis (blogstof) / lokaal (regio). Het thema 'Maatregelenregister' is de hefboom uit het onderzoek: notarissen en makelaars moeten het sinds 1 april 2026 bij elke overdracht raadplegen en geen enkele concurrent speelde daar in augustus 2026 op in. Het thema 'Uit Search Console' zijn termen waarop h-architects.be al vertoningen haalt zonder dat wij ze volgden. De 'Situaties' zijn de objecttermen (veranda, tuinhuis, carport ...) waarop grote niet-architect-ecosystemen ranken; dat zijn de termen waarop mijnregularisatie.be met /situaties/ inzet. Regio volgt het werkgebied: heel Vlaanderen, met Diest, Leuven en Antwerpen als zwaartepunt — Antwerpen is de enige stad waar concurrenten apart op inzetten. Deze termen stonden tot 11 september 2026 als thema 'Regularisatie' in de architectuurlijst; een term hoort bij één markt.",
+  "markt": "regularisatie",
+  "locatie": { "land": "BE", "taal": "nl", "geoTargetConstant": "2056" },
+  "zoekwoorden": [
+    { "term": "regularisatie bouwovertreding", "thema": "Regularisatie kern", "intentie": "dienst" },
+    { "term": "bouwovertreding regulariseren", "thema": "Regularisatie kern", "intentie": "probleem" },
+    { "term": "architect regularisatie", "thema": "Regularisatie kern", "intentie": "dienst" },
+    { "term": "regularisatie architect", "thema": "Regularisatie kern", "intentie": "dienst" },
+    { "term": "regularisatievergunning", "thema": "Regularisatie kern", "intentie": "dienst" },
+    { "term": "regularisatieaanvraag", "thema": "Regularisatie kern", "intentie": "dienst" },
+    { "term": "regularisatiedossier", "thema": "Regularisatie kern", "intentie": "dienst" },
+    { "term": "regularisatie bouwvergunning", "thema": "Regularisatie kern", "intentie": "probleem" },
+    { "term": "bouwovertreding", "thema": "Regularisatie kern", "intentie": "kennis" },
+    { "term": "bouwmisdrijf", "thema": "Regularisatie kern", "intentie": "kennis" },
+
+    { "term": "wat kost een regularisatie", "thema": "Kostprijs", "intentie": "kennis" },
+    { "term": "regularisatie bouwovertreding kosten", "thema": "Kostprijs", "intentie": "dienst" },
+    { "term": "kostprijs regularisatie architect", "thema": "Kostprijs", "intentie": "dienst" },
+    { "term": "regularisatie prijs", "thema": "Kostprijs", "intentie": "dienst" },
+
+    { "term": "huis kopen met bouwovertreding", "thema": "Kopen en verkopen", "intentie": "probleem" },
+    { "term": "huis verkopen met bouwovertreding", "thema": "Kopen en verkopen", "intentie": "probleem" },
+    { "term": "bouwovertreding bij verkoop woning", "thema": "Kopen en verkopen", "intentie": "probleem" },
+    { "term": "bouwovertreding compromis", "thema": "Kopen en verkopen", "intentie": "probleem" },
+    { "term": "stedenbouwkundig uittreksel bouwovertreding", "thema": "Kopen en verkopen", "intentie": "kennis" },
+
+    { "term": "maatregelenregister", "thema": "Maatregelenregister", "intentie": "kennis" },
+    { "term": "maatregelenregister vastgoed", "thema": "Maatregelenregister", "intentie": "kennis" },
+    { "term": "maatregelenregister notaris", "thema": "Maatregelenregister", "intentie": "dienst" },
+    { "term": "maatregelenregister makelaar", "thema": "Maatregelenregister", "intentie": "dienst" },
+
+    { "term": "boete bouwovertreding", "thema": "Boete en gevolgen", "intentie": "probleem" },
+    { "term": "bouwen zonder vergunning boete", "thema": "Boete en gevolgen", "intentie": "probleem" },
+    { "term": "bouwen zonder vergunning gevolgen", "thema": "Boete en gevolgen", "intentie": "probleem" },
+    { "term": "dwangsom bouwovertreding", "thema": "Boete en gevolgen", "intentie": "probleem" },
+    { "term": "herstelvordering bouwovertreding", "thema": "Boete en gevolgen", "intentie": "kennis" },
+    { "term": "meerwaardeheffing bouwovertreding", "thema": "Boete en gevolgen", "intentie": "kennis" },
+    { "term": "verjaring bouwovertreding", "thema": "Boete en gevolgen", "intentie": "kennis" },
+    { "term": "bouwovertreding melden", "thema": "Boete en gevolgen", "intentie": "kennis" },
+
+    { "term": "vermoeden van vergunning", "thema": "Procedure", "intentie": "kennis" },
+    { "term": "planologisch attest", "thema": "Procedure", "intentie": "kennis" },
+    { "term": "regularisatie geweigerd", "thema": "Procedure", "intentie": "probleem" },
+    { "term": "regularisatie bouwovertreding procedure", "thema": "Procedure", "intentie": "kennis" },
+
+    { "term": "regularisatie aanvragen", "thema": "Uit Search Console", "intentie": "dienst" },
+    { "term": "regularisatie omgevingsvergunning", "thema": "Uit Search Console", "intentie": "dienst" },
+    { "term": "hoe lang duurt een regularisatie", "thema": "Uit Search Console", "intentie": "kennis" },
+
+    { "term": "veranda zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "tuinhuis zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "carport zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "terras zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "verharding zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "woning opsplitsen zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "garage zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "poolhouse zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "zwembad zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+    { "term": "uitbouw zonder vergunning", "thema": "Situaties", "intentie": "probleem" },
+
+    { "term": "regularisatie architect Antwerpen", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "regularisatie architect Leuven", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "regularisatie architect Gent", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "regularisatie architect Diest", "thema": "Regio", "intentie": "lokaal" },
+    { "term": "bouwovertreding regulariseren Limburg", "thema": "Regio", "intentie": "lokaal" }
+  ]
+}

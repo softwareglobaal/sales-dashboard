@@ -4,24 +4,25 @@ De module draait al zonder externe koppelingen: de sitecrawl werkt en heeft niet
 nodig. Drie bronnen maken het beeld compleet. Alle drie zijn gratis; de enige
 stappen die overblijven kan alleen jij zetten, omdat er ergens ingelogd moet worden.
 
-Op de pagina's `/energy/concurrentie`, `/engineering/concurrentie` en
-`/h-architects/concurrentie` staat bovenaan een rij met vier bolletjes:
+Op de pagina's `/energy/concurrentie`, `/engineering/concurrentie`,
+`/h-architects/concurrentie` en `/regularisatie/concurrentie` staat bovenaan een rij met vier bolletjes:
 groen = gekoppeld, grijs = ontbreekt nog. Daar zie je altijd de actuele stand.
 
-**Drie markten, één motor.** Energie (EPB, ventilatie), Engineering (stabiliteit) en
-Architectuur (H-Architects) delen de crawl en de koppelingen. Wat per markt verschilt
-zijn de zoektermen (`config/zoekwoorden-<markt>.json`) en de vraag welke bedrijven
-meespelen. De API-routes nemen daarvoor `?markt=energie`, `?markt=engineering` of
-`?markt=architectuur`.
+**Vier markten, één motor.** Energie (EPB, ventilatie), Engineering (stabiliteit),
+Architectuur (H-Architects) en Regularisatie (regulariseren.be) delen de crawl en de
+koppelingen. Wat per markt verschilt zijn de zoektermen (`config/zoekwoorden-<markt>.json`)
+en de vraag welke bedrijven meespelen. De API-routes nemen daarvoor `?markt=energie`,
+`?markt=engineering`, `?markt=architectuur` of `?markt=regularisatie`.
 
 **Twee registers.** Energie steunt op het VEKA-register
 (`data-bronnen/verslaggevers-2026-08.json`, 792 erkenningen), Architectuur op het
 ledenregister van de Orde van Architecten
 (`data-bronnen/architecten-orde-2026-09.json`, 11.965 inschrijvingen — zie
 `data-bronnen/README-architecten.md`). Engineering heeft er geen en wordt van onderaf
-opgebouwd. Allebei die registers lees je in met
-`/api/concurrentie?import=1&crawl=0`; verversen doe je met de hand, want ze komen niet
-uit een API die wij mogen bevragen.
+opgebouwd. Regularisatie evenmin, maar die markt start met de lijst uit het
+concurrentieonderzoek van augustus 2026 (`REGULARISATIE_ONDERZOEK` in `lib/concurrentie.ts`).
+Registers én startlijst lees je in met `/api/concurrentie?import=1&crawl=0`; verversen doe
+je met de hand, want ze komen niet uit een API die wij mogen bevragen.
 
 ---
 
@@ -120,14 +121,16 @@ SERPAPI_KEY=...
 curl "http://localhost:3008/api/zoekwoorden?markt=energie&posities=1&limiet=30"
 curl "http://localhost:3008/api/zoekwoorden?markt=engineering&posities=1&limiet=15"
 curl "http://localhost:3008/api/zoekwoorden?markt=architectuur&posities=1&limiet=15"
+curl "http://localhost:3008/api/zoekwoorden?markt=regularisatie&posities=1&limiet=15"
 ```
 
 Daarna via de cron: Energie elke maandag, Engineering de maandag van de even weken,
-Architectuur de maandag van de oneven weken. Het gratis quotum is 250 zoekopdrachten per
-maand **voor alle drie de markten samen** — vandaar de limieten. Samen komt dat op
-ongeveer 190 per maand, met marge voor een handmatige meting tussendoor. Wie er meer uit
-wil halen, verhoogt niet de limiet maar schrapt termen die toch niets opleveren (zie de
-intentie `vacature`).
+Architectuur en Regularisatie de maandag van de oneven weken. Het gratis quotum is 250
+zoekopdrachten per maand **voor alle vier de markten samen** — vandaar de limieten. Samen
+komt dat op ongeveer 220 per maand, met een kleine marge voor een handmatige meting
+tussendoor. Wie er meer uit wil halen, verhoogt niet de limiet maar schrapt termen die toch
+niets opleveren (zie de intentie `vacature`). Een vijfde markt past er niet meer bij zonder
+een betaald plan.
 
 **Alternatief:** DataForSEO is per zoekopdracht goedkoper (0,0006 dollar, dus 12
 dollarcent per maand voor onze lijst) maar vraagt 50 dollar vooruitbetaling. Werkt ook:
@@ -147,6 +150,7 @@ krijgt die voorrang.
 | Posities meten — Energie (30 termen) | maandag |
 | Posities meten — Engineering (15 termen) | maandag van de even weken |
 | Posities meten — Architectuur (15 termen) | maandag van de oneven weken |
+| Posities meten — Regularisatie (15 termen) | maandag van de oneven weken |
 | Zoekvolumes ophalen (alle markten) | de eerste van de maand |
 
 Waarom 250 en niet 90: met het architectenregister erbij staan er een paar duizend

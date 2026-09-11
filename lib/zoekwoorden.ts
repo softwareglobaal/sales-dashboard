@@ -1,7 +1,10 @@
 /**
- * Zoekwoorden en posities per markt: `energie` (EPB, ventilatie) en
- * `engineering` (stabiliteitsstudies). Elke markt heeft een eigen
- * configbestand `config/zoekwoorden-<markt>.json`.
+ * Zoekwoorden en posities per markt: `energie` (EPB, ventilatie),
+ * `engineering` (stabiliteitsstudies), `architectuur` (H-Architects) en
+ * `regularisatie` (bouwovertredingen). Elke markt heeft een eigen
+ * configbestand `config/zoekwoorden-<markt>.json`. Een term hoort bij één
+ * markt (de term is de sleutel): staat hij in twee bestanden, dan wint het
+ * laatst ingelezen bestand.
  *
  * Twee bronnen, bewust gescheiden:
  *  - Zoekvolume komt van Google Ads (Keyword Planner). Die koppeling bestaat al
