@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { headers } from "next/headers";
 import { afdelingenVoor, AFDELING_VAN_PAD } from "@/lib/toegang";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Sales & Marketing Dashboard",
@@ -33,14 +22,26 @@ export default async function RootLayout({
     .filter(([, afdeling]) => toegestaan.has(afdeling))
     .map(([pad]) => pad);
   return (
-    <html
-      lang="nl"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full bg-[#d7dde7] text-zinc-900">
-        <div className="flex min-h-screen">
+    <html lang="nl" className="h-full antialiased">
+      <head>
+        {/* Lettertypen van de huisstijl (Newsreader + Instrument Sans), zie app/glas.css */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap"
+        />
+      </head>
+      <body className="min-h-full">
+        <div className="scene" aria-hidden="true">
+          <i className="b1" />
+          <i className="b2" />
+          <i className="b3" />
+          <i className="b4" />
+        </div>
+        <div className="app-sales">
           <Sidebar afdelingen={paden} />
-          <div className="min-w-0 flex-1">{children}</div>
+          <div className="min-w-0">{children}</div>
         </div>
       </body>
     </html>

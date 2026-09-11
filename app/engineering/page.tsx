@@ -157,10 +157,10 @@ export default async function EngineeringPage({
 
   return (
     <main className="mx-auto max-w-7xl px-6 pb-10">
-      <div className="sticky top-0 z-30 -mx-6 mb-6 border-b border-black/10 bg-[#d7dde7]/85 px-6 pt-7 backdrop-blur-md">
+      <div className="kopbalk">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Engineering</h1>
+            <h1 className="h1-glas">Engineering</h1>
             <p className="text-[12.5px] text-zinc-500">UNABO Engineering + TKN-Buro · lead-scope</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -211,33 +211,33 @@ export default async function EngineeringPage({
       {/* KPI's */}
       <section id="overzicht" className="mb-8 grid scroll-mt-40 grid-cols-2 gap-4 lg:grid-cols-4">
         {/* primaire KPI (omzet) */}
-        <div className="flex flex-col gap-2 rounded-2xl bg-gradient-to-br from-[#16204a] to-[#243a86] p-5 text-white shadow-sm">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-indigo-200">Omzet (gewonnen)</div>
-          <div className="text-[30px] font-extrabold leading-none tracking-tight">{euro(kpis.wonValue)}</div>
+        <div className="flex flex-col gap-2 paneel donker">
+          <div className="label">Omzet (gewonnen)</div>
+          <div className="kpi-groot">{euro(kpis.wonValue)}</div>
           <Delta v={kpis.dWonValue} hero />
           {showTargets && yearTarget.omzet > 0 && (
             <TargetBar current={kpis.wonValue} target={yearTarget.omzet} fmt={euro} hero />
           )}
-          <div className="mt-auto text-[11.5px] text-indigo-200/80">op product-prijs</div>
+          <div className="mt-auto text-[11.5px] opacity-60">op product-prijs</div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Aanvragen</div>
-          <div className="text-2xl font-bold text-zinc-900">{num(kpis.requests)}</div>
+        <div className="flex flex-col gap-1.5 paneel">
+          <div className="label">Aanvragen</div>
+          <div className="kpi-groot">{num(kpis.requests)}</div>
           <Delta v={kpis.dRequests} />
           <div className="text-xs text-zinc-500">leads binnengekomen in periode</div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Verkocht</div>
-          <div className="text-2xl font-bold text-zinc-900">{num(kpis.wonCount)}</div>
+        <div className="flex flex-col gap-1.5 paneel">
+          <div className="label">Verkocht</div>
+          <div className="kpi-groot">{num(kpis.wonCount)}</div>
           <Delta v={kpis.dWonCount} />
           {showTargets && yearTarget.aantal > 0 && (
             <TargetBar current={kpis.wonCount} target={yearTarget.aantal} fmt={(n) => num(n)} />
           )}
           <div className="text-xs text-zinc-500">gewonnen deals in periode</div>
         </div>
-        <div className="flex flex-col gap-1.5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Gem. tijd tot verkoop</div>
-          <div className="text-2xl font-bold text-zinc-900">{kpis.avgDays != null ? `${num(kpis.avgDays)} dagen` : "—"}</div>
+        <div className="flex flex-col gap-1.5 paneel">
+          <div className="label">Gem. tijd tot verkoop</div>
+          <div className="kpi-groot">{kpis.avgDays != null ? `${num(kpis.avgDays)} dagen` : "—"}</div>
           <div className="mt-auto text-xs text-zinc-500">aanvraag → gewonnen</div>
         </div>
       </section>
@@ -764,8 +764,8 @@ export default async function EngineeringPage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {["Man", "Vrouw", "Onbekend"].map((g) => (
               <div key={g} className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 p-4">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{g}</div>
-                <div className="mt-1 text-2xl font-bold text-zinc-300">—</div>
+                <div className="label">{g}</div>
+                <div className="mt-1 kpi-groot text-zinc-300">—</div>
                 <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100" />
               </div>
             ))}
@@ -792,8 +792,8 @@ export default async function EngineeringPage({
               { label: "Gem. tijd tot meeting", hint: "aanvraag → afspraak" },
             ].map((m) => (
               <div key={m.label} className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 p-4">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{m.label}</div>
-                <div className="mt-1 text-2xl font-bold text-zinc-300">—</div>
+                <div className="label">{m.label}</div>
+                <div className="mt-1 kpi-groot text-zinc-300">—</div>
                 <div className="mt-1 text-[11px] text-zinc-400">{m.hint}</div>
               </div>
             ))}

@@ -64,7 +64,7 @@ export default async function SeoSeaPage({
   const Header = () => (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">SEO / SEA</h1>
+        <h1 className="h1-glas">SEO / SEA</h1>
         <p className="text-[12.5px] text-zinc-500">Google Ads — {label} · advertentieprestaties &amp; leads</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -118,7 +118,7 @@ export default async function SeoSeaPage({
 
   return (
     <main className="mx-auto max-w-7xl px-6 pb-10">
-      <div className="sticky top-0 z-30 -mx-6 mb-6 border-b border-black/10 bg-[#d7dde7]/85 px-6 pt-7 backdrop-blur-md">
+      <div className="kopbalk">
         <Header />
         <div className="flex flex-wrap gap-2 text-[11.5px]">
           <SyncFreshness />
@@ -150,10 +150,10 @@ export default async function SeoSeaPage({
 
       {/* KPI's */}
       <section id="overzicht" className="mb-8 grid scroll-mt-40 grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="flex flex-col gap-2 rounded-2xl bg-gradient-to-br from-[#16204a] to-[#243a86] p-5 text-white shadow-sm">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-indigo-200">Advertentiekosten</div>
-          <div className="text-[30px] font-extrabold leading-none tracking-tight">{euro(overview.spend)}</div>
-          <div className="mt-auto text-[11.5px] text-indigo-200/80">
+        <div className="flex flex-col gap-2 paneel donker">
+          <div className="label">Advertentiekosten</div>
+          <div className="kpi-groot">{euro(overview.spend)}</div>
+          <div className="mt-auto text-[11.5px] opacity-60">
             {num(overview.activeCampaigns)} actieve · {num(overview.totalCampaigns)} campagnes
           </div>
         </div>

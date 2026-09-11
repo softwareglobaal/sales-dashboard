@@ -140,7 +140,7 @@ export default function WoordenboekPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">Woordenboek</h1>
+        <h1 className="h1-glas">Woordenboek</h1>
         <p className="text-sm text-zinc-500">
           Wat betekenen de begrippen en cijfers in dit dashboard? Items met{" "}
           <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">controleren</span>{" "}

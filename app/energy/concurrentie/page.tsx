@@ -90,7 +90,7 @@ export default async function ConcurrentiePage({
   if (!concurrentieHeeftData()) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
-        <h1 className="text-xl font-bold text-zinc-900">Concurrentie — Energie</h1>
+        <h1 className="h1-glas klein">Concurrentie — Energie</h1>
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
           Nog geen data. Draai eerst <code className="rounded bg-white px-1.5 py-0.5">/api/concurrentie</code> om
           het register in te lezen en de eerste sites te meten.
@@ -140,9 +140,9 @@ export default async function ConcurrentiePage({
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
-      <div className="sticky top-0 z-10 -mx-6 border-b border-zinc-200 bg-white/95 px-6 pb-0 pt-4 backdrop-blur">
+      <div className="kopbalk">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-xl font-bold text-zinc-900">Concurrentie — Energie</h1>
+          <h1 className="h1-glas klein">Concurrentie — Energie</h1>
           <div className="text-xs text-zinc-500">
             Register bijgewerkt 25/08/2026 · laatste sitecontrole{" "}
             {status.laatste_crawl ? status.laatste_crawl.split("-").reverse().join("/") : "nog niet"}

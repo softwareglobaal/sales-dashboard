@@ -259,7 +259,7 @@ export function BelgiumMap({
   );
 
   return (
-    <div className="relative overflow-hidden rounded-xl bg-[#f6f8fb] ring-1 ring-black/[0.04]">
+    <div className="relative overflow-hidden rounded-xl bg-zinc-50 ring-1 ring-black/[0.04]">
       <svg
         ref={svgRef}
         viewBox={BE_VIEWBOX}
@@ -298,7 +298,7 @@ export function BelgiumMap({
                   className="cursor-pointer"
                   onClick={click(() => setSel({ kind: "deal", d: p }))}
                 >
-                  <title>{p.client} — {p.city}</title>
+                  <title>{`${p.client} — ${p.city}`}</title>
                 </circle>
               );
             })}
@@ -321,7 +321,7 @@ export function BelgiumMap({
                   className="cursor-pointer"
                   onClick={click(() => setSel({ kind: "b2b", d: o }))}
                 >
-                  <title>{o.name} — {o.count} deals</title>
+                  <title>{`${o.name} — ${o.count} deals`}</title>
                 </path>
               );
             })}
@@ -342,7 +342,7 @@ export function BelgiumMap({
                 >
                   {building(i, color)}
                   <circle r={7} fill="transparent" />
-                  <title>{o.label} — {o.city}</title>
+                  <title>{`${o.label} — ${o.city}`}</title>
                 </g>
               );
             })}

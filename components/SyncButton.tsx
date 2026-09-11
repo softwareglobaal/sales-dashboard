@@ -35,11 +35,11 @@ export function SyncButton({ variant = "default" }: { variant?: "default" | "sid
         <button
           onClick={sync}
           disabled={loading}
-          className="w-full rounded-lg border border-[#2a3446] bg-[#1b2333] px-3 py-2 text-xs font-semibold text-zinc-100 hover:bg-[#232d40] disabled:opacity-50"
+          className="knop-donker knop-klein w-full"
         >
-          {loading ? "Bezig met ophalen…" : "↻ Data verversen"}
+          {loading ? "Bezig met ophalen…" : "Data verversen"}
         </button>
-        {msg && <span className="text-[11px] text-zinc-400">{msg}</span>}
+        {msg && <span className="text-[11px] text-zinc-500">{msg}</span>}
       </div>
     );
   }
@@ -49,9 +49,9 @@ export function SyncButton({ variant = "default" }: { variant?: "default" | "sid
       <button
         onClick={sync}
         disabled={loading}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="knop-donker"
       >
-        {loading ? "Bezig met ophalen…" : "↻ Data verversen"}
+        {loading ? "Bezig met ophalen…" : "Data verversen"}
       </button>
       {msg && <span className="text-sm text-zinc-600">{msg}</span>}
     </div>

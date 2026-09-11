@@ -1,17 +1,442 @@
 @import "tailwindcss";
+/* glas.css is de gedeelde huisstijl (~/Claude/platform-huisstijl). Nooit hier aanpassen. */
+@import "./glas.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/*
+ * De Tailwind-tokens worden op de Glas-huisstijl gezet. Daardoor krijgen de
+ * bestaande utility-klassen in de pagina's (text-zinc-500, bg-blue-600,
+ * rounded-xl ...) de kleuren, radii en lettertypen van de standaard zonder
+ * dat de markup of de logica van de pagina's verandert.
+ *
+ *   zinc / slate / gray            -> de warme inkt-schaal
+ *   blue / indigo / violet / sky / cyan -> het accent (één accentkleur)
+ *   emerald / green                -> goed
+ *   red / rose                     -> kritiek
+ *   amber / yellow / orange        -> let op
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--sans);
+  --font-mono: var(--sans);
+
+  --color-zinc-50: #f7f6f4;
+  --color-zinc-100: #f0eeeb;
+  --color-zinc-200: #e2dfda;
+  --color-zinc-300: #cfcac3;
+  --color-zinc-400: #8f8a82;
+  --color-zinc-500: #6f6a62;
+  --color-zinc-600: #5f5a52;
+  --color-zinc-700: #46423b;
+  --color-zinc-800: #2b2823;
+  --color-zinc-900: #16150f;
+  --color-zinc-950: #151412;
+  --color-slate-50: #f7f6f4;
+  --color-slate-100: #f0eeeb;
+  --color-slate-200: #e2dfda;
+  --color-slate-300: #cfcac3;
+  --color-slate-400: #8f8a82;
+  --color-slate-500: #6f6a62;
+  --color-slate-600: #5f5a52;
+  --color-slate-700: #46423b;
+  --color-slate-800: #2b2823;
+  --color-slate-900: #16150f;
+  --color-slate-950: #151412;
+  --color-gray-50: #f7f6f4;
+  --color-gray-100: #f0eeeb;
+  --color-gray-200: #e2dfda;
+  --color-gray-300: #cfcac3;
+  --color-gray-400: #8f8a82;
+  --color-gray-500: #6f6a62;
+  --color-gray-600: #5f5a52;
+  --color-gray-700: #46423b;
+  --color-gray-800: #2b2823;
+  --color-gray-900: #16150f;
+  --color-gray-950: #151412;
+
+  --color-blue-50: #f6f0ea;
+  --color-blue-100: #ede1d5;
+  --color-blue-200: #dcc6b3;
+  --color-blue-300: #c4a385;
+  --color-blue-400: #a97f5c;
+  --color-blue-500: #8c5e3c;
+  --color-blue-600: #8c5e3c;
+  --color-blue-700: #74492b;
+  --color-blue-800: #5a381f;
+  --color-blue-900: #422816;
+  --color-blue-950: #2e1b0e;
+  --color-indigo-50: #f6f0ea;
+  --color-indigo-100: #ede1d5;
+  --color-indigo-200: #dcc6b3;
+  --color-indigo-300: #c4a385;
+  --color-indigo-400: #a97f5c;
+  --color-indigo-500: #8c5e3c;
+  --color-indigo-600: #8c5e3c;
+  --color-indigo-700: #74492b;
+  --color-indigo-800: #5a381f;
+  --color-indigo-900: #422816;
+  --color-violet-50: #f6f0ea;
+  --color-violet-100: #ede1d5;
+  --color-violet-200: #dcc6b3;
+  --color-violet-300: #c4a385;
+  --color-violet-400: #a97f5c;
+  --color-violet-500: #8c5e3c;
+  --color-violet-600: #8c5e3c;
+  --color-violet-700: #74492b;
+  --color-violet-800: #5a381f;
+  --color-violet-900: #422816;
+  --color-sky-50: #f6f0ea;
+  --color-sky-100: #ede1d5;
+  --color-sky-200: #dcc6b3;
+  --color-sky-300: #c4a385;
+  --color-sky-400: #a97f5c;
+  --color-sky-500: #8c5e3c;
+  --color-sky-600: #8c5e3c;
+  --color-sky-700: #74492b;
+  --color-sky-800: #5a381f;
+  --color-sky-900: #422816;
+  --color-cyan-50: #f6f0ea;
+  --color-cyan-100: #ede1d5;
+  --color-cyan-200: #dcc6b3;
+  --color-cyan-300: #c4a385;
+  --color-cyan-400: #a97f5c;
+  --color-cyan-500: #8c5e3c;
+  --color-cyan-600: #8c5e3c;
+  --color-cyan-700: #74492b;
+  --color-cyan-800: #5a381f;
+  --color-cyan-900: #422816;
+
+  --color-emerald-50: #edf4ef;
+  --color-emerald-100: #dcebe1;
+  --color-emerald-200: #b9d6c3;
+  --color-emerald-300: #8dbb9d;
+  --color-emerald-400: #5e9b74;
+  --color-emerald-500: #2f7a4e;
+  --color-emerald-600: #2f7a4e;
+  --color-emerald-700: #27633f;
+  --color-emerald-800: #1f4d32;
+  --color-emerald-900: #173a26;
+  --color-green-50: #edf4ef;
+  --color-green-100: #dcebe1;
+  --color-green-200: #b9d6c3;
+  --color-green-300: #8dbb9d;
+  --color-green-400: #5e9b74;
+  --color-green-500: #2f7a4e;
+  --color-green-600: #2f7a4e;
+  --color-green-700: #27633f;
+  --color-green-800: #1f4d32;
+  --color-green-900: #173a26;
+
+  --color-red-50: #f8eeee;
+  --color-red-100: #f2dcdc;
+  --color-red-200: #e6b9b9;
+  --color-red-300: #d48f8f;
+  --color-red-400: #c46161;
+  --color-red-500: #b23a3a;
+  --color-red-600: #b23a3a;
+  --color-red-700: #933030;
+  --color-red-800: #732626;
+  --color-red-900: #561d1d;
+  --color-rose-50: #f8eeee;
+  --color-rose-100: #f2dcdc;
+  --color-rose-200: #e6b9b9;
+  --color-rose-300: #d48f8f;
+  --color-rose-400: #c46161;
+  --color-rose-500: #b23a3a;
+  --color-rose-600: #b23a3a;
+  --color-rose-700: #933030;
+  --color-rose-800: #732626;
+  --color-rose-900: #561d1d;
+
+  --color-amber-50: #f9f3e6;
+  --color-amber-100: #f3e6cb;
+  --color-amber-200: #e8d09a;
+  --color-amber-300: #d8b463;
+  --color-amber-400: #c6963a;
+  --color-amber-500: #b07a12;
+  --color-amber-600: #b07a12;
+  --color-amber-700: #916410;
+  --color-amber-800: #704d0c;
+  --color-amber-900: #543a09;
+  --color-yellow-50: #f9f3e6;
+  --color-yellow-100: #f3e6cb;
+  --color-yellow-200: #e8d09a;
+  --color-yellow-300: #d8b463;
+  --color-yellow-400: #c6963a;
+  --color-yellow-500: #b07a12;
+  --color-yellow-600: #b07a12;
+  --color-yellow-700: #916410;
+  --color-yellow-800: #704d0c;
+  --color-yellow-900: #543a09;
+  --color-orange-50: #f9f3e6;
+  --color-orange-100: #f3e6cb;
+  --color-orange-200: #e8d09a;
+  --color-orange-300: #d8b463;
+  --color-orange-400: #c6963a;
+  --color-orange-500: #b07a12;
+  --color-orange-600: #b07a12;
+  --color-orange-700: #916410;
+  --color-orange-800: #704d0c;
+  --color-orange-900: #543a09;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 26px;
+  --radius-3xl: 32px;
+
+  --shadow-sm: 0 4px 14px rgba(22, 21, 15, 0.05);
+  --shadow-md: 0 10px 24px rgba(22, 21, 15, 0.1);
+  --shadow-lg: 0 24px 60px rgba(22, 21, 15, 0.1);
 }
 
+/* ---- schil van het sales-dashboard ---- */
 body {
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--grond);
+  color: var(--inkt);
+  font-size: 14px;
+}
+.app-sales {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  min-height: 100vh;
+  padding: 18px;
+}
+.rail-sales {
+  /* Breder dan de standaardzijbalk (132px): dit menu heeft groepen en subniveaus. */
+  width: 176px;
+  transition: width 0.2s;
+}
+.rail-sales.dicht {
+  width: 76px;
+}
+.rail-sales nav {
+  margin-top: 22px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+  scrollbar-width: none;
+}
+.rail-sales nav::-webkit-scrollbar {
+  display: none;
+}
+.rail-sales nav a,
+.rail-sales nav .slotrij {
+  min-width: 0;
+  padding: 9px 10px;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.rail-sales nav a span.lbl {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rail-sales nav .slotrij {
+  display: flex;
+  align-items: center;
+  border-radius: var(--pil);
+  color: var(--inkt-vaag);
+  font-weight: 500;
+  cursor: default;
+}
+.rail-sales nav .onder a {
+  padding: 7px 10px 7px 30px;
+  font-size: 12px;
+}
+.rail-sales nav .groep {
+  display: block;
+  padding: 14px 10px 4px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--inkt-vaag);
+  font-weight: 500;
+}
+.rail-sales.dicht nav .groep,
+.rail-sales.dicht nav a span.lbl,
+.rail-sales.dicht nav .slotrij span.lbl,
+.rail-sales.dicht nav .onder {
+  display: none;
+}
+.rail-sales.dicht nav a,
+.rail-sales.dicht nav .slotrij {
+  justify-content: center;
+}
+.rail-sales nav .streep {
+  height: 1px;
+  background: var(--lijn);
+  margin: 10px 8px;
+}
+.rail-sales .voet {
+  margin-top: auto;
+  padding-top: 12px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--inkt-vaag);
+  text-align: center;
+}
+.rail-sales .voet .verbonden {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.3;
+}
+.rail-sales .voet .verbonden i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--goed);
+  box-shadow: 0 0 0 3px var(--goed-licht);
+  flex: none;
+}
+.rail-sales .klap {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--vlak);
+  color: var(--inkt-zacht);
+}
+.rail-sales .klap:hover {
+  color: var(--inkt);
+}
+.rail-sales .klap svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* De sticky kopbalk boven een pagina (was: bg-[#d7dde7]/85 met blur). */
+.kopbalk {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: 0 -24px 24px;
+  padding: 18px 24px 0;
+  background: rgba(228, 226, 227, 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--lijn);
+}
+
+/* Koppen: de pagina's droegen text-2xl/font-bold; nu de serif van de standaard. */
+.h1-glas {
+  font: 400 34px/1.05 var(--serif);
+  letter-spacing: -0.01em;
+  color: var(--inkt);
+  text-wrap: balance;
+}
+.h1-glas.klein {
+  font-size: 26px;
+}
+.h1-glas em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+/* KPI-cijfer in de kaarten van de afdelingspagina's. */
+.kpi-groot {
+  font: 400 30px/1 var(--serif);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabellen in de pagina's: kapitaalkoppen en tabular cijfers, zoals de standaard. */
+main table th {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--inkt-vaag);
+  font-weight: 500;
+}
+main table td.text-right,
+main table th.text-right {
+  font-variant-numeric: tabular-nums;
+}
+main table tbody tr:hover {
+  background: rgba(22, 21, 15, 0.025);
+}
+
+/* Formuliervelden en knoppen die nog 'rounded' (hoekig) droegen, worden pillen. */
+main button.rounded,
+main a.rounded,
+main input.rounded,
+main select.rounded {
+  border-radius: var(--pil);
+}
+main button.rounded-lg,
+main a.rounded-lg {
+  border-radius: var(--pil);
+}
+
+/* Onder 760px: zijbalk wordt een balk bovenaan. */
+@media (max-width: 760px) {
+  .app-sales {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+  }
+  .rail-sales,
+  .rail-sales.dicht {
+    width: auto;
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .rail-sales nav {
+    flex-direction: row;
+    margin: 0;
+    gap: 2px;
+    overflow-x: auto;
+  }
+  .rail-sales nav > div {
+    display: contents;
+  }
+  .rail-sales .woordmerk small {
+    display: none;
+  }
+  .rail-sales nav .groep,
+  .rail-sales nav .streep,
+  .rail-sales nav a span.lbl,
+  .rail-sales nav .slotrij span.lbl,
+  .rail-sales nav .onder {
+    display: none;
+  }
+  .rail-sales nav a,
+  .rail-sales nav .slotrij {
+    width: auto;
+  }
+  .rail-sales .voet {
+    margin: 0;
+    width: auto;
+  }
+  .rail-sales .voet .verbonden,
+  .rail-sales .voet .sync {
+    display: none;
+  }
+  .kopbalk {
+    margin: 0 -12px 16px;
+    padding: 12px 12px 0;
+  }
+  .h1-glas {
+    font-size: 26px;
+  }
 }

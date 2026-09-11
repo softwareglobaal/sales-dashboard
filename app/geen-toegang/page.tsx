@@ -5,23 +5,25 @@ export const dynamic = "force-dynamic";
 export default function GeenToegang() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-24">
-      <div className="rounded-xl border border-zinc-300 bg-white p-10">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">
-          Geen toegang
-        </p>
-        <h1 className="mt-2 text-xl font-semibold text-zinc-900">
-          Deze afdeling staat niet voor jou open
-        </h1>
-        <p className="mt-3 max-w-md text-sm text-zinc-600">
-          Je account is niet aan deze afdeling toegewezen. Vraag Siyan om je aan de
-          juiste groep toe te voegen als je hier wél bij moet.
-        </p>
-        <a
-          href="/"
-          className="mt-6 inline-block rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:border-zinc-500"
-        >
-          Terug naar het overzicht
-        </a>
+      <div className="paneel">
+        <div className="slot-scherm">
+          <div className="kader">
+            <span className="ico">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="2" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+              </svg>
+            </span>
+            <h2>Deze afdeling staat niet voor jou open</h2>
+            <p>
+              Je account is niet aan deze afdeling toegewezen. Vraag Siyan om je aan de juiste groep toe te voegen
+              als je hier wél bij moet.
+            </p>
+            <a href="/" className="knop-donker" style={{ marginTop: 22 }}>
+              Terug naar het overzicht
+            </a>
+          </div>
+        </div>
       </div>
     </main>
   );

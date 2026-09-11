@@ -322,7 +322,18 @@ Energie.
   - **Projecttype (UNABO):** "Gebouwtype" (eengezins/meergezins) + "Type aanvraag/situatie" (nieuwbouw/renovatie).
     Toon MÉT "NIEUW / nog niet volledig gevuld"-badge + vulgraad; geen harde conclusies (nu ~8% gevuld).
 
-## Layout / huisstijl (design-pass, juli 2026)
+## Layout / huisstijl (Glas, september 2026)
+
+Sinds 11 september 2026 volgt het dashboard de vaste huisstijl voor alle platformen van Siyan:
+`~/Claude/platform-huisstijl/HUISSTIJL.md` (glaslook, Newsreader + Instrument Sans, één accent).
+`app/glas.css` is een ongewijzigde kopie van het gedeelde stylesheet; `app/globals.css` zet de
+Tailwind-tokens (zinc, blue, emerald, red, amber, radii, schaduwen) op die standaard, zodat de
+bestaande utility-klassen in de pagina's de juiste kleuren en vormen krijgen zonder dat de markup
+of de dataregels veranderen. De zijbalk (`components/Sidebar.tsx`) is de glazen rail van de standaard,
+176px breed omdat het menu groepen en subniveaus heeft. De paragraaf hieronder beschrijft de vorige
+vormgeving en blijft staan als geschiedenis.
+
+## Layout / huisstijl (design-pass, juli 2026, vervangen)
 - **Naam:** "Sales dashboard" (geen ondertitel). App-shell = **linker zijbalk** (`components/Sidebar.tsx`,
   donker `#0f1522`, gegroepeerd: Overzicht · Afdelingen · Marketing · Team, met firma-accent-dots en
   "soon"-labels; footer met sync-status + `SyncButton variant="sidebar"`) + main-area.

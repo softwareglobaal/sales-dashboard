@@ -31,7 +31,7 @@ export default async function RegisterPage({
   if (!concurrentieHeeftData()) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
-        <h1 className="text-xl font-bold text-zinc-900">Register EPB-verslaggevers</h1>
+        <h1 className="h1-glas klein">Register EPB-verslaggevers</h1>
         <p className="mt-4 text-sm text-zinc-500">Nog geen register ingelezen.</p>
       </main>
     );
@@ -51,7 +51,7 @@ export default async function RegisterPage({
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-bold text-zinc-900">Register EPB-verslaggevers</h1>
+        <h1 className="h1-glas klein">Register EPB-verslaggevers</h1>
         <div className="text-xs text-zinc-500">Bron: VEKA / energiesparen.be — export augustus 2026</div>
       </div>
 
