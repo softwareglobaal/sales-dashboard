@@ -35,6 +35,11 @@ Klik rechtsboven op **"↻ Data verversen"**. Dan haalt het de meest recente dea
   Vlaanderen, waar zitten ze, en wat zetten ze online. Je kan filteren per provincie en
   per gemeente — Leuven en Antwerpen zijn het zwaartepunt.
 
+- **Regularisatie** — ook hier is de afdelingspagina nog in aanbouw, maar de
+  **Concurrentie**-monitor werkt: wie in Vlaanderen bouwovertredingen regulariseert, wat
+  zij aanbieden (en wat niet — het maatregelenregister), en hoe onze drie eigen sites
+  (regulariseren.be, mijnregularisatie.be, h-architects.be) daar tegenover staan.
+
 Later komen er meer afdelings-dashboards bij (Safety, 3D Scanning, …).
 
 > **Toegang afschermen:** zolang dit lokaal op je Mac draait, ziet iedereen alles. Pas wanneer het

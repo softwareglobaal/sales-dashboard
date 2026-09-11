@@ -42,6 +42,10 @@ voor SEO/SEA-advies.
 - **H-Architects** (`/h-architects`) — de afdelingspagina is nog in aanbouw, maar
   `/h-architects/concurrentie` draait al: de derde markt van de concurrentiemonitor,
   gebouwd op het ledenregister van de Orde van Architecten.
+- **Regularisatie** (`/regularisatie`) — idem: afdelingspagina in aanbouw,
+  `/regularisatie/concurrentie` draait al als vierde markt (bouwovertredingen
+  regulariseren), opgebouwd uit het concurrentieonderzoek van augustus 2026, de
+  zoekresultaten en de crawl.
 - Opzet is voorbereid om later meer afdelings-dashboards toe te voegen (Safety, 3D Scanning, …).
 
 ---

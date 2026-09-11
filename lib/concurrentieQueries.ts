@@ -31,6 +31,7 @@ export type ConcurrentRij = {
   epb_paginas: number | null;
   eng_paginas: number | null;
   arch_paginas: number | null;
+  reg_paginas: number | null;
   omvang: number | null;          // omvang in de opgevraagde markt
   oordeel?: string | null;        // handmatige correctie, als iemand die zette
   oordeel_door?: string | null;
@@ -48,23 +49,33 @@ const LAATSTE_SNAPSHOT = `
 // ---------------------------------------------------------------------------
 // Markten
 //
-// Dezelfde crawl bedient drie markten. Wat per markt verschilt is (1) welke
+// Dezelfde crawl bedient vier markten. Wat per markt verschilt is (1) welke
 // domeinen meetellen, (2) welke kolom de omvang meet, (3) welke van onze
 // eigen sites er speelt en (4) welke categorieën géén concurrent zijn. De rest
 // van de vragen is identiek, en dat is precies waarom hier geen tweede en derde
 // set queries staat.
 // ---------------------------------------------------------------------------
 
-export type Markt = "energie" | "engineering" | "architectuur";
+export type Markt = "energie" | "engineering" | "architectuur" | "regularisatie";
 
 /** Nooit een marktnaam uit een parameter rechtstreeks in SQL. */
 function veiligeMarkt(markt: Markt): string {
-  return markt === "engineering" ? "engineering" : markt === "architectuur" ? "architectuur" : "energie";
+  switch (markt) {
+    case "engineering": return "engineering";
+    case "architectuur": return "architectuur";
+    case "regularisatie": return "regularisatie";
+    default: return "energie";
+  }
 }
 
 /** De kolom die de omvang in díé markt meet. */
-function omvangKolom(markt: Markt): "epb_paginas" | "eng_paginas" | "arch_paginas" {
-  return markt === "engineering" ? "eng_paginas" : markt === "architectuur" ? "arch_paginas" : "epb_paginas";
+function omvangKolom(markt: Markt): "epb_paginas" | "eng_paginas" | "arch_paginas" | "reg_paginas" {
+  switch (markt) {
+    case "engineering": return "eng_paginas";
+    case "architectuur": return "arch_paginas";
+    case "regularisatie": return "reg_paginas";
+    default: return "epb_paginas";
+  }
 }
 
 /**
@@ -118,8 +129,20 @@ const GEEN_CONCURRENT_ARCHITECTUUR = [
   "overheid", "portaal", "vacature", "buitenland", "fabrikant", "geen-concurrent",
 ];
 
+/**
+ * Regularisatie zit daar tussenin. De architect is hier concurrent (hij dient
+ * hetzelfde regularisatiedossier in), maar een aannemer níét: die bouwt, hij
+ * regulariseert niet. Een advocaat omgevingsrecht valt onder "onbekend" en telt
+ * dus mee -- terecht, want hij vecht op dezelfde zoekvragen om dezelfde eigenaar.
+ */
+const GEEN_CONCURRENT_REGULARISATIE = [
+  "overheid", "portaal", "vacature", "buitenland", "fabrikant", "aannemer", "geen-concurrent",
+];
+
 export function geenConcurrentVoor(markt: Markt): string[] {
-  return markt === "architectuur" ? GEEN_CONCURRENT_ARCHITECTUUR : GEEN_CONCURRENT;
+  if (markt === "architectuur") return GEEN_CONCURRENT_ARCHITECTUUR;
+  if (markt === "regularisatie") return GEEN_CONCURRENT_REGULARISATIE;
+  return GEEN_CONCURRENT;
 }
 
 /**
@@ -159,6 +182,10 @@ const ONZE_SITES: Record<Markt, string[]> = {
   // h-architects.globaal.be is de proefomgeving. Die meten we mee, maar hij mag
   // nooit als "onze positie" in Google gelden -- daar staat hij niet in.
   architectuur: ["h-architects.be", "h-architects.globaal.be"],
+  // Drie eigen sites in één markt: de specialist, de zelfcheck en het
+  // moederbureau. Alle drie tellen als "wij" in het leaderboard -- de vraag is
+  // niet welke van de drie wint, maar of de groep de eigenaar bereikt.
+  regularisatie: ["regulariseren.be", "mijnregularisatie.be", "h-architects.be"],
 };
 
 export function concurrentieHeeftData(markt: Markt = "energie"): boolean {
@@ -169,9 +196,9 @@ export function concurrentieHeeftData(markt: Markt = "energie"): boolean {
   if (markt === "architectuur") {
     return (db.prepare("SELECT COUNT(*) n FROM architecten").get() as { n: number }).n > 0;
   }
-  // De Engineering-markt kent geen register: hier is de crawl de eerste bron.
+  // Engineering en Regularisatie kennen geen register: de marktlijst zelf is de bron.
   return (db.prepare(
-    `SELECT COUNT(*) n FROM concurrent_markt WHERE markt = 'engineering'`
+    `SELECT COUNT(*) n FROM concurrent_markt WHERE markt = '${veiligeMarkt(markt)}'`
   ).get() as { n: number }).n > 0;
 }
 
@@ -240,7 +267,7 @@ export function getConcurrenten(categorie?: string, markt: Markt = "energie"): C
            c.provincie, c.gemeente, c.laatste_check,
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
            s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
-           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas, s.arch_paginas,
+           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.reg_paginas,
            s.${omvang} AS omvang, s.spam_verdacht, s.fout
     FROM concurrenten c
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
@@ -279,7 +306,7 @@ export function getConcurrentenInMarkt(
            b.oordeel, b.door AS oordeel_door,
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
            s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
-           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas, s.arch_paginas,
+           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.reg_paginas,
            s.${omvang} AS omvang, s.spam_verdacht, s.fout
     FROM concurrenten c
     ${OORDEEL_JOIN}
@@ -679,10 +706,22 @@ const ENG_TERMWOORDEN = [
   "ingenieur", "funder", "scheur", "ligger", "structur", "meetstaat",
 ];
 
+/**
+ * Hetzelfde voor regularisatie: h-architects.be staat in Search Console en levert
+ * ontwerp- én regularisatietermen. Op de Regularisatie-pagina horen alleen die
+ * laatste. regulariseren.be en mijnregularisatie.be zijn per definitie
+ * regularisatie, maar het filter kwaad kan daar niet.
+ */
+const REG_TERMWOORDEN = [
+  "regularis", "bouwovertreding", "bouwmisdrijf", "onvergund", "zonder vergunning",
+  "maatregelenregister", "vermoeden van vergunning", "herstelvordering", "dwangsom",
+];
+
 function termFilter(markt: Markt, kolom = "e.term"): string {
-  if (markt !== "engineering") return "1=1";
-  const woorden = ENG_TERMWOORDEN.map((w) => `lower(${kolom}) LIKE '%${w}%'`).join(" OR ");
-  return `(${woorden} OR ${kolom} IN (SELECT term FROM zoekwoorden WHERE markt = 'engineering'))`;
+  const lijst = markt === "engineering" ? ENG_TERMWOORDEN : markt === "regularisatie" ? REG_TERMWOORDEN : null;
+  if (!lijst) return "1=1";
+  const woorden = lijst.map((w) => `lower(${kolom}) LIKE '%${w}%'`).join(" OR ");
+  return `(${woorden} OR ${kolom} IN (SELECT term FROM zoekwoorden WHERE markt = '${veiligeMarkt(markt)}'))`;
 }
 
 export function getOnzeGscPosities(limiet = 50, markt: Markt = "energie"): GscRij[] {

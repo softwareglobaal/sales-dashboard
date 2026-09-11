@@ -208,7 +208,7 @@ function initSchema(db: Database.Database) {
     -- bureau uit de ene lijst zodra het in de andere staat.
     CREATE TABLE IF NOT EXISTS concurrent_markt (
       domein      TEXT NOT NULL,
-      markt       TEXT NOT NULL,    -- energie / engineering / architectuur
+      markt       TEXT NOT NULL,    -- energie / engineering / architectuur / regularisatie
       bron        TEXT,             -- register / serp / crawl / handmatig
       eerste_zien TEXT,
       PRIMARY KEY (domein, markt)
@@ -360,6 +360,9 @@ function initSchema(db: Database.Database) {
     // Idem voor de Architectuur-markt (H-Architects). Derde kolom, geen derde
     // tabel: dezelfde crawl meet elk domein één keer en telt per markt apart.
     ["arch_paginas", "INTEGER"],
+    // En de Regularisatie-markt (regulariseren.be): pagina's over bouwovertredingen
+    // en regularisatie. Vierde kolom, zelfde motor.
+    ["reg_paginas", "INTEGER"],
   ] as const) {
     if (!snapCols.includes(naam)) db.exec(`ALTER TABLE site_snapshots ADD COLUMN ${naam} ${type}`);
   }
@@ -378,6 +381,7 @@ function initSchema(db: Database.Database) {
   const urlCols2 = (db.prepare("PRAGMA table_info(site_urls)").all() as any[]).map((c) => c.name);
   if (!urlCols2.includes("markt_eng")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_eng INTEGER");
   if (!urlCols2.includes("markt_arch")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_arch INTEGER");
+  if (!urlCols2.includes("markt_reg")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_reg INTEGER");
 
   // Eenmalig: alles wat al gevolgd werd, is via het VEKA-register of via de
   // energie-zoektermen binnengekomen. Dat is dus de energiemarkt.

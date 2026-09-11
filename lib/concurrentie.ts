@@ -1,19 +1,23 @@
 /**
- * Concurrentiemonitor. Bedient drie markten met dezelfde crawl:
- *   - energie      EPB en ventilatie
- *   - engineering  stabiliteitsstudies
- *   - architectuur bouwontwerp voor particuliere bouwheren (H-Architects)
+ * Concurrentiemonitor. Bedient vier markten met dezelfde crawl:
+ *   - energie        EPB en ventilatie
+ *   - engineering    stabiliteitsstudies
+ *   - architectuur   bouwontwerp voor particuliere bouwheren (H-Architects)
+ *   - regularisatie  bouwovertredingen regulariseren (regulariseren.be)
  *
  * Bronnen:
  *  1. twee openbare registers: het VEKA-register van erkende verslaggevers
  *     (energiemarkt) en het ledenregister van de Orde van Architecten
- *     (architectuurmarkt). Engineering heeft er geen.
+ *     (architectuurmarkt). Engineering en regularisatie hebben er geen.
  *  2. de zoekresultaten op onze zoektermen (alle markten, zie lib/zoekwoorden.ts)
  *  3. een eigen crawl van hun websites (wie is er zichtbaar, en wat verandert er)
+ *  4. voor regularisatie: het handmatige concurrentieonderzoek van augustus 2026
+ *     (REGULARISATIE_ONDERZOEK hieronder), als startlijst waar de rest op voortbouwt
  *
  * Eén domein kan in meerdere markten meespelen; welke markten dat zijn staat in
  * `concurrent_markt`. De crawl zelf is marktloos: die meet elk domein één keer
- * en telt de omvang apart per markt (`epb_paginas`, `eng_paginas`, `arch_paginas`).
+ * en telt de omvang apart per markt (`epb_paginas`, `eng_paginas`, `arch_paginas`,
+ * `reg_paginas`).
  *
  * Alles wat we ophalen is publiek: sitemap, robots.txt en de homepage.
  * We lezen alleen; er wordt nergens naar buiten geschreven.
@@ -66,6 +70,15 @@ const DIENSTEN: { key: string; patronen: RegExp }[] = [
   { key: "Regularisatie", patronen: /regularisat|bouwovertreding|regulariser|planologisch attest/i },
   { key: "Interieurarchitectuur", patronen: /interieurarchitect|interieurontwerp|binnenhuisarchitect/i },
   { key: "Aankoopbegeleiding", patronen: /aankoopbegeleid|bouwtechnisch(e)? (keuring|advies)|woningcheck|aankoopkeuring/i },
+  // Regularisatie-markt: wat een specialist rond bouwovertredingen aanbiedt naast
+  // het dossier zelf. Het maatregelenregister is de hefboom uit het onderzoek van
+  // augustus 2026 -- geen enkele concurrent noemde het toen. Dat is precies wat
+  // deze dienstenlijst moet blijven meten.
+  { key: "Maatregelenregister", patronen: /maatregelenregister/i },
+  { key: "Haalbaarheidsstudie", patronen: /haalbaarheidsstud|haalbaarheidsonderzoek|haalbaarheidsanalyse/i },
+  { key: "Prijscalculator", patronen: /prijscalculator|kostencalculator|bereken (je|uw|de) (kost|prijs)|calculator/i },
+  { key: "Juridisch advies bouwrecht", patronen: /omgevingsrecht|bouwrecht|advoca(a)?t(en)?kantoor|juridisch advies/i },
+  { key: "Vermoeden van vergunning", patronen: /vermoeden van vergunning/i },
 ];
 
 // Een categorie- of paginatie-archief is geen artikel. Zonder deze filter telt
@@ -106,6 +119,33 @@ const ENG_RELEVANT =
  */
 const ARCH_RELEVANT =
   /(architect|architectuur|ontwerpbureau|bouwontwerp|woningontwerp|interieurontwerp|binnenhuis|regularisat|bouwovertreding|omgevingsvergunning|bouwaanvraag|stedenbouwkundig|bouwheer|aankoopbegeleid|nieuwbouw(woning|project|ontwerp)|renovatie(project|ontwerp|advies)|verbouwings?(project|ontwerp|plan|advies)|totaalrenovatie|uitbouw|aanbouw|dakkapel|gevelrenovatie|maquette|3d[- ]?visualisat)/i;
+
+/**
+ * Hetzelfde, maar voor de Regularisatie-markt: bouwovertredingen rechtzetten.
+ *
+ * Strakker dan de architectuurlijst, met opzet. "omgevingsvergunning" en
+ * "bouwaanvraag" staan er níét in: die woorden staan op elke architecten- en
+ * verslaggeverssite en zeggen niets over regularisatie. Wat er wél in staat is
+ * het probleem zelf (bouwovertreding, bouwmisdrijf, onvergund, zonder vergunning),
+ * het traject (regulariseren, regularisatievergunning, vermoeden van vergunning,
+ * planologisch attest) en het juridische gevolg (maatregelenregister,
+ * herstelvordering, dwangsom, meerwaardeheffing). Een architect met één
+ * dienstenpagina "regularisatie" haalt zo één pagina; een specialist haalt er
+ * tien -- en dat verschil is precies de omvang die we willen meten.
+ */
+const REG_RELEVANT =
+  /(regularis|bouwovertreding|bouwmisdrijf|bouwinbreuk|onvergund|niet[- ]vergund|zonder[- ]vergunning|maatregelenregister|vermoeden[- ]van[- ]vergunning|planologisch[- ]attest|stedenbouwkundige?[- ]overtreding|herstelvordering|dwangsom|meerwaardeheffing|as[- ]?built[- ]?attest)/i;
+
+/**
+ * Een specialistensite draagt het onderwerp in zijn domeinnaam en niet in zijn
+ * paden: regulariseren.be/tarieven/ gaat over regularisatie, ook al staat het
+ * woord niet in het pad. Zonder deze regel scoort regulariseren.be nul in zijn
+ * eigen markt, en vergund.be of onvergund.be net zo. Op zo'n domein telt elke
+ * pagina mee. "vergund" is hier bewust wél opgenomen (vergund.be is een
+ * regularisatiemerk), terwijl het in REG_RELEVANT ontbreekt omdat het daar op
+ * elke vergunningspagina zou afgaan.
+ */
+const REG_DOMEIN = /(regularis|bouwovertreding|bouwmisdrijf|(^|\.)(on)?vergund\.)/i;
 
 // Wijst op een gehackte site: gok- en adultspam. Dat is geen concurrentie maar een
 // waarschuwing dat de meting van die site niets voorstelt.
@@ -218,7 +258,9 @@ async function sitemapUrls(domein: string, robots: string): Promise<{ urls: Site
 /** Eén URL indelen. Alle kennis zit in de URL zelf, dus dit kan ook achteraf
  *  opnieuw over reeds opgeslagen URL's draaien zonder een site te hercrawlen. */
 export function classificeer(url: string, lastmod = "", bron = "") {
-  const pad = (() => { try { return new URL(url).pathname; } catch { return url; } })();
+  const { pad, host } = (() => {
+    try { const u = new URL(url); return { pad: u.pathname, host: u.hostname }; } catch { return { pad: url, host: "" }; }
+  })();
 
   // WordPress/Yoast splitst de sitemap per inhoudstype. Dat is een veel hardere
   // aanwijzing dan het URL-pad: mijnepb.be publiceert artikels op /artikel-titel/
@@ -247,6 +289,7 @@ export function classificeer(url: string, lastmod = "", bron = "") {
     epb: EPB_RELEVANT.test(pad),
     eng: ENG_RELEVANT.test(pad),
     arch: ARCH_RELEVANT.test(pad),
+    reg: REG_RELEVANT.test(pad) || REG_DOMEIN.test(host),
   };
 }
 
@@ -277,9 +320,10 @@ export type Snapshot = {
   epb_paginas: number;
   eng_paginas: number;
   arch_paginas: number;
+  reg_paginas: number;
   spam_verdacht: number;
   fout: string;
-  urls: { url: string; soort: string; lastmod: string; bron: string; archief: boolean; spam: boolean; epb: boolean; eng: boolean; arch: boolean }[];
+  urls: { url: string; soort: string; lastmod: string; bron: string; archief: boolean; spam: boolean; epb: boolean; eng: boolean; arch: boolean; reg: boolean }[];
 };
 
 /**
@@ -304,7 +348,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
   const leeg: Snapshot = {
     domein, datum, bereikbaar: 0, http_status: 0, ttfb_ms: 0, eind_url: "", titel: "",
     meta_desc: "", cms: "", paginas: 0, blog_paginas: 0, laatste_blog: "", laatste_blog_url: "", blog_per_maand: 0,
-    diensten: "[]", heeft_schema: 0, heeft_localbiz: 0, woorden_home: 0, heeft_sitemap: 0, blog_artikels: 0, epb_paginas: 0, eng_paginas: 0, arch_paginas: 0, spam_verdacht: 0, fout: "", urls: [],
+    diensten: "[]", heeft_schema: 0, heeft_localbiz: 0, woorden_home: 0, heeft_sitemap: 0, blog_artikels: 0, epb_paginas: 0, eng_paginas: 0, arch_paginas: 0, reg_paginas: 0, spam_verdacht: 0, fout: "", urls: [],
   };
 
   // Sommige bureaus draaien alleen op www, of alleen op http. Probeer die varianten
@@ -347,6 +391,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
   const epbPaginas = gerangschikt.filter((u) => u.epb && !u.spam);
   const engPaginas = gerangschikt.filter((u) => u.eng && !u.spam);
   const archPaginas = gerangschikt.filter((u) => u.arch && !u.spam);
+  const regPaginas = gerangschikt.filter((u) => u.reg && !u.spam);
   const metDatum = artikels.filter((a) => a.lastmod).sort((a, b) => a.lastmod.localeCompare(b.lastmod));
   const nieuwste = metDatum[metDatum.length - 1];
   const blogDatums = metDatum.map((b) => b.lastmod);
@@ -375,6 +420,7 @@ export async function meetDomein(domein: string): Promise<Snapshot> {
     epb_paginas: epbPaginas.length,
     eng_paginas: engPaginas.length,
     arch_paginas: archPaginas.length,
+    reg_paginas: regPaginas.length,
     spam_verdacht: spam.length,
     laatste_blog: laatsteBlog,
     laatste_blog_url: nieuwste?.url || "",
@@ -398,13 +444,13 @@ function bewaarSnapshot(s: Snapshot) {
     `INSERT OR REPLACE INTO site_snapshots
      (domein,datum,bereikbaar,http_status,ttfb_ms,eind_url,titel,meta_desc,cms,paginas,
       blog_paginas,laatste_blog,laatste_blog_url,blog_per_maand,diensten,heeft_schema,heeft_localbiz,woorden_home,heeft_sitemap,
-      blog_artikels,epb_paginas,eng_paginas,arch_paginas,spam_verdacht,fout)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+      blog_artikels,epb_paginas,eng_paginas,arch_paginas,reg_paginas,spam_verdacht,fout)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run(
     s.domein, s.datum, s.bereikbaar, s.http_status, s.ttfb_ms, s.eind_url, s.titel, s.meta_desc,
     s.cms, s.paginas, s.blog_paginas, s.laatste_blog, s.laatste_blog_url, s.blog_per_maand, s.diensten,
     s.heeft_schema, s.heeft_localbiz, s.woorden_home, s.heeft_sitemap,
-    s.blog_artikels, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.spam_verdacht, s.fout
+    s.blog_artikels, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.reg_paginas, s.spam_verdacht, s.fout
   );
 
   // Nieuwe URL's = signaal. De eerste crawl van een domein levert géén signalen op,
@@ -418,11 +464,11 @@ function bewaarSnapshot(s: Snapshot) {
   const bekend = new Set(bestaat.map((r) => r.url));
 
   const upsert = db.prepare(
-    `INSERT INTO site_urls (domein,url,soort,lastmod,sitemap_bron,artikel,markt_eng,markt_arch,eerste_zien,laatste_zien)
-     VALUES (?,?,?,?,?,?,?,?,?,?)
+    `INSERT INTO site_urls (domein,url,soort,lastmod,sitemap_bron,artikel,markt_eng,markt_arch,markt_reg,eerste_zien,laatste_zien)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(domein,url) DO UPDATE SET
        lastmod=excluded.lastmod, soort=excluded.soort, artikel=excluded.artikel,
-       markt_eng=excluded.markt_eng, markt_arch=excluded.markt_arch,
+       markt_eng=excluded.markt_eng, markt_arch=excluded.markt_arch, markt_reg=excluded.markt_reg,
        sitemap_bron=excluded.sitemap_bron, laatste_zien=excluded.laatste_zien`
   );
   const signaal = db.prepare(
@@ -434,7 +480,7 @@ function bewaarSnapshot(s: Snapshot) {
       const isArtikel = u.soort === "blog" && !u.archief && !u.spam ? 1 : 0;
       upsert.run(
         s.domein, u.url, u.soort, u.lastmod, u.bron || "", isArtikel,
-        u.eng && !u.spam ? 1 : 0, u.arch && !u.spam ? 1 : 0, s.datum, s.datum
+        u.eng && !u.spam ? 1 : 0, u.arch && !u.spam ? 1 : 0, u.reg && !u.spam ? 1 : 0, s.datum, s.datum
       );
       if (!isEersteKeer && !bekend.has(u.url) && !u.spam) {
         signaal.run(
@@ -478,14 +524,82 @@ export const EIGEN_DOMEINEN = [
   { domein: "energie-efficient.be", naam: "Energie-Efficient (wij)", markten: ["energie"] },
   // unabo.be draagt beide afdelingen: EPB én de stabiliteitsstudies.
   { domein: "unabo.be", naam: "Unabo (wij)", markten: ["energie", "engineering"] },
-  { domein: "h-architects.be", naam: "H-Architects (wij)", markten: ["architectuur"] },
+  // h-architects.be draagt ook regularisatie: acht pagina's over bouwovertredingen,
+  // en daarmee de sterkste interne concurrent van regulariseren.be.
+  { domein: "h-architects.be", naam: "H-Architects (wij)", markten: ["architectuur", "regularisatie"] },
   // De proefomgeving meten we mee: daar staat wat nog niet live is, en het
   // verschil tussen die twee is precies wat er nog te publiceren valt.
   { domein: "h-architects.globaal.be", naam: "H-Architects proef (wij)", markten: ["architectuur"] },
+  // De specialistensite voor regularisatie (uitgever UNABO, uitvoerder H-Architects)
+  // en de zelfcheck-tool ernaast. Twee eigen merken in één markt, bewust zonder
+  // link naar elkaar -- zie de contentstrategie regularisatie.
+  { domein: "regulariseren.be", naam: "Regulariseren.be (wij)", markten: ["regularisatie"] },
+  { domein: "mijnregularisatie.be", naam: "Mijnregularisatie.be (wij)", markten: ["regularisatie"] },
 ];
 
-export type Markt = "energie" | "engineering" | "architectuur";
-export const MARKTEN: Markt[] = ["energie", "engineering", "architectuur"];
+export type Markt = "energie" | "engineering" | "architectuur" | "regularisatie";
+export const MARKTEN: Markt[] = ["energie", "engineering", "architectuur", "regularisatie"];
+
+/**
+ * Startlijst van de Regularisatie-markt: het concurrentieonderzoek van 11 augustus
+ * 2026 (marketing/seo/firmas/Regulariseren/onderzoek/CONCURRENTIEONDERZOEK-
+ * VLAANDEREN-2026-08.md). Voor regularisatie bestaat geen register, en de crawl
+ * kent deze sites pas nadat iemand ze heeft aangedragen. Dit is die aandracht:
+ * de zes gespecialiseerde merken, de architectenbureaus met een eigen
+ * regularisatiepagina, en de spelers ernaast die om dezelfde zoekvragen vechten.
+ *
+ * De categorie is een startpunt. Wie de markt kent zet hem recht met de knopjes
+ * op de pagina; dat oordeel gaat vóór en blijft staan. Bron in `concurrent_markt`
+ * is `onderzoek`, zodat de pagina kan zeggen waar de lijst vandaan komt.
+ */
+export const REGULARISATIE_ONDERZOEK: { domein: string; naam: string; categorie: string }[] = [
+  // A. gespecialiseerde regularisatiemerken -- de directe concurrenten
+  { domein: "vergund.be", naam: "Vergund.be (stel architecten)", categorie: "concurrent" },
+  { domein: "onvergund.be", naam: "Onvergund.be (M-Desk)", categorie: "concurrent" },
+  { domein: "regularisatie.jpgarchitecten.be", naam: "JPG Architecten — regularisatie", categorie: "concurrent" },
+  { domein: "regulant.be", naam: "Regulant", categorie: "concurrent" },
+  { domein: "bouwovertreding-regulariseren.be", naam: "Ruimtestrateeg", categorie: "concurrent" },
+  { domein: "regularisatie-architect.com", naam: "Regularisatie-architect (Antwerpen)", categorie: "concurrent" },
+  // B. architectenbureaus met een eigen regularisatiepagina -- ranken op dezelfde termen
+  { domein: "kvdarchitectuur.be", naam: "KVD Architectuur", categorie: "concurrent" },
+  { domein: "fish-architect.be", naam: "FISH Architecten", categorie: "concurrent" },
+  { domein: "wimjansenarchitect.be", naam: "Wim Jansen Architect", categorie: "concurrent" },
+  { domein: "sito-architecten.be", naam: "SITO Architecten", categorie: "concurrent" },
+  { domein: "imaginearchitects.be", naam: "Imagine Architects", categorie: "concurrent" },
+  { domein: "nikuarchitecten.be", naam: "Niku Architecten", categorie: "concurrent" },
+  { domein: "plam.be", naam: "PLAM Architectuur", categorie: "concurrent" },
+  { domein: "bouwovertreding.be", naam: "Bouwovertreding.be (Stefan Cassiers)", categorie: "concurrent" },
+  // C. geen architect, wél concurrent om de aandacht
+  { domein: "confianz.be", naam: "Confianz (advocaten omgevingsrecht)", categorie: "concurrent" },
+  { domein: "casius.be", naam: "Casius (offerteplatform)", categorie: "portaal" },
+  { domein: "spotto.be", naam: "Spotto (vastgoeddata)", categorie: "portaal" },
+];
+
+/**
+ * Zet de startlijst uit het onderzoek in de gevolgde domeinen en in de markt.
+ * Bestaat een domein al (bv. via het architectenregister), dan wint de naam uit
+ * het onderzoek: dat is de merknaam die iemand herkent, waar het register de
+ * zaakvoerder of de vennootschap geeft. De categorie blijft staan -- een
+ * menselijk oordeel zit sowieso in `beoordelingen` en gaat overal vóór.
+ */
+export function registreerRegularisatieOnderzoek() {
+  const db = getDb();
+  const nu = vandaag();
+  const ins = db.prepare(
+    `INSERT INTO concurrenten (domein,naam,bron,volgen,categorie,verslaggevers,eerste_zien)
+     VALUES (?,?,'onderzoek',1,?,0,?)
+     ON CONFLICT(domein) DO UPDATE SET volgen = 1, naam = excluded.naam`
+  );
+  let toegevoegd = 0;
+  db.transaction(() => {
+    for (const r of REGULARISATIE_ONDERZOEK) {
+      if (ins.run(r.domein, r.naam, r.categorie, nu).changes) toegevoegd++;
+      markeerMarkt(r.domein, "regularisatie", "onderzoek");
+    }
+  })();
+  registreerEigenDomeinen();
+  return { onderzoek: REGULARISATIE_ONDERZOEK.length, toegevoegd };
+}
 
 /** Zet een domein in een markt. Blijft staan zodra het er in zit. */
 export function markeerMarkt(domein: string, markt: Markt, bron: string) {
@@ -579,14 +693,14 @@ export function bepaalMarkten() {
   const db = getDb();
   const rijen = db
     .prepare(
-      `SELECT s.domein, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.paginas, s.heeft_sitemap
+      `SELECT s.domein, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.reg_paginas, s.paginas, s.heeft_sitemap
          FROM site_snapshots s
          JOIN (SELECT domein, MAX(datum) d FROM site_snapshots GROUP BY domein) m
            ON m.domein = s.domein AND m.d = s.datum`
     )
     .all() as {
       domein: string; epb_paginas: number | null; eng_paginas: number | null;
-      arch_paginas: number | null; paginas: number | null; heeft_sitemap: number | null;
+      arch_paginas: number | null; reg_paginas: number | null; paginas: number | null; heeft_sitemap: number | null;
     }[];
 
   const MIN_PAGINAS = 3;
@@ -603,7 +717,7 @@ export function bepaalMarkten() {
     "DELETE FROM concurrent_markt WHERE domein = ? AND markt = ? AND bron = 'crawl'"
   );
 
-  const geteld: Record<Markt, number> = { energie: 0, engineering: 0, architectuur: 0 };
+  const geteld: Record<Markt, number> = { energie: 0, engineering: 0, architectuur: 0, regularisatie: 0 };
   let ingetrokken = 0;
   db.transaction(() => {
     for (const r of rijen) {
@@ -614,9 +728,16 @@ export function bepaalMarkten() {
       // "omgevingsvergunning" en "bouwaanvraag" staan op elke verslaggeverssite,
       // en drie zulke pagina's maken van een EPB-bureau geen architect. De
       // marktlijst komt daar dus uit het register en uit de zoekresultaten.
+      //
+      // Regularisatie staat er wél bij: geen register, dus de crawl mag hier net
+      // als bij Engineering zelf indelen. De regex is strak genoeg (geen
+      // "omgevingsvergunning") dat drie regularisatiepagina's ook echt over
+      // regularisatie gaan -- een architect met zo'n dienstenpagina hoort in
+      // deze markt, want hij vecht om dezelfde eigenaar met een bouwovertreding.
       for (const [markt, aantal] of [
         ["engineering", r.eng_paginas],
         ["energie", r.epb_paginas],
+        ["regularisatie", r.reg_paginas],
       ] as const) {
         if (hoortErbij(aantal, r.paginas)) {
           markeerMarkt(r.domein, markt, "crawl");
@@ -842,12 +963,12 @@ export function herberekenAfleidingen() {
   const domeinen = db.prepare("SELECT DISTINCT domein FROM site_urls").all() as { domein: string }[];
   const upd = db.prepare(
     `UPDATE site_snapshots
-        SET blog_artikels = ?, epb_paginas = ?, eng_paginas = ?, arch_paginas = ?, spam_verdacht = ?,
+        SET blog_artikels = ?, epb_paginas = ?, eng_paginas = ?, arch_paginas = ?, reg_paginas = ?, spam_verdacht = ?,
             laatste_blog = ?, laatste_blog_url = ?
       WHERE domein = ? AND datum = (SELECT MAX(datum) FROM site_snapshots WHERE domein = ?)`
   );
   const updUrl = db.prepare(
-    "UPDATE site_urls SET artikel = ?, markt_eng = ?, markt_arch = ? WHERE domein = ? AND url = ?"
+    "UPDATE site_urls SET artikel = ?, markt_eng = ?, markt_arch = ?, markt_reg = ? WHERE domein = ? AND url = ?"
   );
   let n = 0;
   db.transaction(() => {
@@ -861,6 +982,7 @@ export function herberekenAfleidingen() {
           u.soort === "blog" && !u.archief && !u.spam ? 1 : 0,
           u.eng && !u.spam ? 1 : 0,
           u.arch && !u.spam ? 1 : 0,
+          u.reg && !u.spam ? 1 : 0,
           d.domein, u.url
         );
       }
@@ -871,6 +993,7 @@ export function herberekenAfleidingen() {
         ingedeeld.filter((u) => u.epb && !u.spam).length,
         ingedeeld.filter((u) => u.eng && !u.spam).length,
         ingedeeld.filter((u) => u.arch && !u.spam).length,
+        ingedeeld.filter((u) => u.reg && !u.spam).length,
         ingedeeld.filter((u) => u.spam).length,
         nieuwste?.lastmod || "",
         nieuwste?.url || "",
