@@ -14,16 +14,16 @@ function href(path: string, params: Params, overrides: Params): string {
 }
 
 // ---- gedeelde, sleek segmented-control stijl ----
-const SEG_WRAP = "inline-flex items-center gap-0.5 rounded-xl bg-zinc-100/80 p-1 ring-1 ring-black/[0.04]";
-const SEG_BASE = "rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150";
+const SEG_WRAP = "inline-flex items-center gap-0.5 rounded-full bg-black/[0.06] p-1";
+const SEG_BASE = "rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-150";
 const SEG_INACTIVE = "text-zinc-500 hover:text-zinc-900";
 const segActive = (accent: "blue" | "emerald" | "zinc" = "blue") =>
-  "bg-white shadow-sm ring-1 " +
+  "bg-white shadow-sm " +
   (accent === "emerald"
-    ? "text-emerald-700 ring-emerald-600/15"
+    ? "text-emerald-700"
     : accent === "zinc"
-      ? "text-zinc-900 ring-black/[0.06]"
-      : "text-zinc-900 ring-black/[0.06]");
+      ? "text-zinc-900"
+      : "text-zinc-900");
 
 // ---- sleek native-select shell met eigen chevron ----
 function SelectShell({
@@ -47,7 +47,7 @@ function SelectShell({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={
-          "h-[36px] cursor-pointer appearance-none rounded-xl border pl-3.5 pr-8 text-[13px] font-medium transition-colors " +
+          "h-[36px] cursor-pointer appearance-none rounded-full border pl-3.5 pr-8 text-[13px] font-medium transition-colors " +
           "focus:outline-none focus:ring-2 focus:ring-blue-500/20 " +
           (active ? activeCls : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300")
         }
@@ -283,7 +283,7 @@ export function RegionStatusSelector({
             key={o.key}
             onClick={() => router.push(href(path, params, { rs: o.key }))}
             className={
-              SEG_BASE + " inline-flex items-center gap-1.5 " + (active ? "bg-white shadow-sm ring-1 ring-black/[0.06] " + o.txt : SEG_INACTIVE)
+              SEG_BASE + " inline-flex items-center gap-1.5 " + (active ? "bg-white shadow-sm " + o.txt : SEG_INACTIVE)
             }
           >
             <span className={"h-1.5 w-1.5 rounded-full " + o.dot} />

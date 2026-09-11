@@ -37,13 +37,13 @@ export function NotesPanel() {
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-5">
+    <div className="paneel">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-700">📝 Notities / to-do (gedeeld, lokaal)</h3>
+        <h2 style={{ fontSize: 18 }}>Notities en to-do (gedeeld, lokaal)</h2>
         <button
           onClick={save}
           disabled={saving || !dirty}
-          className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
+          className="knop-donker knop-klein"
         >
           {saving ? "Opslaan…" : dirty ? "Opslaan" : "Opgeslagen"}
         </button>
@@ -57,7 +57,7 @@ export function NotesPanel() {
         disabled={!loaded}
         rows={5}
         placeholder="Bv. openstaande vragen, ideeën, dingen om samen te bespreken…"
-        className="w-full resize-y rounded-lg border border-zinc-200 p-3 text-sm text-zinc-800 focus:border-blue-400 focus:outline-none"
+        className="w-full resize-y rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-800 focus:border-zinc-900 focus:outline-none"
       />
       {savedAt && (
         <p className="mt-1 text-xs text-zinc-400">

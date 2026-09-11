@@ -62,7 +62,7 @@ export default function SalesTeamPage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">Sales team</h1>
+        <h1 className="h1-glas">Sales team</h1>
         <p className="text-sm text-zinc-500">Wie is verantwoordelijk voor wat</p>
       </header>
 

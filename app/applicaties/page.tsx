@@ -40,7 +40,7 @@ export default function ApplicatiesPage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">Applicaties</h1>
+        <h1 className="h1-glas">Applicaties</h1>
         <p className="text-sm text-zinc-500">Platformen &amp; tools die het sales-team gebruikt — klik om te openen</p>
       </header>
 

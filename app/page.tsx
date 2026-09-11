@@ -81,7 +81,7 @@ export default async function Home({
 
   return (
     <main className="mx-auto max-w-7xl px-6 pb-10">
-      <div className="sticky top-0 z-30 -mx-6 mb-6 border-b border-black/10 bg-[#d7dde7]/85 px-6 pt-7 backdrop-blur-md">
+      <div className="kopbalk">
         <Header period={period} monthOpts={monthOpts} weekOpts={weekOpts} themeKey={themeKey} params={params} />
         <div className="flex flex-wrap gap-2 pb-3 text-[11.5px]">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-zinc-600">
@@ -331,7 +331,7 @@ function Header({
   return (
     <header className="mb-4 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Sales &amp; Marketing Dashboard</h1>
+        <h1 className="h1-glas">Sales &amp; Marketing Dashboard</h1>
         <p className="text-sm text-zinc-500">Pipedrive — {ACCOUNTS.map((a) => a.name).join(" · ")}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">

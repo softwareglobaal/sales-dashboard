@@ -68,7 +68,7 @@ export function Beoordeling({
           disabled={bezig}
           title={waarde === k.key ? "Klik nogmaals om terug te zetten op automatisch" : undefined}
           className={
-            "rounded border px-1.5 py-0.5 text-[11px] transition disabled:opacity-50 " +
+            "rounded-full border px-2 py-0.5 text-[11px] transition disabled:opacity-50 " +
             (waarde === k.key ? k.kleur : "border-transparent text-zinc-400 hover:border-zinc-300 hover:text-zinc-700")
           }
         >

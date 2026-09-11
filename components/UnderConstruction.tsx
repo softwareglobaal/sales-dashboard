@@ -2,14 +2,20 @@ export function UnderConstruction({ title }: { title: string }) {
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">{title}</h1>
+        <h1 className="h1-glas">{title}</h1>
         <p className="text-sm text-zinc-500">Afdelingsdashboard</p>
       </header>
-      <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-16 text-center">
-        <div className="text-4xl">🚧</div>
-        <p className="mx-auto mt-4 max-w-md text-base font-medium text-zinc-700">
-          Under construction — Siyan is doing his best to finish this as soon as possible.
-        </p>
+      <div className="paneel">
+        <div className="leeg">
+          <span className="ico">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 20h4l10-10-4-4L4 16z" />
+              <path d="m13 7 4 4" />
+            </svg>
+          </span>
+          <h3>In aanbouw</h3>
+          <p>Siyan werkt hieraan; dit dashboard volgt zodra de gegevens erachter kloppen.</p>
+        </div>
       </div>
     </main>
   );
