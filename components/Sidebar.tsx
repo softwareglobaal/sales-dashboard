@@ -39,11 +39,13 @@ const AFDELINGEN: Afdeling[] = [
   { pad: "plaatsbeschrijving", href: "/plaatsbeschrijving", label: "Plaatsbeschrijving", icon: "plaatsbeschrijving", soon: true },
   { pad: "meetstaten", href: "/meetstaten", label: "Meetstaten", icon: "meetstaten", soon: true },
   {
-    // De afdelingspagina zelf is nog in aanbouw; de concurrentiemonitor eronder
-    // niet. Daarom blijft "soon" op de tab staan maar hangt het onderdeel er wel al.
+    // De afdelingspagina zelf is nog in aanbouw; de concurrentiemonitor en de
+    // projectenlijst eronder niet. Daarom blijft "soon" op de tab staan maar
+    // hangen de onderdelen er wel al.
     pad: "h-architects", href: "/h-architects", label: "H-Architects", icon: "architectuur", soon: true,
     onder: [
       { href: "/h-architects/concurrentie", label: "Concurrentie", icon: "doel" },
+      { href: "/h-architects/projecten", label: "Projecten", icon: "lijst" },
     ],
   },
 ];
