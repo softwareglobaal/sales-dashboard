@@ -321,37 +321,87 @@ architectenregister; er draait geen automaat op.
 de repo privé is en de pagina achter Authentik staat (afdeling `architectuur`), precies
 zoals het VEKA-register. Niet exporteren, niet op een website zetten.
 
-**De regel achter "Te fotograferen"** (de snelknop, 361 van de 614): geen
-opleveringsfoto's **én** (geen beeld óf geen beeld meer sinds 2024) **én** het dossier is
-niet opgezegd. De kolom *Foto's aanwezig* telt bewust **niet** mee in die regel: die staat
-op "ja" zodra er één beeldbestand in de map zit, en de helft van de 161.387 beelden zijn
-png's van plannen, uitsneden en schermafdrukken. De scherpe signalen zijn
-*Opleveringsfoto's* (18 projecten) en *Recentste foto* (213 met beeld van 2024 of later).
-Een map die Dropbox niet wil geven ("onbekend", 6 stuks) telt als kandidaat: onbekend is
+### 15.1 Opgeleverd in beeld (14 september 2026)
+
+Feedback van Siyan: *"het moet checken of er foto's zijn van de oplevering."* De oude
+kolom *Foto's aanwezig* telde élk beeldbestand en stond daardoor bij 568 van de 614
+projecten op "ja"; *Opleveringsfoto's* keek alleen naar mapnamen (oplevering, completion,
+na, afgewerkt) en gaf er 18. Geen van beide zegt wat er op de foto staat. Sinds
+14 september staat er daarom een echte beeldbeoordeling in de lijst, gemaakt met
+`scripts/h-architects-oplevering.py` (vier stappen: `haal`, `kies`, `bladen`, `verwerk`).
+
+**Camerafoto tegenover tekenwerk.** Een **camerafoto** is een `.jpg`, `.jpeg`, `.heic` of
+`.heif` waarvan de bestandsnaam niet op tekenwerk of een schermbeeld wijst (uitgesloten:
+screenshot, schermafbeelding, plan, gevel, snede, grondplan, render, 3d, pdf, export,
+pagina, layout, detail, logo, scan, inplanting, terrein, kadaster, situatie; "bijgeknipt"
+mag wel). Alles wat `.png` of `.webp` is, telt nooit als camerafoto. Uitkomst:
+**103.008 camerafoto's** tegenover 60.968 tekeningen en schermafdrukken.
+
+**Beoordeling op beeld.** Van elk project zijn de **drie recentste camerafoto's** als
+thumbnail (`files/get_thumbnail_batch`) opgehaald en per twintig projecten op een
+contactblad gezet (PIL, projectnummer en gemeente als bijschrift). Die 41
+contactbladen met 1.856 thumbnails zijn stuk voor stuk met het oog bekeken. Het
+oordeel staat per project in `oplevering_beoordeling`:
+
+| waarde | betekenis |
+|---|---|
+| `ja` | afgewerkte gevel of afgewerkt interieur zichtbaar; geen stellingen, geen puin, geen bouwmateriaal |
+| `nee` | alleen werf, bestaande toestand vóór de werken, opmeting — of geen enkele camerafoto |
+| `onzeker` | niet uit te maken op de drie recentste foto's, of de map is niet leesbaar |
+
+Totalen: **133 ja, 474 nee, 7 onzeker**. Een mapnaam alleen is nooit
+genoeg voor een "ja"; bij twijfel staat er "onzeker". Nieuwe velden in de JSON:
+`camerafotos`, `recentste_camerafoto`, `oplevering_beoordeling`, `oplevering_bestand`
+(het bestand met het beste beeld, als tooltip in de kolom) en `beoordeeld_op`, plus een
+blok `beoordeling` met datum, methode en de drie totalen.
+
+**De regel achter "Te fotograferen"** (de snelknop, 447 van de 614): de beoordeling
+is **nee of onzeker** én het dossier is niet opgezegd. Het aantal foto's telt bewust niet
+mee: een map met 300 beelden kan uitsluitend plannen en werffoto's bevatten. Een map die
+Dropbox niet wil geven (6 stuks) blijft "onzeker" en telt dus als kandidaat: onbekend is
 een reden om te gaan kijken, geen reden om over te slaan.
 
+**Herhaalbaar.** De cache, de thumbnails en de contactbladen staan buiten de repo
+(`~/.cache/h-architects-oplevering`) en horen daar ook te blijven: het zijn klantbeelden en
+de paden bevatten namen. Het oordeel zelf staat in `oordelen.json` in diezelfde cache, en
+`verwerk` schrijft het in de dashboard-JSON. Een nieuwe ronde is: `haal`, `kies`, `bladen`,
+opnieuw kijken, `verwerk`.
+
+### 15.2 Opbouw van de pagina
+
 **Opbouw.** Servercomponent leest het bronbestand en toont zes vaste tegels (die bewegen
-niet mee met de filters, ze beschrijven de telling). De clientcomponent
+niet mee met de filters, ze beschrijven de beoordeling): projecten, opgeleverd in beeld,
+niet in beeld, onzeker, te fotograferen, zonder camerafoto. De clientcomponent
 `app/h-architects/projecten/Projectenlijst.tsx` krijgt alle 614 rijen in één keer mee en
 filtert in de browser. Filters staan in de querystring en worden met
 `window.history.replaceState` bijgewerkt, dus zonder herlaadbeurt en toch deelbaar. De
 filterregels zelf staan in `lib/haProjectenFilter.ts` (vrij van `fs` en React), zodat de
 gemeentetabel "te fotograferen" met exact dezelfde regel telt als de snelknop.
 
+**Filters.** Zoeken, provincie, gemeente, jaar van/tot, type, status, *Camerafoto's*
+(ja/nee/onbekend, op `camerafotos` en niet meer op elk beeldbestand), *Opgeleverd in beeld*
+(ja/nee/onzeker) en *Recentste camerafoto vanaf*. De querysleutels blijven `fotos`,
+`oplevering` en `beeld`, zodat oude links blijven werken — met dien verstande dat
+`oplevering=ja` nu "afgewerkt gebouw in beeld" betekent en niet meer "beeld in een
+oplevermap".
+
 **Sortering.** Standaard provincie, gemeente, jaar aflopend, zoals in de Excel. Gemeenten
 en provincies die "(onbekend)" of "(geen gemeente in mapnaam)" heten staan onderaan, niet
 bovenaan; een haakje sorteert van nature vóór de letters. Kolomkoppen zijn klikbaar en
-houden binnen dezelfde waarde diezelfde rust aan.
+houden binnen dezelfde waarde diezelfde rust aan. *Foto's* sorteert op camerafoto's,
+*Recentste* op de datum van de recentste camerafoto, *Oplev.* op ja → onzeker → nee.
 
-**Weergaven.** Tabblad *Projecten* (alle kolommen van de Excel, met de Dropbox-link als
-knop "Open in Dropbox" in een nieuw tabblad) en tabblad *Per gemeente* (aantal, met foto,
-te fotograferen; klik op een gemeente zet het filter en springt naar de lijst). Opgezegde
-dossiers staan gedempt; "nee" en "onbekend" zijn chips met betekeniskleur én woord.
+**Weergaven.** Tabblad *Projecten* (de kolom *Foto's* is het aantal camerafoto's met de
+volledige beeldtelling in de tooltip; *Oplev.* is de beoordeling als chip — ja groen, nee
+rood, onzeker geel — met het beste bestand in de tooltip; de Dropbox-link als knop in een
+nieuw tabblad) en tabblad *Per gemeente* (projecten, opgeleverd in beeld, onzeker, te
+fotograferen; klik op een gemeente zet het filter en springt naar de lijst). Opgezegde
+dossiers staan gedempt.
 
-**Wat de pagina zelf zegt.** Onderaan staat de toelichting uit het LEESMIJ-bestand: datum
-van de telling, wat "foto's aanwezig" wel en niet betekent, de zes onleesbare projectmappen
-en de vier gedeelde mappen die met dit Dropbox-account `not_found` geven (projecten die
-uitsluitend daar zitten, staan niet in de lijst).
+**Wat de pagina zelf zegt.** Onderaan staat de toelichting uit het LEESMIJ-bestand: hoe
+"opgeleverd in beeld" bepaald is, de zes onleesbare projectmappen en de vier gedeelde
+mappen die met dit Dropbox-account `not_found` geven (projecten die uitsluitend daar
+zitten, staan niet in de lijst), en wanneer de beoordeling gemaakt is.
 
 ## Aanvullingen (feedback-ronde)
 - **Grafiek "aanvragen vs. direct gewonnen omzet (zelfde maand)"**: SAME-MONTH cohort — balken = leads

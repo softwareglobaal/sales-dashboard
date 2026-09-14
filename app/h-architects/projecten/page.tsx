@@ -1,5 +1,5 @@
 import { laadProjecten, samenvatting } from "@/lib/haProjecten";
-import { uitQuery, RECENT_VANAF, type Query } from "@/lib/haProjectenFilter";
+import { uitQuery, type Query } from "@/lib/haProjectenFilter";
 import { num } from "@/lib/format";
 import { Kpi } from "@/components/ui";
 import { Projectenlijst } from "./Projectenlijst";
@@ -72,11 +72,11 @@ export default async function ProjectenPage({
         style={{ marginTop: 20, gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}
       >
         <Kpi label="Projecten" value={num(s.totaal)} sub="in de telling" />
-        <Kpi label="Met foto" value={num(s.metFoto)} sub="minstens één beeldbestand" />
-        <Kpi label="Zonder foto" value={num(s.zonderFoto)} sub="geen enkel beeld in de map" />
-        <Kpi label="Opleveringsfoto's" value={num(s.metOplevering)} sub="beeld in een oplevermap" />
-        <Kpi label={`Beeld van ${RECENT_VANAF} of later`} value={num(s.recentBeeld)} sub="recentste beeldbestand" />
-        <Kpi label="Onbekend" value={num(s.onbekend)} sub="map niet leesbaar" />
+        <Kpi label="Opgeleverd in beeld" value={num(s.inBeeld)} sub="afgewerkt gebouw op foto" />
+        <Kpi label="Niet in beeld" value={num(s.nietInBeeld)} sub="werf, opmeting of niets" />
+        <Kpi label="Onzeker" value={num(s.onzeker)} sub="niet uit te maken" />
+        <Kpi label="Te fotograferen" value={num(s.teFotograferen)} sub="nee of onzeker, niet opgezegd" />
+        <Kpi label="Zonder camerafoto" value={num(s.zonderCamerafoto)} sub="alleen plannen of niets" />
       </div>
 
       <Projectenlijst projecten={bron.projecten} begin={begin} tabblad={tab} />
@@ -95,20 +95,30 @@ export default async function ProjectenPage({
           }}
         >
           <div>
-            <h4>Wat “foto’s aanwezig” wel en niet betekent</h4>
+            <h4>Hoe “opgeleverd in beeld” bepaald is</h4>
             <p className="lede" style={{ fontSize: 13 }}>
-              Geteld is elk beeldbestand in de projectmap (jpg, jpeg, png, heic, heif, webp),
-              inclusief alle onderliggende mappen. De helft van de 161.387 beelden zijn png's:
-              plannen, uitsneden, schermafdrukken, logo's en scans. “Ja” betekent dus niet dat er
-              bruikbaar beeld van het gebouw is. Het scherpste signaal is de kolom
-              Opleveringsfoto's, en daarna de kolom Recentste foto.
+              De oude kolom “foto’s aanwezig” telde élk beeldbestand in de projectmap, plannen en
+              schermafdrukken inbegrepen, en stond daardoor bij bijna elk dossier op “ja”. Daarom
+              zijn de beelden in twee hopen verdeeld. Een <b>camerafoto</b> is een jpg, jpeg, heic of
+              heif waarvan de bestandsnaam niet op tekenwerk wijst; alles wat png is, of plan, gevel,
+              snede, render, 3d, export, pagina of schermafbeelding in de naam draagt, telt als
+              tekening of schermafdruk. De kolom Foto’s toont alleen die camerafoto’s —{" "}
+              {num(s.camerafotos)} in totaal, tegenover 161.387 beeldbestanden in de oude telling.
             </p>
             <p className="lede" style={{ fontSize: 13, marginTop: 8 }}>
-              De sjabloonmap “4. Foto’s oplevering” staat in bijna elk dossier maar is meestal leeg:
-              slechts {num(s.metOplevering)} van de {num(s.totaal)} projecten hebben er beeld in.
-              Werffoto's zitten wel in de werfverslag- en opmetingsmappen, maar tonen het gebouw in
-              aanbouw, niet afgewerkt. Ook projecten met weinig beelden zijn kandidaat: 99 projecten
-              hebben er minder dan 10, 167 minder dan 25.
+              Daarna is er <b>met het oog gekeken</b>. Van elk project zijn de drie recentste
+              camerafoto’s als thumbnail op een contactblad gezet en bekeken. “Ja” betekent: een
+              afgewerkte gevel of een afgewerkt interieur staat op de foto, zonder stellingen, puin
+              of bouwmateriaal. “Nee” betekent: alleen werf, bestaande toestand vóór de werken,
+              opmeting — of geen enkele camerafoto. “Onzeker” is wat er tussenin valt. Een gevel in
+              de steigers is nee, en een mapnaam als “4. Foto’s oplevering” is op zichzelf nooit
+              genoeg voor een ja.
+            </p>
+            <p className="lede" style={{ fontSize: 13, marginTop: 8 }}>
+              Uitkomst: {num(s.inBeeld)} ja, {num(s.nietInBeeld)} nee, {num(s.onzeker)} onzeker.
+              {" "}{num(s.zonderCamerafoto)} projecten hebben geen enkele camerafoto in de map.
+              De knop “Te fotograferen” zet nee en onzeker samen, zonder de opgezegde dossiers:{" "}
+              {num(s.teFotograferen)} projecten.
             </p>
           </div>
 
@@ -154,11 +164,24 @@ export default async function ProjectenPage({
               gemeente zijn genormaliseerd, de ruwe mapnaam staat als laatste kolom zodat je altijd
               kunt terugkijken.
             </p>
+            {bron.beoordeling && (
+              <p className="lede" style={{ fontSize: 13, marginTop: 8 }}>
+                De beeldbeoordeling dateert van {datum(bron.beoordeling.datum)} en is gemaakt met
+                scripts/h-architects-oplevering.py: de Dropbox opnieuw doorlopen, de camerafoto’s
+                eruit gehaald, van elk project de drie recentste als thumbnail opgehaald en op{" "}
+                {num(bron.beoordeling.contactbladen ?? 0)} contactbladen bekeken
+                {bron.beoordeling.thumbnails
+                  ? ` (${num(bron.beoordeling.thumbnails)} thumbnails)`
+                  : ""}
+                . De contactbladen zelf staan buiten de repo; ze bevatten klantmateriaal.
+              </p>
+            )}
             <p className="notitie let" style={{ marginTop: 10 }}>
               Deze telling is een momentopname en ververst zichzelf niet. Draai
-              scripts/h-architects-projecten.py opnieuw na een nieuwe Dropbox-doorloop. De lijst
-              bevat klant- en medewerkersnamen in de mapnamen en blijft daarom binnen dit dashboard,
-              achter de login.
+              scripts/h-architects-projecten.py opnieuw na een nieuwe Dropbox-doorloop en daarna
+              scripts/h-architects-oplevering.py voor de beoordeling. De lijst bevat klant- en
+              medewerkersnamen in de mapnamen en blijft daarom binnen dit dashboard, achter de
+              login.
             </p>
           </div>
         </div>

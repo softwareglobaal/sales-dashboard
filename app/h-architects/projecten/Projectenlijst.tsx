@@ -10,9 +10,9 @@ import {
   LEEG,
   naarQuery,
   perGemeente,
-  RECENT_VANAF,
   sorteer,
   teFotograferen,
+  type Beoordeling,
   type Filters,
   type Project,
   type Sorteersleutel,
@@ -36,8 +36,40 @@ function datum(d: string | null) {
   return `${dag}/${m}/${j}`;
 }
 
-function Chip({ soort, tekst }: { soort: "goed" | "let" | "kritiek" | ""; tekst: string }) {
-  return <span className={"chip" + (soort ? " " + soort : "")}>{tekst}</span>;
+function Chip({
+  soort,
+  tekst,
+  titel,
+}: {
+  soort: "goed" | "let" | "kritiek" | "";
+  tekst: string;
+  titel?: string;
+}) {
+  return (
+    <span className={"chip" + (soort ? " " + soort : "")} title={titel}>
+      {tekst}
+    </span>
+  );
+}
+
+/** De beoordeling als chip: ja groen, onzeker geel, nee rood. De tooltip noemt
+ *  het bestand met het beste beeld, zodat je weet waar je moet kijken. */
+function Oordeel({ p }: { p: Project }) {
+  const soort: Record<Beoordeling, "goed" | "let" | "kritiek"> = {
+    ja: "goed",
+    onzeker: "let",
+    nee: "kritiek",
+  };
+  const bestand = p.oplevering_bestand ? p.oplevering_bestand.split("/").pop() : null;
+  const titel =
+    p.oplevering_beoordeling === "ja"
+      ? "Beste beeld: " + (bestand || "bestand niet genoteerd")
+      : p.camerafotos === 0
+        ? "Geen enkele camerafoto in de map"
+        : p.oplevering_beoordeling === "onzeker"
+          ? "Niet uit te maken op de drie recentste camerafoto's"
+          : "Alleen werf, bestaande toestand of opmeting op de drie recentste camerafoto's";
+  return <Chip soort={soort[p.oplevering_beoordeling]} tekst={p.oplevering_beoordeling} titel={titel} />;
 }
 
 /** Kolomkop die op sorteren klikt. Het pijltje staat er als woordteken bij,
@@ -233,7 +265,7 @@ export function Projectenlijst({
             </select>,
           )}
           {veld(
-            "Foto's aanwezig",
+            "Camerafoto's",
             <select value={f.fotos} onChange={(e) => pas({ fotos: e.target.value })}>
               <option value="">Maakt niet uit</option>
               <option value="ja">ja</option>
@@ -242,15 +274,16 @@ export function Projectenlijst({
             </select>,
           )}
           {veld(
-            "Opleveringsfoto's",
+            "Opgeleverd in beeld",
             <select value={f.oplevering} onChange={(e) => pas({ oplevering: e.target.value })}>
               <option value="">Maakt niet uit</option>
               <option value="ja">ja</option>
               <option value="nee">nee</option>
+              <option value="onzeker">onzeker</option>
             </select>,
           )}
           {veld(
-            "Recentste foto vanaf",
+            "Recentste camerafoto vanaf",
             <select value={f.beeldVanaf} onChange={(e) => pas({ beeldVanaf: e.target.value })}>
               <option value="">Maakt niet uit</option>
               {[2026, 2025, 2024, 2023, 2022, 2021, 2020].map((j) => (
@@ -277,8 +310,8 @@ export function Projectenlijst({
             </button>
           )}
           <span className="notitie" style={{ flex: "1 1 320px", minWidth: 0 }}>
-            Te fotograferen = geen opleveringsfoto&apos;s, geen beeld of geen beeld meer sinds{" "}
-            {RECENT_VANAF}, en het dossier is niet opgezegd.
+            Te fotograferen = het afgewerkte gebouw staat niet zeker in beeld (beoordeling nee of
+            onzeker) en het dossier is niet opgezegd.
           </span>
         </div>
       </div>
@@ -326,14 +359,14 @@ export function Projectenlijst({
                   <Kop sleutel="status" label="Status" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} />
                   <Kop sleutel="aantal" label="Foto's" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} />
                   <Kop sleutel="recentste" label="Recentste" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} num />
-                  <Kop sleutel="oplevering" label="Oplev." nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} num />
+                  <Kop sleutel="oplevering" label="Oplev." nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} />
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {rijen.map((p) => {
                   const gestopt = p.status === "opgezegd";
-                  const d = datum(p.recentste);
+                  const d = datum(p.recentste_camerafoto);
                   return (
                     <tr
                       key={p.nummer + "|" + p.mapnaam}
@@ -356,23 +389,27 @@ export function Projectenlijst({
                         <Chip soort="" tekst={p.status} />
                       </td>
                       <td className="ha-fotos">
-                        {p.fotos === "ja" ? (
-                          <Chip soort="goed" tekst={num(p.aantal)} />
-                        ) : p.fotos === "nee" ? (
-                          <Chip soort="kritiek" tekst="nee" />
+                        {p.camerafotos > 0 ? (
+                          <Chip
+                            soort="goed"
+                            tekst={num(p.camerafotos)}
+                            titel={`${num(p.camerafotos)} camerafoto's · ${num(p.aantal)} beeldbestanden in totaal (plannen en schermafdrukken meegeteld)`}
+                          />
+                        ) : p.fotos === "onbekend" ? (
+                          <Chip soort="let" tekst="onbekend" titel="De map is niet leesbaar in Dropbox" />
                         ) : (
-                          <Chip soort="let" tekst="onbekend" />
+                          <Chip
+                            soort="kritiek"
+                            tekst="0"
+                            titel={`Geen camerafoto's · ${num(p.aantal)} beeldbestanden in totaal (plannen en schermafdrukken)`}
+                          />
                         )}
                       </td>
                       <td className="num">
                         {d ? d.slice(-4) : <span style={{ color: "var(--inkt-vaag)" }}>geen</span>}
                       </td>
-                      <td className="num">
-                        {p.oplevering > 0 ? (
-                          num(p.oplevering)
-                        ) : (
-                          <span style={{ color: "var(--inkt-vaag)" }}>0</span>
-                        )}
+                      <td>
+                        <Oordeel p={p} />
                       </td>
                       <td>
                         <a
@@ -399,7 +436,8 @@ export function Projectenlijst({
                   <th>Gemeente</th>
                   <th>Provincie</th>
                   <th className="num">Projecten</th>
-                  <th className="num">Met foto</th>
+                  <th className="num">Opgeleverd in beeld</th>
+                  <th className="num">Onzeker</th>
                   <th className="num">Te fotograferen</th>
                   <th></th>
                 </tr>
@@ -410,7 +448,20 @@ export function Projectenlijst({
                     <td style={{ fontWeight: 500 }}>{g.gemeente}</td>
                     <td style={{ color: "var(--inkt-zacht)" }}>{g.provincie}</td>
                     <td className="num">{num(g.projecten)}</td>
-                    <td className="num">{num(g.metFoto)}</td>
+                    <td className="num">
+                      {g.inBeeld > 0 ? (
+                        <Chip soort="goed" tekst={num(g.inBeeld)} />
+                      ) : (
+                        <span style={{ color: "var(--inkt-vaag)" }}>0</span>
+                      )}
+                    </td>
+                    <td className="num">
+                      {g.onzeker > 0 ? (
+                        num(g.onzeker)
+                      ) : (
+                        <span style={{ color: "var(--inkt-vaag)" }}>0</span>
+                      )}
+                    </td>
                     <td className="num">
                       {g.teFotograferen > 0 ? (
                         <Chip soort="let" tekst={num(g.teFotograferen)} />

@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import { beeldjaar, RECENT_VANAF, type Project, type Projectenbron } from "./haProjectenFilter";
+import {
+  camerajaar,
+  RECENT_VANAF,
+  teFotograferen,
+  type Project,
+  type Projectenbron,
+} from "./haProjectenFilter";
 
 /**
  * De projectenlijst van H-Architects met fototelling inlezen.
@@ -37,24 +43,35 @@ export function laadProjecten(): Projectenbron | null {
 
 export type Samenvatting = {
   totaal: number;
-  metFoto: number;
-  zonderFoto: number;
-  onbekend: number;
-  metOplevering: number;
+  /** Beoordeling "ja": het afgewerkte gebouw staat op minstens één foto. */
+  inBeeld: number;
+  /** Beoordeling "nee": alleen werf, bestaande toestand, of geen camerafoto. */
+  nietInBeeld: number;
+  /** Beoordeling "onzeker": niet uit te maken op de drie recentste foto's. */
+  onzeker: number;
+  /** De snelknop van Mehdi: nee of onzeker, en niet opgezegd. */
+  teFotograferen: number;
+  /** Projecten zonder één enkele camerafoto in de map. */
+  zonderCamerafoto: number;
+  /** Camerafoto's in totaal, over alle projecten. */
+  camerafotos: number;
   recentBeeld: number;
 };
 
-/** De tegels bovenaan. Deze cijfers beschrijven de telling zelf en bewegen
+/** De tegels bovenaan. Deze cijfers beschrijven de beoordeling zelf en bewegen
  *  bewust niet mee met de filters; het aantal resultaten staat bij de tabel. */
 export function samenvatting(projecten: Project[]): Samenvatting {
+  const met = (b: string) => projecten.filter((p) => p.oplevering_beoordeling === b).length;
   return {
     totaal: projecten.length,
-    metFoto: projecten.filter((p) => p.fotos === "ja").length,
-    zonderFoto: projecten.filter((p) => p.fotos === "nee").length,
-    onbekend: projecten.filter((p) => p.fotos === "onbekend").length,
-    metOplevering: projecten.filter((p) => p.oplevering > 0).length,
+    inBeeld: met("ja"),
+    nietInBeeld: met("nee"),
+    onzeker: met("onzeker"),
+    teFotograferen: projecten.filter(teFotograferen).length,
+    zonderCamerafoto: projecten.filter((p) => p.camerafotos === 0).length,
+    camerafotos: projecten.reduce((t, p) => t + p.camerafotos, 0),
     recentBeeld: projecten.filter((p) => {
-      const jaar = beeldjaar(p);
+      const jaar = camerajaar(p);
       return jaar !== null && jaar >= RECENT_VANAF;
     }).length,
   };

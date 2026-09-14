@@ -18,14 +18,34 @@ export type Project = {
   /** Eén project kan meerdere typen dragen ("regularisatie, light"). */
   typen: string[];
   status: string; // lopend | archief | opgezegd
-  fotos: string; // ja | nee | onbekend
+  fotos: string; // ja | nee | onbekend -- élk beeldbestand, dus ook plannen
   aantal: number;
   /** ISO-datum van het laatst gewijzigde beeldbestand, of null. */
   recentste: string | null;
+  /** Beelden in een map waarvan de naam op oplevering wijst. Alleen nog als
+   *  achtergrondgegeven; de beoordeling hieronder is wat telt. */
   oplevering: number;
   link: string;
   mapnaam: string;
+
+  // --- beoordeling van 14 september 2026 (scripts/h-architects-oplevering.py) ---
+  /** Beeldbestanden die er als camerafoto uitzien: jpg/jpeg/heic/heif zonder
+   *  tekenwerk- of schermwoord in de bestandsnaam. png telt nooit mee. */
+  camerafotos: number;
+  /** ISO-datum van de recentste camerafoto, of null. */
+  recentste_camerafoto: string | null;
+  /** Staat het afgewerkte gebouw echt in beeld? Met het oog beoordeeld op de
+   *  drie recentste camerafoto's: "ja" (afgewerkte gevel of afgewerkt
+   *  interieur), "nee" (alleen werf, bestaande toestand, opmeting, of geen
+   *  camerafoto), "onzeker" (niet uit te maken). */
+  oplevering_beoordeling: Beoordeling;
+  /** Het bestand met het beste beeld, als de beoordeling "ja" is. */
+  oplevering_bestand: string | null;
+  /** Datum van die beoordeling. */
+  beoordeeld_op: string;
 };
+
+export type Beoordeling = "ja" | "nee" | "onzeker";
 
 export type Projectenbron = {
   bron: string;
@@ -35,6 +55,16 @@ export type Projectenbron = {
   projectlijst: string;
   onleesbareMappen: { nummer: string; project: string }[];
   gedeeldeMappen: string[];
+  /** De beeldbeoordeling: wanneer, hoe, en de drie totalen. */
+  beoordeling?: {
+    datum: string;
+    methode: string;
+    ja: number;
+    nee: number;
+    onzeker: number;
+    contactbladen?: number;
+    thumbnails?: number;
+  };
   projecten: Project[];
 };
 
@@ -49,24 +79,35 @@ export function beeldjaar(p: Project): number | null {
   return Number.isFinite(jaar) ? jaar : null;
 }
 
+/** Het jaar van de recentste camerafoto. Dat is scherper dan `beeldjaar`: een
+ *  pas geëxporteerd plan maakt een dossier niet jong. */
+export function camerajaar(p: Project): number | null {
+  if (!p.recentste_camerafoto) return null;
+  const jaar = Number(p.recentste_camerafoto.slice(0, 4));
+  return Number.isFinite(jaar) ? jaar : null;
+}
+
+/** Rangorde voor het sorteren op de beoordeling: ja bovenaan, dan onzeker. */
+export function beoordelingsrang(b: Beoordeling): number {
+  return b === "ja" ? 2 : b === "onzeker" ? 1 : 0;
+}
+
 /**
  * De snelknop van Mehdi: welke gebouwen verdienen een bezoek met de camera.
  *
- * Drie voorwaarden samen:
- *  1. geen opleveringsfoto's (de scherpste aanwijzing dat er een reportage is);
- *  2. geen beeld, of geen beeld meer sinds 2024 (een map zonder datum telt als
- *     "geen beeld" -- ook de zes mappen die Dropbox niet wil geven, want
- *     onbekend is hier een reden om te gaan kijken, geen reden om over te slaan);
- *  3. het dossier is niet opgezegd.
+ * Twee voorwaarden samen:
+ *  1. het afgewerkte gebouw staat niet zeker in beeld -- beoordeling "nee" of
+ *     "onzeker" (onzeker is hier een reden om te gaan kijken, geen reden om
+ *     over te slaan; dat geldt ook voor de mappen die Dropbox niet wil geven);
+ *  2. het dossier is niet opgezegd.
  *
- * De kolom "Foto's aanwezig" telt hier bewust NIET mee: die staat op "ja" zodra
- * er één png in de map zit, en dat is meestal een plan of een schermafdruk.
+ * Het aantal foto's telt hier bewust NIET mee. Een map met 300 beelden kan
+ * uitsluitend plannen, schermafdrukken en werffoto's bevatten; wat telt is of
+ * er een foto van het resultaat is.
  */
 export function teFotograferen(p: Project): boolean {
-  if (p.oplevering > 0) return false;
   if (p.status === "opgezegd") return false;
-  const jaar = beeldjaar(p);
-  return jaar === null || jaar < RECENT_VANAF;
+  return p.oplevering_beoordeling !== "ja";
 }
 
 export type Filters = {
@@ -123,11 +164,14 @@ export function filter(projecten: Project[], f: Filters): Project[] {
     if (tot && (p.jaar === null || p.jaar > tot)) return false;
     if (f.type && !p.typen.includes(f.type)) return false;
     if (f.status && p.status !== f.status) return false;
-    if (f.fotos && p.fotos !== f.fotos) return false;
-    if (f.oplevering === "ja" && p.oplevering === 0) return false;
-    if (f.oplevering === "nee" && p.oplevering > 0) return false;
+    // "Camerafoto's" volgt de kolom Foto's: onbekend blijft onbekend, ook als
+    // de map zelf niet leesbaar was.
+    if (f.fotos === "onbekend" && p.fotos !== "onbekend") return false;
+    if (f.fotos === "ja" && p.camerafotos === 0) return false;
+    if (f.fotos === "nee" && (p.camerafotos > 0 || p.fotos === "onbekend")) return false;
+    if (f.oplevering && p.oplevering_beoordeling !== f.oplevering) return false;
     if (beeldVanaf) {
-      const jaar = beeldjaar(p);
+      const jaar = camerajaar(p);
       if (jaar === null || jaar < beeldVanaf) return false;
     }
     if (f.focus && !teFotograferen(p)) return false;
@@ -172,13 +216,13 @@ export function sorteer(rijen: Project[], sleutel: Sorteersleutel, oplopend: boo
         v = getal(a.jaar, b.jaar);
         break;
       case "aantal":
-        v = a.aantal - b.aantal;
+        v = a.camerafotos - b.camerafotos;
         break;
       case "recentste":
-        v = tekst(a.recentste || "", b.recentste || "");
+        v = tekst(a.recentste_camerafoto || "", b.recentste_camerafoto || "");
         break;
       case "oplevering":
-        v = a.oplevering - b.oplevering;
+        v = beoordelingsrang(a.oplevering_beoordeling) - beoordelingsrang(b.oplevering_beoordeling);
         break;
       case "status":
         v = tekst(a.status, b.status);
@@ -196,7 +240,10 @@ export type Gemeenterij = {
   gemeente: string;
   provincie: string;
   projecten: number;
-  metFoto: number;
+  /** Projecten waarvan het afgewerkte gebouw in beeld staat (beoordeling "ja"). */
+  inBeeld: number;
+  /** Projecten met beoordeling "onzeker": wel camerafoto's, maar niet uit te maken. */
+  onzeker: number;
   teFotograferen: number;
 };
 
@@ -211,13 +258,15 @@ export function perGemeente(projecten: Project[]): Gemeenterij[] {
         gemeente: p.gemeente,
         provincie: p.provincie,
         projecten: 0,
-        metFoto: 0,
+        inBeeld: 0,
+        onzeker: 0,
         teFotograferen: 0,
       };
       kaart.set(sleutel, rij);
     }
     rij.projecten += 1;
-    if (p.fotos === "ja") rij.metFoto += 1;
+    if (p.oplevering_beoordeling === "ja") rij.inBeeld += 1;
+    if (p.oplevering_beoordeling === "onzeker") rij.onzeker += 1;
     if (teFotograferen(p)) rij.teFotograferen += 1;
   }
   return [...kaart.values()].sort(
