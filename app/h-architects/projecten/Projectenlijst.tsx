@@ -315,23 +315,19 @@ export function Projectenlijst({
           </div>
         ) : tab === "lijst" ? (
           <div className="tabelwrap">
-            <table className="tabel">
+            <table className="tabel ha-tabel">
               <thead>
                 <tr>
                   <Kop sleutel="nummer" label="Nr." nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} />
                   <th>Adres</th>
-                  <th className="num">Post</th>
                   <Kop sleutel="gemeente" label="Gemeente" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} />
-                  <th>Provincie</th>
                   <Kop sleutel="jaar" label="Jaar" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} num />
                   <th>Type</th>
                   <Kop sleutel="status" label="Status" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} />
-                  <th>Foto&apos;s</th>
-                  <Kop sleutel="aantal" label="Aantal" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} num />
-                  <Kop sleutel="recentste" label="Recentste" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} />
+                  <Kop sleutel="aantal" label="Foto's" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} />
+                  <Kop sleutel="recentste" label="Recentste" nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} num />
                   <Kop sleutel="oplevering" label="Oplev." nu={sleutel} oplopend={oplopend} zetSortering={zetSortering} num />
-                  <th>Dropbox</th>
-                  <th>Mapnaam</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -347,29 +343,29 @@ export function Projectenlijst({
                       <td className="num" style={{ fontVariantNumeric: "tabular-nums" }}>
                         {p.nummer}
                       </td>
-                      <td style={{ minWidth: 240 }}>{p.adres}</td>
-                      <td className="num">{p.postcode ?? ""}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>{p.gemeente}</td>
-                      <td style={{ whiteSpace: "nowrap", color: "var(--inkt-zacht)" }}>{p.provincie}</td>
+                      <td className="ha-adres" title={p.mapnaam}>{p.adres}</td>
+                      <td>
+                        <span style={{ whiteSpace: "nowrap" }}>{p.gemeente}</span>
+                        <span className="ha-sub">{p.provincie}</span>
+                      </td>
                       <td className="num">{p.jaar ?? ""}</td>
-                      <td style={{ color: "var(--inkt-zacht)" }}>
+                      <td className="ha-type">
                         {p.typen.length ? p.typen.join(", ") : <span style={{ color: "var(--inkt-vaag)" }}>niet ingevuld</span>}
                       </td>
                       <td>
                         <Chip soort="" tekst={p.status} />
                       </td>
-                      <td>
+                      <td className="ha-fotos">
                         {p.fotos === "ja" ? (
-                          <Chip soort="goed" tekst="ja" />
+                          <Chip soort="goed" tekst={num(p.aantal)} />
                         ) : p.fotos === "nee" ? (
                           <Chip soort="kritiek" tekst="nee" />
                         ) : (
                           <Chip soort="let" tekst="onbekend" />
                         )}
                       </td>
-                      <td className="num">{num(p.aantal)}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>
-                        {d || <span style={{ color: "var(--inkt-vaag)" }}>geen</span>}
+                      <td className="num">
+                        {d ? d.slice(-4) : <span style={{ color: "var(--inkt-vaag)" }}>geen</span>}
                       </td>
                       <td className="num">
                         {p.oplevering > 0 ? (
@@ -386,21 +382,8 @@ export function Projectenlijst({
                           rel="noreferrer noopener"
                           title="Opent de projectmap in Dropbox, in een nieuw tabblad"
                         >
-                          Open in Dropbox
+                          Dropbox
                         </a>
-                      </td>
-                      <td
-                        style={{
-                          color: "var(--inkt-vaag)",
-                          fontSize: 11.5,
-                          maxWidth: 260,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                        title={p.mapnaam}
-                      >
-                        {p.mapnaam}
                       </td>
                     </tr>
                   );
