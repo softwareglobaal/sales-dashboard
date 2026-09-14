@@ -339,8 +339,10 @@ mag wel). Alles wat `.png` of `.webp` is, telt nooit als camerafoto. Uitkomst:
 
 **Beoordeling op beeld.** Van elk project zijn de **drie recentste camerafoto's** als
 thumbnail (`files/get_thumbnail_batch`) opgehaald en per twintig projecten op een
-contactblad gezet (PIL, projectnummer en gemeente als bijschrift). Die 41
-contactbladen met 1.856 thumbnails zijn stuk voor stuk met het oog bekeken. Het
+contactblad gezet (PIL, projectnummer en gemeente als bijschrift): 28 bladen met 1.629
+thumbnails. De 77 gevallen die daarop niet te beoordelen waren, zijn nog eens opgehaald op
+w640h480 met zes projecten per blad (13 bladen, 227 thumbnails); daarmee zakte "onzeker" van 77
+naar 7. Samen 41 contactbladen met 1.856 thumbnails, stuk voor stuk met het oog bekeken. Het
 oordeel staat per project in `oplevering_beoordeling`:
 
 | waarde | betekenis |
