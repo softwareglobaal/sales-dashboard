@@ -1,0 +1,15 @@
+{
+  "_uitleg": "Eigen websites die gemeten worden (tab Websites, spec §15). 'sleutel' staat als data-site op het meetscript; 'domeinen' zijn de enige hostnamen waarvan het meetpunt gegevens aanneemt. De kleur volgt de vaste volgorde van het categorische palet: nooit herschikken, een nieuwe site krijgt de volgende kleur. 'live: false' = nog niet online, wordt pas getoond zodra er metingen binnenkomen.",
+  "sites": [
+    { "sleutel": "unabo", "naam": "UNABO", "url": "https://unabo.be", "domeinen": ["unabo.be", "www.unabo.be"], "firma": "UNABO", "kleur": "#2a78d6", "live": true },
+    { "sleutel": "energie-efficient", "naam": "Energie Efficiënt", "url": "https://energie-efficient.be", "domeinen": ["energie-efficient.be", "www.energie-efficient.be"], "firma": "Energie Efficiënt", "kleur": "#eb6834", "live": true },
+    { "sleutel": "epb-boete", "naam": "epb-boete.be", "url": "https://epb-boete.be", "domeinen": ["epb-boete.be", "www.epb-boete.be"], "firma": "Energie Efficiënt", "kleur": "#1baf7a", "live": true },
+    { "sleutel": "regulariseren", "naam": "Regulariseren.be", "url": "https://regulariseren.be", "domeinen": ["regulariseren.be", "www.regulariseren.be"], "firma": "UNABO", "kleur": "#eda100", "live": true },
+    { "sleutel": "mijnregularisatie", "naam": "Mijnregularisatie.be", "url": "https://mijnregularisatie.be", "domeinen": ["mijnregularisatie.be", "www.mijnregularisatie.be"], "firma": "H-Architects", "kleur": "#e87ba4", "live": true },
+    { "sleutel": "hdssr", "naam": "High Design Studio", "url": "https://hdssr.com", "domeinen": ["hdssr.com", "www.hdssr.com"], "firma": "High Design Studio N.V.", "kleur": "#008300", "live": true },
+    { "sleutel": "elevait", "naam": "Elevait", "url": "https://elevaitnv.com", "domeinen": ["elevaitnv.com", "www.elevaitnv.com", "elevaitservices.com", "www.elevaitservices.com"], "firma": "Elevait N.V.", "kleur": "#4a3aa7", "live": true },
+    { "sleutel": "h-architects", "naam": "H-Architects", "url": "https://h-architects.be", "domeinen": ["h-architects.be", "www.h-architects.be"], "firma": "H-Architects", "kleur": "#e34948", "live": false },
+    { "sleutel": "harmoniebouw", "naam": "HarmonieBOUW", "url": "https://harmoniebouw.be", "domeinen": ["harmoniebouw.be", "www.harmoniebouw.be"], "firma": "HarmonieBOUW", "kleur": "#5f5a52", "live": false },
+    { "sleutel": "tkn-buro", "naam": "TKN-Buro", "url": "https://tkn-buro.be", "domeinen": ["tkn-buro.be", "www.tkn-buro.be"], "firma": "TKN-Buro", "kleur": "#8f8a82", "live": false }
+  ]
+}
