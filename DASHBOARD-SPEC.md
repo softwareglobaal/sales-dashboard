@@ -405,3 +405,42 @@ vormgeving en blijft staan als geschiedenis.
 - `config/lossReasons.json` — variant → genormaliseerde verlies-reden.
 - `config/customFields.json` — per account: vriendelijke naam → Pipedrive-veld-key (custom_json).
 - `lib/hiddenPipelines.ts` — verborgen pipelines (Algemeen).
+
+## 15. Websites (september 2026)
+
+Tab `/websites` (Marketing): bezoekers, herkomst, locatie en gedrag op de eigen, door ons gebouwde
+sites. Algemene pagina (geen afdelingsslot), net als SEO/SEA.
+
+**Bron = eigen meting, geen Google Analytics.** Matomo/PostHog/Umami vragen een eigen database of
+container en de server heeft daar geen ruimte voor (swap vol, schijf 96%). De keten:
+`public/m.js` (meetscript op de site) → `POST /api/meet` → `lib/websitesMeting.ts` →
+`data/websites.db` (apart SQLite-bestand, los van `dashboard.db`). Publiek bereikbaar via
+**meet.globaal.be** (`deploy/75-meet.conf.template`): enkel `/m.js` en `/api/meet` staan open,
+`middleware.ts` laat die twee paden zonder login door.
+
+**Sites** staan in `config/websites.json` (sleutel, domeinen, vaste kleur uit het categorische
+palet, `live`). De inname weigert alles van een ander domein. Op een site:
+`<script defer src="https://meet.globaal.be/m.js" data-site="<sleutel>"></script>`. Sites met een
+Content-Security-Policy moeten `https://meet.globaal.be` in `script-src` én `connect-src` hebben.
+
+**Privacy (hard):** geen cookies; IP-adres wordt enkel gebruikt voor de locatie en nooit bewaard;
+bezoeker = hash(maandzout + site + IP + browser), zout wordt na de maand gewist. Geen
+formulierinhoud, geen getypte tekst, geen sessie-opnames. Bewaartermijn 400 dagen.
+Eigen bezoeken uitsluiten: `?meet=uit` op de site (zet één vlag in localStorage van dat toestel).
+
+**Definities:**
+- *Sessie* = bezoeken van dezelfde bezoeker zonder pauze van 30 minuten. *Bezoekers* = unieke
+  bezoekers, per kalendermaand herkend.
+- *Betrokken sessie* = ≥ 10 s actief, of ≥ 2 pagina's, of een contactactie. *Bounce* = de rest.
+- *Actieve tijd* telt enkel terwijl het tabblad zichtbaar is.
+- *Contactactie* = klik op tel:, mailto:, WhatsApp, of een formulierverzending.
+- *Kanaal*: advertentieklik-id (gclid/gbraid/wbraid) → Google Ads; utm-parameters →
+  campagne-kanaal; anders de verwijzer (zoekmachine, AI-assistent, sociale media, e-mail,
+  eigen zustersite, verwijzende site); geen verwijzer → Direct.
+- *Locatie*: DB-IP City Lite (CC BY 4.0, maandelijks automatisch vernieuwd in `data/geo/`, eigen
+  bestandslezer zonder alles in het geheugen te laden). Provincie voor Vlaanderen via de dichtste
+  postcode. Land/provincie betrouwbaar, gemeente is een benadering.
+- *Klikkaart*: klikposities in promille van paginabreedte/-hoogte, apart voor computer (≥ 900 px)
+  en gsm/tablet; secties = `main section`, `footer` of `[data-meet-sectie]`, met tijd in beeld
+  (≥ 50% zichtbaar).
+- *Laadsnelheid*: LCP, INP, CLS, TTFB en volledig geladen, 75e percentiel.

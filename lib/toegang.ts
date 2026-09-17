@@ -24,7 +24,7 @@ export const AFDELING_VAN_PAD: Record<string, string> = {
 export const AFDELINGSPADEN = Object.keys(AFDELING_VAN_PAD);
 
 /** Pagina's die niet bij één afdeling horen en dus voor iedereen open staan. */
-const ALGEMEEN = ["", "kaart", "sales-team", "woordenboek", "applicaties", "seo-sea"];
+const ALGEMEEN = ["", "kaart", "sales-team", "woordenboek", "applicaties", "seo-sea", "websites"];
 
 function groepenUit(kop: string | null): string[] {
   return (kop || "").split(/[|,]/).map((g) => g.trim().toLowerCase()).filter(Boolean);
