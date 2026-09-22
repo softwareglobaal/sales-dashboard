@@ -663,10 +663,14 @@ export function registreerRegularisatieOnderzoek() {
   const updPlaats = db.prepare(
     "UPDATE concurrenten SET gemeente = ? WHERE domein = ? AND (gemeente IS NULL OR gemeente = '')"
   );
+  // `changes` telt een ON CONFLICT-update ook als wijziging; wie echt nieuw is
+  // weten we alleen door vooraf te kijken.
+  const bestaat = db.prepare("SELECT 1 FROM concurrenten WHERE domein = ?");
   let toegevoegd = 0;
   db.transaction(() => {
     for (const r of REGULARISATIE_ONDERZOEK) {
-      if (ins.run(r.domein, r.naam, r.categorie, nu).changes) toegevoegd++;
+      if (!bestaat.get(r.domein)) toegevoegd++;
+      ins.run(r.domein, r.naam, r.categorie, nu);
       markeerMarkt(r.domein, "regularisatie", "onderzoek");
       updOnderzoek.run(r.sea ?? null, r.prijs ?? null, REGULARISATIE_ONDERZOEK_DATUM, r.domein);
       if (r.plaats) updPlaats.run(r.plaats, r.domein);
