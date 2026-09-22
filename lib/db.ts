@@ -208,9 +208,10 @@ function initSchema(db: Database.Database) {
     -- bureau uit de ene lijst zodra het in de andere staat.
     CREATE TABLE IF NOT EXISTS concurrent_markt (
       domein      TEXT NOT NULL,
-      markt       TEXT NOT NULL,    -- energie / engineering / architectuur
-      bron        TEXT,             -- register / serp / crawl / handmatig
+      markt       TEXT NOT NULL,    -- energie / engineering / architectuur / regularisatie
+      bron        TEXT,             -- register / serp / crawl / onderzoek / eigen
       eerste_zien TEXT,
+      -- Onderzoeksvelden (zie de migratie onderaan): sea, prijsmodel, onderzoek_datum
       PRIMARY KEY (domein, markt)
     );
     CREATE INDEX IF NOT EXISTS idx_cm_markt ON concurrent_markt(markt);
@@ -360,6 +361,9 @@ function initSchema(db: Database.Database) {
     // Idem voor de Architectuur-markt (H-Architects). Derde kolom, geen derde
     // tabel: dezelfde crawl meet elk domein één keer en telt per markt apart.
     ["arch_paginas", "INTEGER"],
+    // En de Regularisatie-markt (regulariseren.be): pagina's over bouwovertredingen
+    // en regularisatie. Vierde kolom, zelfde motor.
+    ["reg_paginas", "INTEGER"],
   ] as const) {
     if (!snapCols.includes(naam)) db.exec(`ALTER TABLE site_snapshots ADD COLUMN ${naam} ${type}`);
   }
@@ -375,9 +379,18 @@ function initSchema(db: Database.Database) {
     db.exec("UPDATE zoekwoorden SET markt = 'energie' WHERE markt IS NULL OR markt = ''");
   }
 
+  // Onderzoeksvelden per markt (regularisatie, september 2026): adverteert de site
+  // op Google, en hoe communiceert ze haar prijs. Op de koppeltabel, want dat is
+  // marktgebonden -- een bureau adverteert op regularisatie en niet op ontwerp.
+  const cmCols = (db.prepare("PRAGMA table_info(concurrent_markt)").all() as any[]).map((c) => c.name);
+  if (!cmCols.includes("sea")) db.exec("ALTER TABLE concurrent_markt ADD COLUMN sea TEXT");
+  if (!cmCols.includes("prijsmodel")) db.exec("ALTER TABLE concurrent_markt ADD COLUMN prijsmodel TEXT");
+  if (!cmCols.includes("onderzoek_datum")) db.exec("ALTER TABLE concurrent_markt ADD COLUMN onderzoek_datum TEXT");
+
   const urlCols2 = (db.prepare("PRAGMA table_info(site_urls)").all() as any[]).map((c) => c.name);
   if (!urlCols2.includes("markt_eng")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_eng INTEGER");
   if (!urlCols2.includes("markt_arch")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_arch INTEGER");
+  if (!urlCols2.includes("markt_reg")) db.exec("ALTER TABLE site_urls ADD COLUMN markt_reg INTEGER");
 
   // Eenmalig: alles wat al gevolgd werd, is via het VEKA-register of via de
   // energie-zoektermen binnengekomen. Dat is dus de energiemarkt.

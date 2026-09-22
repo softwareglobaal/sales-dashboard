@@ -205,16 +205,16 @@ Dat was 90 zolang er ~360 domeinen waren; met het architectenregister erbij staa
 paar duizend in de lijst, en op 90 per dag zou een site nog maar een paar keer per jaar
 gemeten worden. Op 250 is de hele lijst in ruim een week rond. Nieuwe URL's worden
 signalen. Posities wekelijks op maandag (Energie 30 termen, Engineering 15 termen in de
-even weken, Architectuur 15 termen in de oneven weken), zoekvolumes maandelijks op de
-eerste voor alle drie de markten.
+even weken, Architectuur en Regularisatie elk 15 termen in de oneven weken), zoekvolumes
+maandelijks op de eerste voor alle vier de markten.
 
 ## 12. Concurrentiemonitor Engineering (september 2026)
 
 Tweede markt op dezelfde motor, onder `/engineering/concurrentie`. Onderwerp:
 **stabiliteitsstudies** (UNABO Engineering + TKN-Buro), plus de meetstaten van TKN.
 
-**Eén crawl, drie markten.** De crawler is marktloos: hij meet elk domein één keer en
-telt de omvang apart per markt (`epb_paginas`, `eng_paginas`, `arch_paginas`). Welke
+**Eén crawl, vier markten.** De crawler is marktloos: hij meet elk domein één keer en
+telt de omvang apart per markt (`epb_paginas`, `eng_paginas`, `arch_paginas`, `reg_paginas`). Welke
 markten een domein bedient staat in de koppeltabel `concurrent_markt` — een koppeltabel
 en geen kolom, want een bureau kan in meerdere markten zitten. Zoekwoorden dragen een
 `markt`-kolom en staan in `config/zoekwoorden-<markt>.json`.
@@ -302,10 +302,97 @@ keer in het register. Wie de markt in bureaus telt, telt domeinen; dat is ook wa
 crawler doet. Beide getallen staan naast elkaar op de pagina, net als de twee lenzen bij
 Energie.
 
+## 14. Concurrentiemonitor Regularisatie (september 2026)
+
+Vierde markt op dezelfde motor, onder `/regularisatie/concurrentie`. Onderwerp:
+**bouwovertredingen regulariseren**. Drie eigen sites spelen hier mee, met drie rollen en
+bewust zonder link naar elkaar (doorway-beleid, zie de contentstrategie regularisatie):
+`regulariseren.be` (de specialist, uitgever UNABO, uitvoerder H-Architects),
+`mijnregularisatie.be` (de zelfcheck) en `h-architects.be` (het moederbureau, met acht
+eigen regularisatiepagina's). regulariseren.be is de maat op de pagina; in het leaderboard
+telt de hele groep als "wij" — twee eigen sites in één top 5 is geen dubbele winst maar een
+teken dat ze elkaar beconcurreren.
+
+**Geen register, wel een startlijst.** Iedere architect mag regulariseren en niet alleen
+architecten doen het, dus een register bestaat niet. De markt begint daarom bij het
+concurrentieonderzoek van 11 augustus 2026 (`marketing/seo/firmas/Regulariseren/onderzoek/`):
+zes gespecialiseerde regularisatiemerken (vergund.be, onvergund.be, regulant.be, ...), acht
+architectenbureaus met een eigen regularisatiepagina, en drie spelers ernaast (een
+advocatenkantoor omgevingsrecht, een offerteplatform, een vastgoeddata-site). Die lijst staat
+als `REGULARISATIE_ONDERZOEK` in `lib/concurrentie.ts` en komt met bron `onderzoek` in
+`concurrent_markt`. Daarna groeit de markt zoals bij Engineering: uit de zoekresultaten en
+uit de crawl (minstens 3 regularisatiepagina's én 1% van de site).
+
+**De architect is concurrent, de aannemer niet.** Een architect dient hetzelfde
+regularisatiedossier in; een aannemer bouwt en regulariseert niet. `GEEN_CONCURRENT_REGULARISATIE`
+sluit daarom overheid, portalen, jobsites, buitenland, fabrikanten én aannemers uit. Een
+advocaat valt onder "onbekend" en telt mee — terecht: hij vecht op dezelfde zoekvragen om
+dezelfde eigenaar, en schrijft als enige over boete, dwangsom en meerwaardeheffing.
+
+**Omvang meten we in ONZE markt**: `reg_paginas` telt pagina's over het probleem
+(bouwovertreding, bouwmisdrijf, onvergund, zonder vergunning), het traject (regulariseren,
+regularisatievergunning, vermoeden van vergunning, planologisch attest) en het gevolg
+(maatregelenregister, herstelvordering, dwangsom, meerwaardeheffing). Bewust zónder
+"omgevingsvergunning" en "bouwaanvraag": die staan op elke architecten- en verslaggeverssite.
+Op een domein dat het onderwerp zelf in zijn naam draagt (regulariseren.be, vergund.be,
+onvergund.be) telt elke pagina mee — anders scoort de specialist nul in zijn eigen markt.
+Een bureau met één dienstenpagina haalt zo één; een specialist die per situatie en per
+doelgroep schrijft haalt er tien. Dat verschil is de markt.
+
+**Wat de dienstendekking moet bewaken.** Vijf nieuwe dienstpatronen: Maatregelenregister,
+Haalbaarheidsstudie, Prijscalculator, Juridisch advies bouwrecht en Vermoeden van vergunning.
+In augustus 2026 noemde geen enkele concurrent het maatregelenregister (notarissen en
+makelaars moeten het sinds 1 april 2026 bij elke overdracht raadplegen) en hadden er twee een
+prijscalculator. Zodra die balken groeien, is het onderzoek verouderd — dat is wat de pagina
+zichtbaar maakt.
+
+**Zoekwoorden.** `config/zoekwoorden-regularisatie.json`, 57 termen in negen thema's (53 bij de bouw, +4 netto op 22 september 2026):
+kern, kostprijs, kopen en verkopen, maatregelenregister, boete en gevolgen, procedure,
+situaties (veranda, tuinhuis, carport, ... zonder vergunning), regio en "uit Search
+Console" (termen waarop h-architects.be al vertoningen haalt). De vier
+regularisatietermen die tot dan in de architectuurlijst stonden zijn hierheen verhuisd: een
+term hoort bij één markt (de term is de sleutel van de tabel). De intentie `probleem` is hier
+de waardevolste: wie "huis kopen met bouwovertreding" intikt, heeft het probleem al.
+
+**Search Console.** h-architects.be levert ontwerp- én regularisatietermen; de
+Regularisatie-pagina filtert op regularisatiewoorden (`REG_TERMWOORDEN`), zoals de
+Engineering-pagina dat met stabiliteitswoorden doet. Of regulariseren.be en
+mijnregularisatie.be een eigen property hebben, toont de bollenrij bovenaan.
+
+**Toegang.** Route `regularisatie` = afdeling `regularisatie`, Authentik-groep
+`wp-regularisatie` (bestaat al sinds de Watch Tower-opzet). De afdelingspagina `/regularisatie`
+zelf staat op "in aanbouw": regularisatiedossiers lopen nog door de H-Architects-pipeline
+zonder eigen label, dus er is nog geen salesbron.
+
+**Onderzoeksronde 22 september 2026.** De startlijst is aangevuld uit het prijsonderzoek van
+14 september en de SEA-ronde van 22 september (`marketing/seo/firmas/UNABO/onderzoek/`):
+Studio Renès, Van Welden & Partners (regularisatieaanvraag.be is een frame naar dat domein),
+Regul.archi, en de portalen architectoffertes.be en bouwplannen.be. Per rij dragen de
+startlijstrijen nu drie onderzoeksvelden, opgeslagen op `concurrent_markt` (marktgebonden,
+niet op het domein): `sea` (ja / ander thema / nee / leeg = niet nagekeken, uit het Google Ads
+Transparency Center voor België), `prijsmodel` (hoe de site haar prijs communiceert, met
+bedrag waar er een staat) en `onderzoek_datum`. De tab toont ze als kolommen "Adverteert"
+en "Prijs online" met de datum in de voetnoot. Het zijn momentopnamen uit een handmatige
+ronde: de crawler ziet advertenties niet en leest geen prijzen, dus deze velden verversen
+alleen als iemand het onderzoek herhaalt en de lijst in de code bijwerkt. Bewust niet
+opgenomen: woningregularisatie.be (domein dood), de Brusselse en Waalse bureaus (Franstalig,
+buiten het werkgebied) en opmeetbureaus zonder indiening.
+
+**Zoekwoorden getoetst aan de Keyword Planner (nl-BE, 22 september 2026).** De config draagt
+per term een optioneel `volume`, handmatig uit dat rapport; `importeerZoekwoorden()` vult
+daarmee alleen lege of eerder handmatige volumes, zodat de positiemeting (15 termen per
+oneven week, op volume) meteen de juiste termen neemt en de maandelijkse Ads-sync het
+daarna overschrijft. Toegevoegd: "regularisatie" (880, dubbelzinnig, kennisterm),
+"regularisatie aanvraag" (70), "regularisatie bouwovertreding kostprijs" (70), "oude
+bouwovertreding regulariseren" (40) en "regularisatie bouwovertreding geweigerd" (50, in de
+plaats van "regularisatie geweigerd" zonder volume). De stads- en prijstermen zonder volume
+blijven staan om te zien wie er rankt, maar komen door de volgorde op volume nooit in de
+meting. Nu 57 termen; het SERP-quotum verandert niet, want de limiet van 15 per meting
+bepaalt het verbruik, niet de lengte van de lijst.
+
 ## 15. Projectenlijst H-Architects met fototelling (september 2026)
 
-Onder `/h-architects/projecten`, naast de concurrentiemonitor. (Nummer 14 is de
-concurrentiemonitor Regularisatie; die staat nog op een eigen tak.) Geen markt-module en
+Onder `/h-architects/projecten`, naast de concurrentiemonitor. Geen markt-module en
 geen Pipedrive: dit is een **werklijst voor Mehdi**, die moet kunnen zien welke gebouwen
 nog bezocht en gefotografeerd moeten worden. De lijst verving een Excel-bestand; sinds
 14 september 2026 is het een pagina met een deelbare link.
@@ -400,13 +487,13 @@ vormgeving en blijft staan als geschiedenis.
 
 ## Config-bestanden (aanpasbaar zonder code)
 - `config/engineering.json` — label→kanaal + hoofdkanaal-groepen, genegeerde labels/pipelines, `offerteStages`.
-- `config/zoekwoorden-energie.json` / `-engineering.json` / `-architectuur.json` — de zoektermen per markt.
+- `config/zoekwoorden-energie.json` / `-engineering.json` / `-architectuur.json` / `-regularisatie.json` — de zoektermen per markt.
 - `config/themes.json` — thema → match-regels (productkeywords/afdelingen).
 - `config/lossReasons.json` — variant → genormaliseerde verlies-reden.
 - `config/customFields.json` — per account: vriendelijke naam → Pipedrive-veld-key (custom_json).
 - `lib/hiddenPipelines.ts` — verborgen pipelines (Algemeen).
 
-## 15. Websites (september 2026)
+## 16. Websites (september 2026)
 
 Tab `/websites` (Marketing): bezoekers, herkomst, locatie en gedrag op de eigen, door ons gebouwde
 sites. Algemene pagina (geen afdelingsslot), net als SEO/SEA.

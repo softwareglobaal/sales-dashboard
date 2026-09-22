@@ -1,5 +1,5 @@
 {
-  "_uitleg": "Zoekwoorden die de Architectuur-markt afbakenen: het ontwerpwerk van H-Architects voor particuliere bouwheren. Aan te vullen zonder code. thema = groepering op de pagina, intentie = dienst (koopklaar) / probleem (urgent, hoge waarde) / kennis (blogstof) / lokaal (regio) / vacature (zoekt werk, geen klant). De regiotermen volgen het werkgebied: heel Vlaanderen, met Leuven en Antwerpen als zwaartepunt. 'architect' alleen is bewust géén term: die zoekopdracht is half informatief, half vacature, en zegt niets over een dossier.",
+  "_uitleg": "Zoekwoorden die de Architectuur-markt afbakenen: het ontwerpwerk van H-Architects voor particuliere bouwheren. Aan te vullen zonder code. thema = groepering op de pagina, intentie = dienst (koopklaar) / probleem (urgent, hoge waarde) / kennis (blogstof) / lokaal (regio) / vacature (zoekt werk, geen klant). De regiotermen volgen het werkgebied: heel Vlaanderen, met Leuven en Antwerpen als zwaartepunt. 'architect' alleen is bewust géén term: die zoekopdracht is half informatief, half vacature, en zegt niets over een dossier. De regularisatietermen staan sinds 11 september 2026 in zoekwoorden-regularisatie.json: een term hoort bij één markt, en regularisatie heeft nu een eigen pagina.",
   "markt": "architectuur",
   "locatie": { "land": "BE", "taal": "nl", "geoTargetConstant": "2056" },
   "zoekwoorden": [
@@ -18,11 +18,6 @@
     { "term": "architect uitbouw", "thema": "Projecttype", "intentie": "dienst" },
     { "term": "bouwplannen laten maken", "thema": "Projecttype", "intentie": "dienst" },
     { "term": "interieurarchitect verbouwing", "thema": "Projecttype", "intentie": "dienst" },
-
-    { "term": "architect regularisatie", "thema": "Regularisatie", "intentie": "dienst" },
-    { "term": "bouwovertreding regulariseren", "thema": "Regularisatie", "intentie": "probleem" },
-    { "term": "regularisatie bouwvergunning", "thema": "Regularisatie", "intentie": "probleem" },
-    { "term": "bouwen zonder vergunning gevolgen", "thema": "Regularisatie", "intentie": "probleem" },
 
     { "term": "aankoopbegeleiding architect", "thema": "Aankoopbegeleiding", "intentie": "dienst" },
     { "term": "bouwtechnisch advies aankoop woning", "thema": "Aankoopbegeleiding", "intentie": "dienst" },

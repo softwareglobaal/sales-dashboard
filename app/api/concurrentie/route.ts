@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
-  importeerVerslaggevers, importeerArchitecten, crawlDomeinen, teCrawlenDomeinen,
-  herberekenAfleidingen, bepaalMarkten,
+  importeerVerslaggevers, importeerArchitecten, registreerRegularisatieOnderzoek,
+  crawlDomeinen, teCrawlenDomeinen, herberekenAfleidingen, bepaalMarkten,
 } from "@/lib/concurrentie";
 
 export const runtime = "nodejs";
@@ -11,6 +11,7 @@ export const maxDuration = 800;
 /**
  * Draait de concurrentiemonitor.
  *   ?import=1        leest beide registers opnieuw in (VEKA + Orde van Architecten)
+ *                    en zet de startlijst van de regularisatiemarkt klaar
  *   ?limiet=50       crawlt maximaal 50 domeinen (oudste check eerst); 0 = geen grens
  *   ?crawl=0         alleen inlezen en indelen, geen enkele site bezoeken
  *   ?domein=x.be     crawlt één domein
@@ -45,6 +46,9 @@ async function draai(url: URL) {
     } catch (e) {
       uit.architectenregister = { ok: false, fout: String((e as Error)?.message || e) };
     }
+    // Regularisatie heeft geen register; de startlijst uit het onderzoek staat
+    // in de code en is dus altijd beschikbaar.
+    uit.regularisatie = registreerRegularisatieOnderzoek();
   }
 
   // Let op: limiet=0 betekent "geen grens", niet "niets". Wie alleen de registers

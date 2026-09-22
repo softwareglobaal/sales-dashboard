@@ -1,7 +1,10 @@
 /**
- * Zoekwoorden en posities per markt: `energie` (EPB, ventilatie) en
- * `engineering` (stabiliteitsstudies). Elke markt heeft een eigen
- * configbestand `config/zoekwoorden-<markt>.json`.
+ * Zoekwoorden en posities per markt: `energie` (EPB, ventilatie),
+ * `engineering` (stabiliteitsstudies), `architectuur` (H-Architects) en
+ * `regularisatie` (bouwovertredingen). Elke markt heeft een eigen
+ * configbestand `config/zoekwoorden-<markt>.json`. Een term hoort bij één
+ * markt (de term is de sleutel): staat hij in twee bestanden, dan wint het
+ * laatst ingelezen bestand.
  *
  * Twee bronnen, bewust gescheiden:
  *  - Zoekvolume komt van Google Ads (Keyword Planner). Die koppeling bestaat al
@@ -20,7 +23,10 @@ import { markeerMarkt, MARKTEN, type Markt } from "./concurrentie";
 
 export type ZoekwoordBron = {
   locatie: { land: string; taal: string; geoTargetConstant: string };
-  zoekwoorden: { term: string; thema: string; intentie: string }[];
+  // `volume` is optioneel: een handmatig ingelezen maandvolume (bv. uit een
+  // Keyword Planner-rapport) voor termen die de maandelijkse Ads-sync nog niet
+  // gezien heeft. De sync overschrijft het zodra hij draait.
+  zoekwoorden: { term: string; thema: string; intentie: string; volume?: number }[];
 };
 
 export function leesZoekwoordenConfig(markt: Markt = "energie"): ZoekwoordBron {
@@ -29,8 +35,11 @@ export function leesZoekwoordenConfig(markt: Markt = "energie"): ZoekwoordBron {
 }
 
 /**
- * Zet de zoekwoorden uit de config in de database. Volumes blijven staan.
- * Zonder markt worden alle markten ingelezen.
+ * Zet de zoekwoorden uit de config in de database. Volumes van Google Ads blijven
+ * staan; een handmatig volume uit de config vult alleen wat nog leeg is (of wat
+ * eerder ook handmatig was), zodat de positiemeting de juiste termen eerst neemt
+ * vóór de maandelijkse sync gedraaid heeft. Zonder markt worden alle markten
+ * ingelezen.
  */
 export function importeerZoekwoorden(markt?: Markt) {
   const db = getDb();
@@ -41,11 +50,19 @@ export function importeerZoekwoorden(markt?: Markt) {
                                      intentie = excluded.intentie,
                                      markt = excluded.markt`
   );
+  const updVolume = db.prepare(
+    `UPDATE zoekwoorden SET volume = ?, volume_bron = 'handmatig', volume_datum = ?
+      WHERE term = ? AND (volume IS NULL OR volume_bron IS NULL OR volume_bron = 'handmatig')`
+  );
+  const datum = new Date().toISOString().slice(0, 10);
   const uit: Record<string, number> = {};
   for (const m of markt ? [markt] : MARKTEN) {
     const cfg = leesZoekwoordenConfig(m);
     db.transaction(() => {
-      for (const z of cfg.zoekwoorden) ins.run(z.term, z.thema, z.intentie, m);
+      for (const z of cfg.zoekwoorden) {
+        ins.run(z.term, z.thema, z.intentie, m);
+        if (typeof z.volume === "number") updVolume.run(z.volume, datum, z.term);
+      }
     })();
     uit[m] = cfg.zoekwoorden.length;
   }

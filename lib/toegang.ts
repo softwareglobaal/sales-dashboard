@@ -15,6 +15,7 @@ export const AFDELING_VAN_PAD: Record<string, string> = {
   "3d-scanning": "3d-scanning",
   plaatsbeschrijving: "plaatsbeschrijving",
   meetstaten: "meetstaten",
+  regularisatie: "regularisatie",
   // Deze twee heten hier anders dan in het register. Op termijn de route
   // hernoemen zodat er één woordenlijst overblijft.
   safety: "veiligheidscoordinatie",

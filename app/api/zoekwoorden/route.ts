@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { importeerZoekwoorden, haalZoekvolumes, meetPosities, serpBron, herclassificeerSerpDomeinen } from "@/lib/zoekwoorden";
-import type { Markt } from "@/lib/concurrentie";
+import { MARKTEN, type Markt } from "@/lib/concurrentie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
 /**
- *   ?markt=energie|engineering|architectuur  welke markt (standaard: energie)
+ *   ?markt=energie|engineering|architectuur|regularisatie  welke markt (standaard: energie)
  *   ?volumes=1   haalt zoekvolumes op bij Google Ads Keyword Planner
  *   ?posities=1  meet de posities bij de gekoppelde SERP-bron
  *   zonder parameters: alleen de zoekwoordenlijsten inlezen (alle markten)
@@ -17,10 +17,7 @@ export const maxDuration = 800;
  */
 async function draai(url: URL) {
   const gevraagd = url.searchParams.get("markt");
-  const markt: Markt =
-    gevraagd === "engineering" ? "engineering"
-      : gevraagd === "architectuur" ? "architectuur"
-        : "energie";
+  const markt: Markt = MARKTEN.find((m) => m === gevraagd) || "energie";
   const uit: Record<string, unknown> = { zoekwoorden: importeerZoekwoorden() };
 
   if (url.searchParams.get("volumes") === "1") {
