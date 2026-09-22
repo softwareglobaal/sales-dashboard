@@ -522,8 +522,12 @@ export async function crawlDomeinen(domeinen: string[]) {
 /** Onze eigen sites. Staan niet in het register, maar moeten wél meegemeten worden. */
 export const EIGEN_DOMEINEN = [
   { domein: "energie-efficient.be", naam: "Energie-Efficient (wij)", markten: ["energie"] },
-  // unabo.be draagt beide afdelingen: EPB én de stabiliteitsstudies.
-  { domein: "unabo.be", naam: "Unabo (wij)", markten: ["energie", "engineering"] },
+  // unabo.be draagt beide afdelingen: EPB én de stabiliteitsstudies. Sinds september
+  // 2026 ook regularisatie: UNABO is de uitgever van regulariseren.be, adverteert als
+  // enige van de groep op de kerntermen en krijgt de SEA-landingspagina. De crawl
+  // vond er al vier regularisatiepagina's; expliciet opnemen houdt het domein in de
+  // markt ook als dat aantal onder de crawldrempel zakt.
+  { domein: "unabo.be", naam: "Unabo (wij)", markten: ["energie", "engineering", "regularisatie"] },
   // h-architects.be draagt ook regularisatie: acht pagina's over bouwovertredingen,
   // en daarmee de sterkste interne concurrent van regulariseren.be.
   { domein: "h-architects.be", naam: "H-Architects (wij)", markten: ["architectuur", "regularisatie"] },

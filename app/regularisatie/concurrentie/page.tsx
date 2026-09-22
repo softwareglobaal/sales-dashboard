@@ -516,6 +516,7 @@ export default async function RegularisatieConcurrentiePage({
                           {s.domein === "regulariseren.be" ? "specialist"
                             : s.domein === "mijnregularisatie.be" ? "zelfcheck"
                             : s.domein === "h-architects.be" ? "moederbureau"
+                            : s.domein === "unabo.be" ? "uitgever, adverteerder"
                             : "—"}
                         </td>
                         <td className="py-1.5 pr-3 text-right tabular-nums text-zinc-600"><Paginas n={s.paginas} sitemap={s.heeft_sitemap} /></td>
@@ -533,8 +534,10 @@ export default async function RegularisatieConcurrentiePage({
             <p className="mt-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
               Drie sites, drie rollen, bewust zonder link naar elkaar — anders ziet Google een
               doorway. De specialist verkoopt het dossier, de zelfcheck vangt wie nog twijfelt, het
-              moederbureau draagt de merknaam. Van h-architects.be tellen hier alleen de pagina&rsquo;s
-              over regularisatie; de rest staat op de Architectuur-pagina.
+              moederbureau draagt de merknaam. unabo.be is de uitgever en sinds september 2026 de
+              enige van de groep die op de kerntermen adverteert; de advertentiepagina komt daar.
+              Van h-architects.be en unabo.be tellen hier alleen de pagina&rsquo;s over regularisatie;
+              de rest staat op de andere afdelingspagina&rsquo;s.
             </p>
           </Card>
         </div>

@@ -190,7 +190,9 @@ const ONZE_SITES: Record<Markt, string[]> = {
   // Drie eigen sites in één markt: de specialist, de zelfcheck en het
   // moederbureau. Alle drie tellen als "wij" in het leaderboard -- de vraag is
   // niet welke van de drie wint, maar of de groep de eigenaar bereikt.
-  regularisatie: ["regulariseren.be", "mijnregularisatie.be", "h-architects.be"],
+  // unabo.be is de uitgever en de adverteerder: als de SEA-landingspagina rankt,
+  // is dat een positie van de groep.
+  regularisatie: ["regulariseren.be", "mijnregularisatie.be", "h-architects.be", "unabo.be"],
 };
 
 export function concurrentieHeeftData(markt: Markt = "energie"): boolean {
