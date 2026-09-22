@@ -39,11 +39,13 @@ const AFDELINGEN: Afdeling[] = [
   { pad: "plaatsbeschrijving", href: "/plaatsbeschrijving", label: "Plaatsbeschrijving", icon: "plaatsbeschrijving", soon: true },
   { pad: "meetstaten", href: "/meetstaten", label: "Meetstaten", icon: "meetstaten", soon: true },
   {
-    // De afdelingspagina zelf is nog in aanbouw; de concurrentiemonitor eronder
-    // niet. Daarom blijft "soon" op de tab staan maar hangt het onderdeel er wel al.
+    // De afdelingspagina zelf is nog in aanbouw; de concurrentiemonitor en de
+    // projectenlijst eronder niet. Daarom blijft "soon" op de tab staan maar
+    // hangen de onderdelen er wel al.
     pad: "h-architects", href: "/h-architects", label: "H-Architects", icon: "architectuur", soon: true,
     onder: [
       { href: "/h-architects/concurrentie", label: "Concurrentie", icon: "doel" },
+      { href: "/h-architects/projecten", label: "Projecten", icon: "lijst" },
     ],
   },
   {
@@ -58,6 +60,7 @@ const AFDELINGEN: Afdeling[] = [
 
 const MARKETING: Item[] = [
   { href: "/seo-sea", label: "SEO / SEA", icon: "zoek" },
+  { href: "/websites", label: "Websites", icon: "web" },
 ];
 const TEAM: Item[] = [
   { href: "/sales-team", label: "Sales team", icon: "team" },
@@ -80,6 +83,7 @@ const ICONEN: Record<string, string> = {
   regularisatie: '<path d="M6 3h9l4 4v14H6z"/><path d="m9 14 2 2 4-4"/>',
   doel: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
   lijst: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
+  web: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>',
   zoek: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4.3-4.3"/>',
   team: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5A5 5 0 0 1 22 19"/>',
   boek: '<path d="M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z"/>',

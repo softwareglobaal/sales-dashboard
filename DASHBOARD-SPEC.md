@@ -113,7 +113,8 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
 - **Onder constructie** (nette placeholder, exacte tekst
   "Under construction — Siyan is doing his best to finish this as soon as possible."):
   3D Scanning, Safety, Plaatsbeschrijving, Meetstaten, H-Architects. Onder
-  H-Architects hangt wél al `/h-architects/concurrentie` (zie §13).
+  H-Architects hangen wél al `/h-architects/concurrentie` (zie §13) en
+  `/h-architects/projecten` (zie §15).
   SEO/SEA = afdeling (Google Ads + zoekdata), geen Pipedrive-account.
 - Nieuwe afdelings-tab moet met minimale moeite toegevoegd kunnen worden (Engineering als template).
 
@@ -363,6 +364,56 @@ mijnregularisatie.be een eigen property hebben, toont de bollenrij bovenaan.
 zelf staat op "in aanbouw": regularisatiedossiers lopen nog door de H-Architects-pipeline
 zonder eigen label, dus er is nog geen salesbron.
 
+## 15. Projectenlijst H-Architects met fototelling (september 2026)
+
+Onder `/h-architects/projecten`, naast de concurrentiemonitor. Geen markt-module en
+geen Pipedrive: dit is een **werklijst voor Mehdi**, die moet kunnen zien welke gebouwen
+nog bezocht en gefotografeerd moeten worden. De lijst verving een Excel-bestand; sinds
+14 september 2026 is het een pagina met een deelbare link.
+
+**Bron.** `data-bronnen/h-architects-projecten-2026-09-14.json`, gemaakt met
+`scripts/h-architects-projecten.py` uit
+`marketing/seo/firmas/H-Architects/H-Architects-projectenlijst-fotos-2026-09-14.xlsx`.
+614 projecten uit de telling van 9 september, met de Dropbox-doorloop van 14 september
+(481.580 items) eroverheen. Handmatig ververst, zoals het VEKA-register en het
+architectenregister; er draait geen automaat op.
+
+**Persoonsgegevens.** De mapnamen bevatten klant- en medewerkersnamen. Ze mogen hier omdat
+de repo privé is en de pagina achter Authentik staat (afdeling `architectuur`), precies
+zoals het VEKA-register. Niet exporteren, niet op een website zetten.
+
+**De regel achter "Te fotograferen"** (de snelknop, 361 van de 614): geen
+opleveringsfoto's **én** (geen beeld óf geen beeld meer sinds 2024) **én** het dossier is
+niet opgezegd. De kolom *Foto's aanwezig* telt bewust **niet** mee in die regel: die staat
+op "ja" zodra er één beeldbestand in de map zit, en de helft van de 161.387 beelden zijn
+png's van plannen, uitsneden en schermafdrukken. De scherpe signalen zijn
+*Opleveringsfoto's* (18 projecten) en *Recentste foto* (213 met beeld van 2024 of later).
+Een map die Dropbox niet wil geven ("onbekend", 6 stuks) telt als kandidaat: onbekend is
+een reden om te gaan kijken, geen reden om over te slaan.
+
+**Opbouw.** Servercomponent leest het bronbestand en toont zes vaste tegels (die bewegen
+niet mee met de filters, ze beschrijven de telling). De clientcomponent
+`app/h-architects/projecten/Projectenlijst.tsx` krijgt alle 614 rijen in één keer mee en
+filtert in de browser. Filters staan in de querystring en worden met
+`window.history.replaceState` bijgewerkt, dus zonder herlaadbeurt en toch deelbaar. De
+filterregels zelf staan in `lib/haProjectenFilter.ts` (vrij van `fs` en React), zodat de
+gemeentetabel "te fotograferen" met exact dezelfde regel telt als de snelknop.
+
+**Sortering.** Standaard provincie, gemeente, jaar aflopend, zoals in de Excel. Gemeenten
+en provincies die "(onbekend)" of "(geen gemeente in mapnaam)" heten staan onderaan, niet
+bovenaan; een haakje sorteert van nature vóór de letters. Kolomkoppen zijn klikbaar en
+houden binnen dezelfde waarde diezelfde rust aan.
+
+**Weergaven.** Tabblad *Projecten* (alle kolommen van de Excel, met de Dropbox-link als
+knop "Open in Dropbox" in een nieuw tabblad) en tabblad *Per gemeente* (aantal, met foto,
+te fotograferen; klik op een gemeente zet het filter en springt naar de lijst). Opgezegde
+dossiers staan gedempt; "nee" en "onbekend" zijn chips met betekeniskleur én woord.
+
+**Wat de pagina zelf zegt.** Onderaan staat de toelichting uit het LEESMIJ-bestand: datum
+van de telling, wat "foto's aanwezig" wel en niet betekent, de zes onleesbare projectmappen
+en de vier gedeelde mappen die met dit Dropbox-account `not_found` geven (projecten die
+uitsluitend daar zitten, staan niet in de lijst).
+
 ## Aanvullingen (feedback-ronde)
 - **Grafiek "aanvragen vs. direct gewonnen omzet (zelfde maand)"**: SAME-MONTH cohort — balken = leads
   binnengekomen die maand (add_time); lijn = omzet uit deals die in DIEZELFDE maand zijn aangemaakt ÉN gewonnen
@@ -415,3 +466,42 @@ vormgeving en blijft staan als geschiedenis.
 - `config/lossReasons.json` — variant → genormaliseerde verlies-reden.
 - `config/customFields.json` — per account: vriendelijke naam → Pipedrive-veld-key (custom_json).
 - `lib/hiddenPipelines.ts` — verborgen pipelines (Algemeen).
+
+## 15. Websites (september 2026)
+
+Tab `/websites` (Marketing): bezoekers, herkomst, locatie en gedrag op de eigen, door ons gebouwde
+sites. Algemene pagina (geen afdelingsslot), net als SEO/SEA.
+
+**Bron = eigen meting, geen Google Analytics.** Matomo/PostHog/Umami vragen een eigen database of
+container en de server heeft daar geen ruimte voor (swap vol, schijf 96%). De keten:
+`public/m.js` (meetscript op de site) → `POST /api/meet` → `lib/websitesMeting.ts` →
+`data/websites.db` (apart SQLite-bestand, los van `dashboard.db`). Publiek bereikbaar via
+**meet.globaal.be** (`deploy/75-meet.conf.template`): enkel `/m.js` en `/api/meet` staan open,
+`middleware.ts` laat die twee paden zonder login door.
+
+**Sites** staan in `config/websites.json` (sleutel, domeinen, vaste kleur uit het categorische
+palet, `live`). De inname weigert alles van een ander domein. Op een site:
+`<script defer src="https://meet.globaal.be/m.js" data-site="<sleutel>"></script>`. Sites met een
+Content-Security-Policy moeten `https://meet.globaal.be` in `script-src` én `connect-src` hebben.
+
+**Privacy (hard):** geen cookies; IP-adres wordt enkel gebruikt voor de locatie en nooit bewaard;
+bezoeker = hash(maandzout + site + IP + browser), zout wordt na de maand gewist. Geen
+formulierinhoud, geen getypte tekst, geen sessie-opnames. Bewaartermijn 400 dagen.
+Eigen bezoeken uitsluiten: `?meet=uit` op de site (zet één vlag in localStorage van dat toestel).
+
+**Definities:**
+- *Sessie* = bezoeken van dezelfde bezoeker zonder pauze van 30 minuten. *Bezoekers* = unieke
+  bezoekers, per kalendermaand herkend.
+- *Betrokken sessie* = ≥ 10 s actief, of ≥ 2 pagina's, of een contactactie. *Bounce* = de rest.
+- *Actieve tijd* telt enkel terwijl het tabblad zichtbaar is.
+- *Contactactie* = klik op tel:, mailto:, WhatsApp, of een formulierverzending.
+- *Kanaal*: advertentieklik-id (gclid/gbraid/wbraid) → Google Ads; utm-parameters →
+  campagne-kanaal; anders de verwijzer (zoekmachine, AI-assistent, sociale media, e-mail,
+  eigen zustersite, verwijzende site); geen verwijzer → Direct.
+- *Locatie*: DB-IP City Lite (CC BY 4.0, maandelijks automatisch vernieuwd in `data/geo/`, eigen
+  bestandslezer zonder alles in het geheugen te laden). Provincie voor Vlaanderen via de dichtste
+  postcode. Land/provincie betrouwbaar, gemeente is een benadering.
+- *Klikkaart*: klikposities in promille van paginabreedte/-hoogte, apart voor computer (≥ 900 px)
+  en gsm/tablet; secties = `main section`, `footer` of `[data-meet-sectie]`, met tijd in beeld
+  (≥ 50% zichtbaar).
+- *Laadsnelheid*: LCP, INP, CLS, TTFB en volledig geladen, 75e percentiel.

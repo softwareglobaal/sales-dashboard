@@ -17,6 +17,12 @@ const EDITORS = (process.env.EDITOR_USERS || "akadmin,mehdi,siyan")
   .filter(Boolean);
 
 export function middleware(req: NextRequest) {
+  // Websitemeting (spec §15): het meetscript en zijn inname komen van publieke
+  // websites, zonder login. Ze lezen niets uit het dashboard en schrijven enkel
+  // naar data/websites.db. nginx stelt alleen deze twee paden open op meet.globaal.be.
+  if (req.nextUrl.pathname === "/api/meet" || req.nextUrl.pathname === "/m.js") {
+    return NextResponse.next();
+  }
   const groepen = req.headers.get("x-authentik-groups");
   const pad = req.nextUrl.pathname;
 
