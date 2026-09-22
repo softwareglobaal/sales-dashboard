@@ -20,9 +20,12 @@ ledenregister van de Orde van Architecten
 (`data-bronnen/architecten-orde-2026-09.json`, 11.965 inschrijvingen — zie
 `data-bronnen/README-architecten.md`). Engineering heeft er geen en wordt van onderaf
 opgebouwd. Regularisatie evenmin, maar die markt start met de lijst uit het
-concurrentieonderzoek van augustus 2026 (`REGULARISATIE_ONDERZOEK` in `lib/concurrentie.ts`).
-Registers én startlijst lees je in met `/api/concurrentie?import=1&crawl=0`; verversen doe
-je met de hand, want ze komen niet uit een API die wij mogen bevragen.
+concurrentieonderzoek van augustus 2026, aangevuld met het prijs- en SEA-onderzoek van
+september 2026 (`REGULARISATIE_ONDERZOEK` in `lib/concurrentie.ts`, met per rij plaats,
+"adverteert" en prijsmodel). Registers én startlijst lees je in met
+`/api/concurrentie?import=1&crawl=0`; verversen doe je met de hand, want ze komen niet uit
+een API die wij mogen bevragen. Een nieuwe onderzoeksronde verwerk je dus in de code
+(lijst en `REGULARISATIE_ONDERZOEK_DATUM`) en daarna met diezelfde import.
 
 ---
 

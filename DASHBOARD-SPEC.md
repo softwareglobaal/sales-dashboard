@@ -346,7 +346,7 @@ makelaars moeten het sinds 1 april 2026 bij elke overdracht raadplegen) en hadde
 prijscalculator. Zodra die balken groeien, is het onderzoek verouderd — dat is wat de pagina
 zichtbaar maakt.
 
-**Zoekwoorden.** `config/zoekwoorden-regularisatie.json`, 53 termen in negen thema's:
+**Zoekwoorden.** `config/zoekwoorden-regularisatie.json`, 57 termen in negen thema's (53 bij de bouw, +4 netto op 22 september 2026):
 kern, kostprijs, kopen en verkopen, maatregelenregister, boete en gevolgen, procedure,
 situaties (veranda, tuinhuis, carport, ... zonder vergunning), regio en "uit Search
 Console" (termen waarop h-architects.be al vertoningen haalt). De vier
@@ -363,6 +363,32 @@ mijnregularisatie.be een eigen property hebben, toont de bollenrij bovenaan.
 `wp-regularisatie` (bestaat al sinds de Watch Tower-opzet). De afdelingspagina `/regularisatie`
 zelf staat op "in aanbouw": regularisatiedossiers lopen nog door de H-Architects-pipeline
 zonder eigen label, dus er is nog geen salesbron.
+
+**Onderzoeksronde 22 september 2026.** De startlijst is aangevuld uit het prijsonderzoek van
+14 september en de SEA-ronde van 22 september (`marketing/seo/firmas/UNABO/onderzoek/`):
+Studio Renès, Van Welden & Partners (regularisatieaanvraag.be is een frame naar dat domein),
+Regul.archi, en de portalen architectoffertes.be en bouwplannen.be. Per rij dragen de
+startlijstrijen nu drie onderzoeksvelden, opgeslagen op `concurrent_markt` (marktgebonden,
+niet op het domein): `sea` (ja / ander thema / nee / leeg = niet nagekeken, uit het Google Ads
+Transparency Center voor België), `prijsmodel` (hoe de site haar prijs communiceert, met
+bedrag waar er een staat) en `onderzoek_datum`. De tab toont ze als kolommen "Adverteert"
+en "Prijs online" met de datum in de voetnoot. Het zijn momentopnamen uit een handmatige
+ronde: de crawler ziet advertenties niet en leest geen prijzen, dus deze velden verversen
+alleen als iemand het onderzoek herhaalt en de lijst in de code bijwerkt. Bewust niet
+opgenomen: woningregularisatie.be (domein dood), de Brusselse en Waalse bureaus (Franstalig,
+buiten het werkgebied) en opmeetbureaus zonder indiening.
+
+**Zoekwoorden getoetst aan de Keyword Planner (nl-BE, 22 september 2026).** De config draagt
+per term een optioneel `volume`, handmatig uit dat rapport; `importeerZoekwoorden()` vult
+daarmee alleen lege of eerder handmatige volumes, zodat de positiemeting (15 termen per
+oneven week, op volume) meteen de juiste termen neemt en de maandelijkse Ads-sync het
+daarna overschrijft. Toegevoegd: "regularisatie" (880, dubbelzinnig, kennisterm),
+"regularisatie aanvraag" (70), "regularisatie bouwovertreding kostprijs" (70), "oude
+bouwovertreding regulariseren" (40) en "regularisatie bouwovertreding geweigerd" (50, in de
+plaats van "regularisatie geweigerd" zonder volume). De stads- en prijstermen zonder volume
+blijven staan om te zien wie er rankt, maar komen door de volgorde op volume nooit in de
+meting. Nu 57 termen; het SERP-quotum verandert niet, want de limiet van 15 per meting
+bepaalt het verbruik, niet de lengte van de lijst.
 
 ## 15. Projectenlijst H-Architects met fototelling (september 2026)
 
@@ -467,7 +493,7 @@ vormgeving en blijft staan als geschiedenis.
 - `config/customFields.json` — per account: vriendelijke naam → Pipedrive-veld-key (custom_json).
 - `lib/hiddenPipelines.ts` — verborgen pipelines (Algemeen).
 
-## 15. Websites (september 2026)
+## 16. Websites (september 2026)
 
 Tab `/websites` (Marketing): bezoekers, herkomst, locatie en gedrag op de eigen, door ons gebouwde
 sites. Algemene pagina (geen afdelingsslot), net als SEO/SEA.

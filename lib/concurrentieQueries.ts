@@ -38,6 +38,11 @@ export type ConcurrentRij = {
   spam_verdacht: number | null;
   laatste_check: string | null;
   fout: string | null;
+  // Uit het marktonderzoek (alleen gevuld waar een onderzoeksronde het domein bekeek)
+  markt_bron?: string | null;     // onderzoek / serp / crawl / register / eigen
+  sea?: string | null;            // ja / ander thema / nee / null = niet nagekeken
+  prijsmodel?: string | null;
+  onderzoek_datum?: string | null;
 };
 
 const LAATSTE_SNAPSHOT = `
@@ -307,10 +312,12 @@ export function getConcurrentenInMarkt(
            s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
            s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
            s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.reg_paginas,
-           s.${omvang} AS omvang, s.spam_verdacht, s.fout
+           s.${omvang} AS omvang, s.spam_verdacht, s.fout,
+           m.bron AS markt_bron, m.sea, m.prijsmodel, m.onderzoek_datum
     FROM concurrenten c
     ${OORDEEL_JOIN}
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
+    LEFT JOIN concurrent_markt m ON m.domein = c.domein AND m.markt = '${veiligeMarkt(markt)}'
     WHERE ${inMarkt(markt)} ${filter} ${r.sql}
     ORDER BY COALESCE(s.${omvang},0) DESC, COALESCE(s.blog_artikels,0) DESC, c.domein
   `).all(...r.params) as ConcurrentRij[];

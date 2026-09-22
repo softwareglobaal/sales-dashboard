@@ -543,36 +543,99 @@ export const MARKTEN: Markt[] = ["energie", "engineering", "architectuur", "regu
 /**
  * Startlijst van de Regularisatie-markt: het concurrentieonderzoek van 11 augustus
  * 2026 (marketing/seo/firmas/Regulariseren/onderzoek/CONCURRENTIEONDERZOEK-
- * VLAANDEREN-2026-08.md). Voor regularisatie bestaat geen register, en de crawl
- * kent deze sites pas nadat iemand ze heeft aangedragen. Dit is die aandracht:
- * de zes gespecialiseerde merken, de architectenbureaus met een eigen
- * regularisatiepagina, en de spelers ernaast die om dezelfde zoekvragen vechten.
+ * VLAANDEREN-2026-08.md), aangevuld met het prijsonderzoek van 14 september en de
+ * SEA-ronde van 22 september 2026 (marketing/seo/firmas/UNABO/onderzoek/). Voor
+ * regularisatie bestaat geen register, en de crawl kent deze sites pas nadat
+ * iemand ze heeft aangedragen. Dit is die aandracht: de gespecialiseerde merken,
+ * de architectenbureaus met een eigen regularisatiepagina, en de spelers ernaast
+ * die om dezelfde zoekvragen vechten.
+ *
+ * Niet opgenomen, met reden: woningregularisatie.be (domein dood sinds september
+ * 2026), regularisatieaanvraag.be (frame naar vanwelden.partners), de Brusselse en
+ * Waalse bureaus uit het prijsonderzoek (Galant, Ubex, Regularis, KS, Urbo: Frans-
+ * talig, buiten het werkgebied) en de opmeetbureaus zonder indiening (Ecotest,
+ * landmeters): die verkopen geen regularisatiedossier.
  *
  * De categorie is een startpunt. Wie de markt kent zet hem recht met de knopjes
  * op de pagina; dat oordeel gaat vóór en blijft staan. Bron in `concurrent_markt`
  * is `onderzoek`, zodat de pagina kan zeggen waar de lijst vandaan komt.
  */
-export const REGULARISATIE_ONDERZOEK: { domein: string; naam: string; categorie: string }[] = [
+export type OnderzoekRij = {
+  domein: string;
+  naam: string;
+  categorie: string;
+  /** Vestigingsplaats uit het onderzoek; vult `gemeente` alleen als die nog leeg is. */
+  plaats?: string;
+  /**
+   * Adverteert dit domein op Google? Google Ads Transparency Center, regio België,
+   * 22 september 2026 (SEA-ADVERTENTIES-CONCURRENTEN-2026-09-22.md). "ja" = lopende
+   * advertenties over regularisatie; "ander thema" = adverteert wel, maar niet op
+   * regularisatie (merk, bouwexpertise, interieur); "nee" = nul advertenties in BE.
+   * Weggelaten = niet nagekeken. Een momentopname, geen meting: wie vandaag adverteert
+   * kan morgen stoppen, en het Transparency Center toont geen budget en geen zoekwoord.
+   */
+  sea?: "ja" | "ander thema" | "nee";
+  /**
+   * Hoe de site zijn prijs communiceert (prijsonderzoek 14 september 2026,
+   * PRIJSONDERZOEK-A-AANBIEDERS-2026-09.md, en de SEA-profielen van 22 september).
+   * Kort en met bedrag waar er een gepubliceerd staat; "geen prijs" waar de site
+   * bewust niets zegt. Bedragen excl. btw tenzij anders vermeld.
+   */
+  prijs?: string;
+};
+
+/** Datum van de jongste onderzoeksronde die deze lijst voedde. */
+export const REGULARISATIE_ONDERZOEK_DATUM = "2026-09-22";
+
+export const REGULARISATIE_ONDERZOEK: OnderzoekRij[] = [
   // A. gespecialiseerde regularisatiemerken -- de directe concurrenten
-  { domein: "vergund.be", naam: "Vergund.be (stel architecten)", categorie: "concurrent" },
-  { domein: "onvergund.be", naam: "Onvergund.be (M-Desk)", categorie: "concurrent" },
-  { domein: "regularisatie.jpgarchitecten.be", naam: "JPG Architecten — regularisatie", categorie: "concurrent" },
-  { domein: "regulant.be", naam: "Regulant", categorie: "concurrent" },
-  { domein: "bouwovertreding-regulariseren.be", naam: "Ruimtestrateeg", categorie: "concurrent" },
-  { domein: "regularisatie-architect.com", naam: "Regularisatie-architect (Antwerpen)", categorie: "concurrent" },
+  { domein: "vergund.be", naam: "Vergund.be (stel architecten)", categorie: "concurrent", plaats: "Antwerpen",
+    sea: "nee", prijs: "vanaf € 3.950 rijhuis / € 4.500 open bebouwing (tarievenpagina, btw niet vermeld)" },
+  { domein: "onvergund.be", naam: "Onvergund.be (M-Desk & partners)", categorie: "concurrent", plaats: "Alken",
+    sea: "ja", prijs: "calculator: ± € 3.350 rijhuis excl. btw; vooronderzoek vanaf € 700" },
+  { domein: "regularisatie.jpgarchitecten.be", naam: "JPG Architecten — regularisatie", categorie: "concurrent", plaats: "Antwerpen",
+    sea: "ja", prijs: "calculator: forfait vanaf € 2.490 incl. btw (rijhuis < 150 m²)" },
+  { domein: "regulant.be", naam: "Regulant", categorie: "concurrent", plaats: "Kortrijk",
+    sea: "ja", prijs: "geen prijs; gratis adviesgesprek, offerte binnen 24 u" },
+  { domein: "bouwovertreding-regulariseren.be", naam: "Ruimtestrateeg", categorie: "concurrent", plaats: "Aalst",
+    sea: "ja", prijs: "adviespakketten € 90 / 490 / 890 incl. btw; dossier op maat" },
+  { domein: "regularisatie-architect.com", naam: "Vision Di — regularisatie-architect.com", categorie: "concurrent", plaats: "Antwerpen",
+    sea: "nee", prijs: "geen prijs; ereloon in twee delen, analyse eerst" },
+  // Frameset-site met een eigen rekenblad; regularisatieaanvraag.be is een frame
+  // naar dit domein en dus geen aparte speler.
+  { domein: "vanwelden.partners", naam: "Van Welden & Partners (ook regularisatieaanvraag.be)", categorie: "concurrent", plaats: "Zemst",
+    sea: "nee", prijs: "modulair per prestatie, ± € 3.600–4.100 excl. btw (afgeleid); gratis stedenbouwkundig advies" },
+  { domein: "regul.archi", naam: "Regul.archi", categorie: "concurrent",
+    prijs: "vork € 1.500–5.000 (kostenpagina)" },
   // B. architectenbureaus met een eigen regularisatiepagina -- ranken op dezelfde termen
-  { domein: "kvdarchitectuur.be", naam: "KVD Architectuur", categorie: "concurrent" },
-  { domein: "fish-architect.be", naam: "FISH Architecten", categorie: "concurrent" },
-  { domein: "wimjansenarchitect.be", naam: "Wim Jansen Architect", categorie: "concurrent" },
-  { domein: "sito-architecten.be", naam: "SITO Architecten", categorie: "concurrent" },
-  { domein: "imaginearchitects.be", naam: "Imagine Architects", categorie: "concurrent" },
-  { domein: "nikuarchitecten.be", naam: "Niku Architecten", categorie: "concurrent" },
-  { domein: "plam.be", naam: "PLAM Architectuur", categorie: "concurrent" },
-  { domein: "bouwovertreding.be", naam: "Bouwovertreding.be (Stefan Cassiers)", categorie: "concurrent" },
+  { domein: "kvdarchitectuur.be", naam: "KVD Architectuur", categorie: "concurrent", plaats: "Edegem",
+    sea: "ja", prijs: "geen prijs; offerte op maat, gratis verkenningsgesprek" },
+  { domein: "studiorenes.be", naam: "Studio Renès", categorie: "concurrent", plaats: "Hoogstraten",
+    sea: "ja", prijs: "geen prijs; enkel leges ± € 500 genoemd" },
+  { domein: "fish-architect.be", naam: "FISH Architecten", categorie: "concurrent", plaats: "Roeselare",
+    sea: "ander thema", prijs: "geen prijs; basispakket plus opties" },
+  { domein: "wimjansenarchitect.be", naam: "Wim Jansen Architect", categorie: "concurrent", plaats: "Brasschaat",
+    sea: "ander thema", prijs: "geen prijs; à la carte na analyse" },
+  { domein: "sito-architecten.be", naam: "SITO Architecten", categorie: "concurrent", plaats: "Ninove",
+    prijs: "vork € 1.000–10.000 (indicatie op de pagina)" },
+  { domein: "imaginearchitects.be", naam: "Imagine Architects", categorie: "concurrent", plaats: "Oelegem",
+    sea: "ander thema", prijs: "geen prijs; gratis kennismaking van een uur op kantoor" },
+  { domein: "nikuarchitecten.be", naam: "NIKU Architecten", categorie: "concurrent", plaats: "Destelbergen",
+    sea: "nee", prijs: "geen prijs; gratis dossiercheck" },
+  { domein: "plam.be", naam: "PLAM Architectuur", categorie: "concurrent", plaats: "Waregem" },
+  { domein: "bouwovertreding.be", naam: "Bouwovertreding.be (Stefan Cassiers)", categorie: "concurrent",
+    sea: "nee" },
   // C. geen architect, wél concurrent om de aandacht
-  { domein: "confianz.be", naam: "Confianz (advocaten omgevingsrecht)", categorie: "concurrent" },
-  { domein: "casius.be", naam: "Casius (offerteplatform)", categorie: "portaal" },
-  { domein: "spotto.be", naam: "Spotto (vastgoeddata)", categorie: "portaal" },
+  { domein: "confianz.be", naam: "Confianz (advocaten omgevingsrecht)", categorie: "concurrent",
+    sea: "nee" },
+  { domein: "casius.be", naam: "Casius (offerteplatform)", categorie: "portaal",
+    sea: "nee", prijs: "indicatie € 1.000–2.000 (leadplatform)" },
+  { domein: "architectoffertes.be", naam: "Architectoffertes.be (offerteplatform)", categorie: "portaal",
+    sea: "ja" },
+  { domein: "bouwplannen.be", naam: "Bouwplannen.be (contentplatform)", categorie: "portaal",
+    prijs: "indicatie € 1.500–5.000+ (kostentabel)" },
+  { domein: "spotto.be", naam: "Spotto (vastgoeddata)", categorie: "portaal",
+    prijs: "indicatie € 1.000–5.000 (artikel)" },
 ];
 
 /**
@@ -590,15 +653,27 @@ export function registreerRegularisatieOnderzoek() {
      VALUES (?,?,'onderzoek',1,?,0,?)
      ON CONFLICT(domein) DO UPDATE SET volgen = 1, naam = excluded.naam`
   );
+  // De onderzoeksvelden horen bij de markt, niet bij het domein: KVD adverteert
+  // op regularisatie, niet op ontwerp. Daarom op concurrent_markt, en elke ronde
+  // overschreven -- het onderzoek is de bron, de databank alleen de spiegel.
+  const updOnderzoek = db.prepare(
+    `UPDATE concurrent_markt SET sea = ?, prijsmodel = ?, onderzoek_datum = ?
+      WHERE domein = ? AND markt = 'regularisatie'`
+  );
+  const updPlaats = db.prepare(
+    "UPDATE concurrenten SET gemeente = ? WHERE domein = ? AND (gemeente IS NULL OR gemeente = '')"
+  );
   let toegevoegd = 0;
   db.transaction(() => {
     for (const r of REGULARISATIE_ONDERZOEK) {
       if (ins.run(r.domein, r.naam, r.categorie, nu).changes) toegevoegd++;
       markeerMarkt(r.domein, "regularisatie", "onderzoek");
+      updOnderzoek.run(r.sea ?? null, r.prijs ?? null, REGULARISATIE_ONDERZOEK_DATUM, r.domein);
+      if (r.plaats) updPlaats.run(r.plaats, r.domein);
     }
   })();
   registreerEigenDomeinen();
-  return { onderzoek: REGULARISATIE_ONDERZOEK.length, toegevoegd };
+  return { onderzoek: REGULARISATIE_ONDERZOEK.length, toegevoegd, onderzoekDatum: REGULARISATIE_ONDERZOEK_DATUM };
 }
 
 /** Zet een domein in een markt. Blijft staan zodra het er in zit. */

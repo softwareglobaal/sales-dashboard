@@ -64,6 +64,20 @@ function Paginas({ n, sitemap }: { n: number | null; sitemap: number | null }) {
   return <>{num(n)}</>;
 }
 
+/**
+ * Adverteert deze site op Google? Uit het Transparency Center (België, 22 september
+ * 2026), dus een momentopname per domein -- niet per zoekwoord, en zonder budget.
+ */
+function Sea({ v }: { v: string | null | undefined }) {
+  if (!v) return <span className="text-zinc-300">—</span>;
+  const stijl =
+    v === "ja" ? "bg-emerald-50 text-emerald-700"
+    : v === "nee" ? "bg-zinc-100 text-zinc-500"
+    : "bg-amber-50 text-amber-700";
+  const tekst = v === "ja" ? "ja, op regularisatie" : v === "nee" ? "nee" : "ja, ander thema";
+  return <span className={`whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] ${stijl}`}>{tekst}</span>;
+}
+
 function Diensten({ json }: { json: string | null }) {
   let lijst: string[] = [];
   try { lijst = json ? JSON.parse(json) : []; } catch { lijst = []; }
@@ -203,8 +217,9 @@ export default async function RegularisatieConcurrentiePage({
             regulariseren, en niet alleen architecten doen het. Deze markt is daarom op drie manieren
             opgebouwd:{" "}
             <span className="font-medium text-zinc-800">{num(uitOnderzoek)}</span> sites komen uit het
-            concurrentieonderzoek van augustus 2026 (de gespecialiseerde regularisatiemerken en de
-            bureaus met een eigen regularisatiepagina),{" "}
+            concurrentieonderzoek van augustus en september 2026 (de gespecialiseerde
+            regularisatiemerken, de bureaus met een eigen regularisatiepagina en de adverteerders uit
+            het Transparency Center),{" "}
             <span className="font-medium text-zinc-800">{num(uitSerp)}</span> uit de zoekresultaten
             op onze zoektermen, en{" "}
             <span className="font-medium text-zinc-800">{num(uitCrawl)}</span> uit sites waar de
@@ -538,6 +553,8 @@ export default async function RegularisatieConcurrentiePage({
                   <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap text-right font-medium">Artikels</th>
                   <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Laatste post</th>
                   <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Diensten</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Adverteert</th>
+                  <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Prijs online</th>
                   <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">CMS</th>
                   <th className="pb-2 pr-4 last:pr-0 whitespace-nowrap font-medium">Klopt dit?</th>
                 </tr>
@@ -549,6 +566,7 @@ export default async function RegularisatieConcurrentiePage({
                       <div className="font-medium text-zinc-800">{c.naam}</div>
                       <a href={`https://${c.domein}`} target="_blank" rel="noreferrer noopener"
                          className="text-xs text-blue-600 hover:underline">{c.domein}</a>
+                      {c.gemeente && <span className="ml-2 text-[11px] text-zinc-400">{c.gemeente}</span>}
                       {c.categorie === "architect" && (
                         <span className="ml-2 rounded bg-zinc-100 px-1 text-[10px] text-zinc-500">architect</span>
                       )}
@@ -566,6 +584,10 @@ export default async function RegularisatieConcurrentiePage({
                       <Datum d={c.laatste_blog} href={c.laatste_blog_url} verdacht={(c.spam_verdacht || 0) >= 3} />
                     </td>
                     <td className="py-2 pr-4 last:pr-0"><Diensten json={c.diensten} /></td>
+                    <td className="py-2 pr-4 last:pr-0"><Sea v={c.sea} /></td>
+                    <td className="py-2 pr-4 last:pr-0 min-w-[14rem] max-w-[18rem] text-xs text-zinc-600">
+                      {c.prijsmodel || <span className="text-zinc-300">—</span>}
+                    </td>
                     <td className="py-2 pr-4 last:pr-0 text-xs text-zinc-500">{c.cms || "—"}</td>
                     <td className="py-2 pr-4 last:pr-0">
                       <Beoordeling soort="domein" sleutel={c.domein} huidig={c.oordeel ?? null} />
@@ -579,15 +601,18 @@ export default async function RegularisatieConcurrentiePage({
             </table>
           </div>
           <p className="mt-3 text-xs text-zinc-500">
-            Een site staat in deze lijst als ze in het concurrentieonderzoek van augustus 2026
-            stond, op onze zoektermen in de top 10 verschijnt, of genoeg over regularisatie
-            publiceert. Anders dan bij Engineering is een architect hier wél een concurrent: hij
+            Een site staat in deze lijst als ze in het concurrentieonderzoek van augustus of
+            september 2026 stond, op onze zoektermen in de top 10 verschijnt, of genoeg over
+            regularisatie publiceert. Anders dan bij Engineering is een architect hier wél een concurrent: hij
             dient hetzelfde dossier in. Een aannemer niet — die bouwt, hij regulariseert niet.
             Overheid, portalen, jobsites en buitenlandse sites staan onder{" "}
             <a href="#nakijken" className="text-blue-600 hover:underline">Nakijken</a>. Klopt een
             indeling niet, zet ze dan recht met de knopjes rechts — dat oordeel gaat vóór op de
-            automatiek en blijft staan. &ldquo;Laatste post&rdquo; komt uit de <code>lastmod</code>{" "}
-            van de sitemap: richtinggevend, geen bewijs.
+            automatiek en blijft staan. &ldquo;Adverteert&rdquo; komt uit het Google Ads Transparency
+            Center (België, 22 september 2026) en &ldquo;Prijs online&rdquo; uit het prijsonderzoek van
+            14 september 2026: een momentopname per site die de crawler niet kan verversen — leeg
+            betekent niet nagekeken, niet &ldquo;nee&rdquo;. &ldquo;Laatste post&rdquo; komt uit de{" "}
+            <code>lastmod</code> van de sitemap: richtinggevend, geen bewijs.
           </p>
         </Card>
       </section>
@@ -674,8 +699,9 @@ export default async function RegularisatieConcurrentiePage({
             vooral naar <span className="font-medium text-zinc-700">Maatregelenregister</span>,{" "}
             <span className="font-medium text-zinc-700">Prijscalculator</span> en{" "}
             <span className="font-medium text-zinc-700">Haalbaarheidsstudie</span>: in augustus
-            2026 noemde geen enkele concurrent het register, en hadden er twee een calculator. Zodra
-            die balken groeien, is het onderzoek verouderd.
+            2026 noemde geen enkele concurrent het register, en in september 2026 hadden er drie een
+            calculator (onvergund, JPG, Van Welden). Zodra die balken groeien, is het onderzoek
+            verouderd.
           </p>
         </Card>
 
