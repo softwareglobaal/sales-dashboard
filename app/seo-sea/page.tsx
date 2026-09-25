@@ -12,9 +12,10 @@ import {
   getAdsCampaigns,
   getServiceCoverage,
   getAdsSyncInfo,
+  getAdsAccountsSummary,
   adsAccountLabel,
 } from "@/lib/adsQueries";
-import { adsConfigured } from "@/lib/googleAdsConfig";
+import { adsConfigured, adsAccountsForPipedrive, AD_CATALOG } from "@/lib/googleAdsConfig";
 import { euro, euroShort, num, pct } from "@/lib/format";
 import { Kpi, Card } from "@/components/ui";
 import { PeriodSelector, MonthSelector, WeekSelector } from "@/components/Controls";
@@ -25,7 +26,11 @@ import { SpendByServiceChart, CostPerLeadChart } from "@/components/AdsCharts";
 export const dynamic = "force-dynamic";
 
 const PATH = "/seo-sea";
-const ACCOUNT = "unabo";
+// De Pipedrive-account waarvan de leads bij deze pagina horen. Daar kunnen
+// meerdere Google Ads-accounts onder hangen (config/ads.json): UNABO en, sinds
+// 23 september 2026, UNABO Regularisatie. De KPI's tellen ze op; de tabel
+// "Per account" en de campagnetabel houden ze uit elkaar.
+const PIPEDRIVE = "unabo";
 
 const CHANNEL_LABELS: Record<string, string> = {
   SEARCH: "Zoeken",
@@ -38,6 +43,8 @@ const CHANNEL_LABELS: Record<string, string> = {
   LOCAL: "Lokaal",
 };
 const channelLabel = (c: string) => CHANNEL_LABELS[c] || c.replaceAll("_", " ").toLowerCase();
+const adsLabel = (syncKey: string) => adsAccountLabel(syncKey.replace(/^ads:/, ""));
+const serviceName = (key: string) => AD_CATALOG.find((s) => s.key === key)?.label || key;
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
@@ -59,7 +66,10 @@ export default async function SeoSeaPage({
   const monthOpts = monthOptions2026();
   const weekOpts = weekOptions2026();
   const params = sp as Record<string, string | undefined>;
-  const label = adsAccountLabel(ACCOUNT);
+  const accounts = adsAccountsForPipedrive(PIPEDRIVE);
+  const accountKeys = accounts.map((a) => a.key);
+  const label = accounts.map((a) => a.label).join(" + ") || PIPEDRIVE;
+  const meerdere = accounts.length > 1;
 
   const Header = () => (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
@@ -90,11 +100,12 @@ export default async function SeoSeaPage({
     );
   }
 
-  const syncInfo = getAdsSyncInfo();
-  const err = syncInfo.find((s) => s.status === "error");
+  const syncInfo = getAdsSyncInfo().filter((s) => accountKeys.includes(s.account_key.replace(/^ads:/, "")));
+  const errs = syncInfo.filter((s) => s.status === "error");
+  const err = errs[0];
 
   // 2) Geconfigureerd maar nog geen data gesynct
-  if (!adsHasData(ACCOUNT)) {
+  if (!adsHasData(accountKeys)) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
         <Header />
@@ -109,9 +120,10 @@ export default async function SeoSeaPage({
     );
   }
 
-  const overview = getAdsOverview(period, ACCOUNT);
-  const campaigns = getAdsCampaigns(period, ACCOUNT);
-  const coverage = getServiceCoverage(period, ACCOUNT);
+  const overview = getAdsOverview(period, accountKeys);
+  const campaigns = getAdsCampaigns(period, accountKeys);
+  const coverage = getServiceCoverage(period, accountKeys);
+  const perAccount = getAdsAccountsSummary(period, PIPEDRIVE);
   const withAds = coverage.filter((c) => c.everAds);
   const withoutAds = coverage.filter((c) => !c.everAds);
   const activeCampaigns = campaigns.filter((c) => c.status === "ENABLED");
@@ -122,9 +134,15 @@ export default async function SeoSeaPage({
         <Header />
         <div className="flex flex-wrap gap-2 text-[11.5px]">
           <SyncFreshness />
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-emerald-800">
-            Account: <b>{label}</b>
-          </span>
+          {accounts.map((a) => (
+            <span
+              key={a.key}
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-emerald-800"
+              title={`Google Ads ${a.customerId.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3")}`}
+            >
+              Account: <b>{a.label}</b>
+            </span>
+          ))}
           <span className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-zinc-600">
             Periode: <b className="text-zinc-800">{periodLabel}</b>
           </span>
@@ -135,6 +153,7 @@ export default async function SeoSeaPage({
         <SubNav
           items={[
             { id: "overzicht", label: "Overzicht" },
+            ...(meerdere ? [{ id: "accounts", label: "Per account" }] : []),
             { id: "dekking", label: "Dekking & gap" },
             { id: "rendement", label: "Rendement (leads)" },
             { id: "campagnes", label: "Campagnes" },
@@ -142,11 +161,11 @@ export default async function SeoSeaPage({
         />
       </div>
 
-      {err && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
-          Let op: de laatste Google Ads-sync gaf een fout ({err.message}). De getoonde cijfers kunnen verouderd zijn.
+      {errs.map((e) => (
+        <div key={e.account_key} className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+          Let op: de laatste Google Ads-sync van {adsLabel(e.account_key)} gaf een fout ({e.message}). De getoonde cijfers kunnen verouderd zijn.
         </div>
-      )}
+      ))}
 
       {/* KPI's */}
       <section id="overzicht" className="mb-8 grid scroll-mt-40 grid-cols-2 gap-4 lg:grid-cols-4">
@@ -155,6 +174,7 @@ export default async function SeoSeaPage({
           <div className="kpi-groot">{euro(overview.spend)}</div>
           <div className="mt-auto text-[11.5px] opacity-60">
             {num(overview.activeCampaigns)} actieve · {num(overview.totalCampaigns)} campagnes
+            {meerdere && ` · ${num(accounts.length)} accounts`}
           </div>
         </div>
         <Kpi label="Klikken" value={num(overview.clicks)} sub={`CTR ${pct(overview.ctr)} · gem. ${euro(overview.avgCpc)}/klik`} />
@@ -165,6 +185,73 @@ export default async function SeoSeaPage({
           sub={overview.costPerConv != null ? `${euro(overview.costPerConv)} per conversie` : "geen conversies"}
         />
       </section>
+
+      {/* Per Google Ads-account: kosten en kost per aanvraag naast elkaar */}
+      {meerdere && (
+        <section id="accounts" className="mb-8 scroll-mt-40">
+          <Card title="Per account — kosten en kost per aanvraag">
+            <p className="mb-3 -mt-1 text-xs text-zinc-500">
+              Elk Google Ads-account apart, zodat de kost per aanvraag per account leesbaar blijft. Leads = UNABO-aanvragen (Pipedrive) voor de diensten waarvoor dat account campagnes heeft.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-left text-[11px] uppercase tracking-wide text-zinc-400">
+                    <th className="py-2 pr-3 font-medium">Account</th>
+                    <th className="py-2 pr-3 font-medium">Diensten</th>
+                    <th className="py-2 pr-3 text-right font-medium">Kosten</th>
+                    <th className="py-2 pr-3 text-right font-medium">Klikken</th>
+                    <th className="py-2 pr-3 text-right font-medium">Conv. (Google)</th>
+                    <th className="py-2 pr-3 text-right font-medium">Leads</th>
+                    <th className="py-2 pr-3 text-right font-medium">Gewonnen</th>
+                    <th className="py-2 pr-3 text-right font-medium">Kost/aanvraag</th>
+                    <th className="py-2 pr-3 text-right font-medium">Campagnes</th>
+                    <th className="py-2 pr-3 font-medium">Laatste sync</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {perAccount.map((a) => (
+                    <tr key={a.key} className="border-b border-zinc-100">
+                      <td className="py-2 pr-3">
+                        <div className="text-zinc-800">{a.label}</div>
+                        <div className="text-[11px] text-zinc-400">{a.customerId.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3")}</div>
+                      </td>
+                      <td className="py-2 pr-3 text-zinc-600">
+                        {a.services.length === 0 ? (
+                          <span className="text-zinc-400">nog geen campagnes</span>
+                        ) : (
+                          a.services.map((k) => serviceName(k)).join(", ")
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-zinc-800">{euro(a.overview.spend)}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-zinc-800">{num(a.overview.clicks)}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-zinc-800">{num(Math.round(a.overview.conversions))}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-zinc-800">{a.services.length > 0 ? num(a.leads) : "—"}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-zinc-800">{a.services.length > 0 ? num(a.won) : "—"}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums font-medium text-zinc-900">
+                        {a.costPerLead != null ? euro(a.costPerLead) : "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-zinc-600">
+                        {num(a.overview.activeCampaigns)} actief · {num(a.overview.totalCampaigns)}
+                      </td>
+                      <td className="py-2 pr-3 text-[11.5px] text-zinc-500">
+                        {a.sync ? (
+                          <span className={a.sync.status === "error" ? "text-red-600" : ""}>
+                            {a.sync.last_sync ? new Date(a.sync.last_sync).toLocaleString("nl-BE", { timeZone: "Europe/Brussels" }) : "—"}
+                            {a.sync.status === "error" && " · fout"}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400">nog niet gesynct</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </section>
+      )}
 
       {/* Dekking & gap-analyse */}
       <section id="dekking" className="mb-8 scroll-mt-40">
@@ -265,13 +352,14 @@ export default async function SeoSeaPage({
       <section id="campagnes" className="mb-8 scroll-mt-40">
         <Card title={`Campagnes (${num(campaigns.length)}) — met landingspagina`}>
           <p className="mb-3 -mt-1 text-xs text-zinc-500">
-            {num(activeCampaigns.length)} actief. Klik op de landingspagina om te zien wat de bezoeker ziet. Gesorteerd op kosten.
+            {num(activeCampaigns.length)} actief{meerdere && `, over ${num(accounts.length)} Google Ads-accounts`}. Klik op de landingspagina om te zien wat de bezoeker ziet. Gesorteerd op kosten.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 text-left text-[11px] uppercase tracking-wide text-zinc-400">
                   <th className="py-2 pr-3 font-medium">Campagne</th>
+                  {meerdere && <th className="py-2 pr-3 font-medium">Account</th>}
                   <th className="py-2 pr-3 font-medium">Dienst</th>
                   <th className="py-2 pr-3 font-medium">Type</th>
                   <th className="py-2 pr-3 text-right font-medium">Kosten</th>
@@ -284,13 +372,14 @@ export default async function SeoSeaPage({
               </thead>
               <tbody>
                 {campaigns.map((c) => (
-                  <tr key={c.campaignId} className="border-b border-zinc-100">
+                  <tr key={`${c.accountKey}:${c.campaignId}`} className="border-b border-zinc-100">
                     <td className="py-2 pr-3">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={c.status} />
                         <span className="text-zinc-800">{c.name}</span>
                       </div>
                     </td>
+                    {meerdere && <td className="py-2 pr-3 text-zinc-600">{c.accountLabel}</td>}
                     <td className="py-2 pr-3 text-zinc-600">
                       {c.serviceLabel || <span className="text-amber-600">niet toegewezen</span>}
                     </td>

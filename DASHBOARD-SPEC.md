@@ -491,6 +491,18 @@ vormgeving en blijft staan als geschiedenis.
 - `config/themes.json` — thema → match-regels (productkeywords/afdelingen).
 - `config/lossReasons.json` — variant → genormaliseerde verlies-reden.
 - `config/customFields.json` — per account: vriendelijke naam → Pipedrive-veld-key (custom_json).
+- `config/ads.json` — de Google Ads-accounts (`accounts`) en de dienstencatalogus voor de
+  SEO/SEA-tab. Per account: `key` (databanksleutel, nooit wijzigen voor een bestaand
+  account), `pipedriveKey` (waar de leads vandaan komen; meerdere Ads-accounts mogen
+  dezelfde Pipedrive-account delen), `customerId` en optioneel `loginCustomerId`.
+  Sinds 23 september 2026 staan er twee UNABO-accounts in: UNABO (190-761-3111) en
+  UNABO Regularisatie (907-796-3960, sub-account onder manager UNABO_Marketing
+  519-389-9219). **Dat sub-account eist bij elke API-aanroep de header
+  `login-customer-id` met de manager-id; de rechtstreekse accounts weigeren die header
+  met een 403.** Daarom staat de manager-id per account in de config en nooit serverbreed
+  (`GOOGLE_ADS_LOGIN_CUSTOMER_ID` blijft leeg). De pagina telt de accounts op in de KPI's
+  en houdt ze apart in "Per account" (kost per aanvraag per account) en in de campagnetabel;
+  `/api/v1/campagnes?account=<key>` geeft één account, `?account=alle:unabo` beide samen.
 - `lib/hiddenPipelines.ts` — verborgen pipelines (Algemeen).
 
 ## 16. Websites (september 2026)
