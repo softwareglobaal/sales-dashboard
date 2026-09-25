@@ -37,20 +37,31 @@ async function getAccessToken(): Promise<string> {
   return _token.value;
 }
 
-function headers(token: string): Record<string, string> {
+function headers(token: string, loginCustomerId?: string | null): Record<string, string> {
   const h: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "",
     "Content-Type": "application/json",
   };
-  // login-customer-id enkel meesturen als hij ingevuld is (bij manager-toegang).
-  const login = (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "").replace(/[^0-9]/g, "");
+  // login-customer-id: de manager-id, per aanroep. Sub-accounts onder een
+  // manager (UNABO Regularisatie 907-796-3960 onder UNABO_Marketing
+  // 519-389-9219) eisen die header; de rechtstreekse accounts (UNABO,
+  // H-Architects) weigeren hem met een 403. Daarom komt hij uit config/ads.json
+  // per account, en pas als die leeg is uit GOOGLE_ADS_LOGIN_CUSTOMER_ID
+  // (op de server leeg; alleen zetten als álle accounts onder één manager hangen).
+  const login = (loginCustomerId || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "").replace(/[^0-9]/g, "");
   if (login) h["login-customer-id"] = login;
   return h;
 }
 
 // Voert een GAQL-query uit tegen één account. Volgt paginering (nextPageToken).
-export async function gaqlSearch(customerId: string, query: string, retries = 3): Promise<any[]> {
+// loginCustomerId: manager-id voor sub-accounts onder een manager (zie headers()).
+export async function gaqlSearch(
+  customerId: string,
+  query: string,
+  loginCustomerId?: string | null,
+  retries = 3
+): Promise<any[]> {
   const cid = customerId.replace(/[^0-9]/g, "");
   const rows: any[] = [];
   let pageToken: string | undefined;
@@ -63,7 +74,7 @@ export async function gaqlSearch(customerId: string, query: string, retries = 3)
         const token = await getAccessToken();
         const res = await fetch(`${BASE}/customers/${cid}/googleAds:search`, {
           method: "POST",
-          headers: headers(token),
+          headers: headers(token, loginCustomerId),
           body: JSON.stringify(pageToken ? { query, pageToken } : { query }),
           cache: "no-store",
         });
@@ -111,12 +122,18 @@ export type AdDailyMetric = {
 };
 
 // Campagne-dimensies + representatieve landingspagina (meest getoonde ad-URL per campagne).
-export async function fetchCampaignDims(customerId: string, from: string, to: string): Promise<AdCampaignDim[]> {
+export async function fetchCampaignDims(
+  customerId: string,
+  from: string,
+  to: string,
+  loginCustomerId?: string | null
+): Promise<AdCampaignDim[]> {
   const camps = await gaqlSearch(
     customerId,
     `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type
      FROM campaign
-     WHERE campaign.status != 'REMOVED'`
+     WHERE campaign.status != 'REMOVED'`,
+    loginCustomerId
   );
 
   // landingspagina's: neem per campagne de final_url van de ad met de meeste impressies
@@ -124,7 +141,8 @@ export async function fetchCampaignDims(customerId: string, from: string, to: st
     customerId,
     `SELECT campaign.id, ad_group_ad.ad.final_urls, metrics.impressions
      FROM ad_group_ad
-     WHERE ad_group_ad.status != 'REMOVED' AND segments.date BETWEEN '${from}' AND '${to}'`
+     WHERE ad_group_ad.status != 'REMOVED' AND segments.date BETWEEN '${from}' AND '${to}'`,
+    loginCustomerId
   );
   const bestUrl = new Map<string, { url: string; impr: number }>();
   for (const r of ads) {
@@ -149,14 +167,20 @@ export async function fetchCampaignDims(customerId: string, from: string, to: st
 }
 
 // Per-campagne, per-dag prestatiecijfers (zodat de periode-selector kan filteren).
-export async function fetchDailyMetrics(customerId: string, from: string, to: string): Promise<AdDailyMetric[]> {
+export async function fetchDailyMetrics(
+  customerId: string,
+  from: string,
+  to: string,
+  loginCustomerId?: string | null
+): Promise<AdDailyMetric[]> {
   const rows = await gaqlSearch(
     customerId,
     `SELECT campaign.id, segments.date,
             metrics.cost_micros, metrics.clicks, metrics.impressions,
             metrics.conversions, metrics.conversions_value
      FROM campaign
-     WHERE segments.date BETWEEN '${from}' AND '${to}'`
+     WHERE segments.date BETWEEN '${from}' AND '${to}'`,
+    loginCustomerId
   );
   return rows.map((r) => ({
     campaignId: String(r.campaign?.id ?? ""),

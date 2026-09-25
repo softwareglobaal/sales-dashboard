@@ -1,7 +1,8 @@
 {
-  "_uitleg": "Configuratie voor de SEO/SEA-tab (Google Ads). Pas dit bestand aan zonder code te wijzigen. 'accounts' = welke Pipedrive-account gekoppeld is aan welk Google Ads customer-id. 'catalog' = alle diensten die de firma aanbiedt (voor de gap-analyse: welke diensten hebben géén ads). Per dienst: adMatch/urlMatch = woorden om een campagne aan de dienst te koppelen (niet hoofdletter-gevoelig, gedeeltelijke match op campagnenaam resp. landingspagina). Voor de lead-correlatie (welke UNABO-aanvragen horen bij de dienst): 'pipelineMatch' heeft VOORRANG (gedeeltelijke match op de Pipedrive pipeline-naam) — betrouwbaarder dan producten; is die leeg/afwezig, dan valt hij terug op 'themeKey' (thema in themes.json, matcht op productnaam).",
+  "_uitleg": "Configuratie voor de SEO/SEA-tab (Google Ads). Pas dit bestand aan zonder code te wijzigen. 'accounts' = de Google Ads-accounts die we uitlezen. Per account: 'key' = eigen sleutel in de databank (account_key in ad_campaigns/ad_metrics_daily; nooit wijzigen voor een bestaand account, anders raken de rijen zoek), 'pipedriveKey' = de Pipedrive-account waarvan de leads bij dit Ads-account horen (meerdere Ads-accounts mogen dezelfde Pipedrive-account delen), 'customerId' = Google Ads customer-id, 'loginCustomerId' = OPTIONEEL manager-id, enkel voor sub-accounts onder een manager (zoals UNABO Regularisatie onder UNABO_Marketing): die eisen bij elke API-aanroep de header login-customer-id, terwijl de rechtstreekse accounts die header juist weigeren (403). Daarom per account en nooit serverbreed. 'catalog' = alle diensten die de firma aanbiedt (voor de gap-analyse: welke diensten hebben géén ads). Per dienst: adMatch/urlMatch = woorden om een campagne aan de dienst te koppelen (niet hoofdletter-gevoelig, gedeeltelijke match op campagnenaam resp. landingspagina). Voor de lead-correlatie (welke UNABO-aanvragen horen bij de dienst): 'pipelineMatch' heeft VOORRANG (gedeeltelijke match op de Pipedrive pipeline-naam) — betrouwbaarder dan producten; is die leeg/afwezig, dan valt hij terug op 'themeKey' (thema in themes.json, matcht op productnaam).",
   "accounts": [
-    { "pipedriveKey": "unabo", "customerId": "1907613111", "label": "UNABO" }
+    { "key": "unabo", "pipedriveKey": "unabo", "customerId": "1907613111", "label": "UNABO" },
+    { "key": "unabo-regularisatie", "pipedriveKey": "unabo", "customerId": "9077963960", "loginCustomerId": "5193899219", "label": "UNABO Regularisatie" }
   ],
   "catalog": [
     { "key": "epb", "label": "EPB (UNABO Energy)", "themeKey": "epb", "pipelineMatch": ["epb"], "adMatch": ["epb", "verslaggever"], "urlMatch": ["promo-epb", "epb"] },
@@ -11,6 +12,7 @@
     { "key": "veiligheid", "label": "Veiligheid / Coördinatie", "themeKey": "veiligheid", "pipelineMatch": [], "adMatch": ["veiligheid", "coordinat", "coördinat", "pid"], "urlMatch": ["veiligheid", "coordinat"] },
     { "key": "epc", "label": "EPC", "themeKey": "epc", "pipelineMatch": [], "adMatch": ["epc"], "urlMatch": ["epc"] },
     { "key": "plaatsbeschrijving", "label": "Plaatsbeschrijving", "themeKey": "plaatsbeschrijving", "pipelineMatch": [], "adMatch": ["plaatsbeschr"], "urlMatch": ["plaatsbeschr"] },
-    { "key": "meetstaten", "label": "Meetstaten", "themeKey": "meetstaat", "pipelineMatch": [], "adMatch": ["meetstat"], "urlMatch": ["meetstat"] }
+    { "key": "meetstaten", "label": "Meetstaten", "themeKey": "meetstaat", "pipelineMatch": [], "adMatch": ["meetstat"], "urlMatch": ["meetstat"] },
+    { "key": "regularisatie", "label": "Regularisatie (bouwovertredingen)", "themeKey": null, "pipelineMatch": ["permits", "regularis"], "adMatch": ["regularis", "bouwovertred"], "urlMatch": ["regularis", "bouwovertred"] }
   ]
 }

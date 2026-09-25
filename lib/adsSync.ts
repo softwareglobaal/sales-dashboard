@@ -1,5 +1,5 @@
 import { getDb } from "./db";
-import { ADS_ACCOUNTS, serviceForCampaign, adsConfigured } from "./googleAdsConfig";
+import { ADS_ACCOUNTS, serviceForCampaign, adsConfigured, type AdsAccount } from "./googleAdsConfig";
 import { fetchCampaignDims, fetchDailyMetrics } from "./googleAds";
 
 function ymd(d: Date): string {
@@ -24,13 +24,16 @@ export type AdsSyncResult = {
   message?: string;
 };
 
-async function syncAdsAccount(acc: { pipedriveKey: string; customerId: string; label: string }): Promise<AdsSyncResult> {
+// Eén Ads-account ophalen en wegschrijven onder zijn eigen account_key (acc.key).
+// Twee Ads-accounts van dezelfde Pipedrive-account (UNABO en UNABO Regularisatie)
+// staan zo naast elkaar in de databank en overschrijven elkaar niet.
+async function syncAdsAccount(acc: AdsAccount): Promise<AdsSyncResult> {
   const db = getDb();
   const { from, to } = syncWindow();
   try {
     const [dims, metrics] = await Promise.all([
-      fetchCampaignDims(acc.customerId, from, to),
-      fetchDailyMetrics(acc.customerId, from, to),
+      fetchCampaignDims(acc.customerId, from, to, acc.loginCustomerId),
+      fetchDailyMetrics(acc.customerId, from, to, acc.loginCustomerId),
     ]);
 
     const insCampaign = db.prepare(`
@@ -45,12 +48,12 @@ async function syncAdsAccount(acc: { pipedriveKey: string; customerId: string; l
     `);
 
     const tx = db.transaction(() => {
-      db.prepare("DELETE FROM ad_campaigns WHERE account_key = ?").run(acc.pipedriveKey);
-      db.prepare("DELETE FROM ad_metrics_daily WHERE account_key = ?").run(acc.pipedriveKey);
+      db.prepare("DELETE FROM ad_campaigns WHERE account_key = ?").run(acc.key);
+      db.prepare("DELETE FROM ad_metrics_daily WHERE account_key = ?").run(acc.key);
       for (const c of dims) {
         const svc = serviceForCampaign(c.name, c.finalUrl);
         insCampaign.run({
-          account_key: acc.pipedriveKey,
+          account_key: acc.key,
           customer_id: acc.customerId,
           campaign_id: c.campaignId,
           name: c.name,
@@ -62,7 +65,7 @@ async function syncAdsAccount(acc: { pipedriveKey: string; customerId: string; l
       }
       for (const m of metrics) {
         insMetric.run({
-          account_key: acc.pipedriveKey,
+          account_key: acc.key,
           campaign_id: m.campaignId,
           date: m.date,
           cost_micros: m.costMicros,
@@ -78,16 +81,16 @@ async function syncAdsAccount(acc: { pipedriveKey: string; customerId: string; l
     db.prepare(`
       INSERT OR REPLACE INTO sync_meta (account_key, last_sync, deal_count, status, message)
       VALUES (?, ?, ?, 'ok', ?)
-    `).run(`ads:${acc.pipedriveKey}`, new Date().toISOString(), dims.length, `${dims.length} campagnes · ${metrics.length} dag-rijen`);
+    `).run(`ads:${acc.key}`, new Date().toISOString(), dims.length, `${dims.length} campagnes · ${metrics.length} dag-rijen`);
 
-    return { account: acc.pipedriveKey, customerId: acc.customerId, campaigns: dims.length, days: metrics.length, status: "ok" };
+    return { account: acc.key, customerId: acc.customerId, campaigns: dims.length, days: metrics.length, status: "ok" };
   } catch (err: any) {
     const message = err?.message || String(err);
     db.prepare(`
       INSERT OR REPLACE INTO sync_meta (account_key, last_sync, deal_count, status, message)
       VALUES (?, ?, 0, 'error', ?)
-    `).run(`ads:${acc.pipedriveKey}`, new Date().toISOString(), message);
-    return { account: acc.pipedriveKey, customerId: acc.customerId, campaigns: 0, days: 0, status: "error", message };
+    `).run(`ads:${acc.key}`, new Date().toISOString(), message);
+    return { account: acc.key, customerId: acc.customerId, campaigns: 0, days: 0, status: "error", message };
   }
 }
 
