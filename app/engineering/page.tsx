@@ -1,5 +1,7 @@
 import {
   getEngineeringKpisWithDelta,
+  getEngineeringKpis,
+  getEngineeringGender,
   getEngineeringCombined,
   getEngineeringServices,
   getEngineeringByMonth,
@@ -38,6 +40,8 @@ import { getYearTarget } from "@/lib/targets";
 import officesConfig from "@/config/offices.json";
 import { Kpi, Card, Highlight, CombineRow } from "@/components/ui";
 import { LastSync } from "@/components/LastSync";
+import { CommissieBalk, commissieMaand } from "@/components/CommissieBalk";
+import { GeslachtBlok } from "@/components/GeslachtBlok";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +90,10 @@ export default async function EngineeringPage({
   const offerte = getEngineeringOfferteStats(period, themeKey, scope);
   const region = getEngineeringRegion(period, themeKey, scope);
   const timing = getEngineeringTiming(period, themeKey, scope);
+  // Teambeloning: altijd UNABO + TKN samen en per maand (gekozen maand, anders de lopende),
+  // los van de periodeknoppen en de firmakeuze.
+  const cm = commissieMaand(period);
+  const commissieOmzet = getEngineeringKpis(cm.maand, undefined, "all").wonValue;
   const regionVal = (r: { won: number; open: number; lost: number; total: number }) =>
     regionStatus === "all" ? r.total : r[regionStatus];
   const regionRowsSorted = [...region.rows].sort((a, b) => regionVal(b) - regionVal(a));
@@ -191,6 +199,7 @@ export default async function EngineeringPage({
         <SubNav
           items={[
             { id: "overzicht", label: "Overzicht" },
+            { id: "teamdoel", label: "Teamdoel" },
             ...(scope === "all" ? [{ id: "vergelijking", label: "UNABO vs TKN" }] : []),
             ...(scope === "tkn" ? [{ id: "tkn-split", label: "Tekenwerk vs Stab." }] : []),
             { id: "analyse", label: "Analyse & advies" },
@@ -241,6 +250,8 @@ export default async function EngineeringPage({
           <div className="mt-auto text-xs text-zinc-500">aanvraag → gewonnen</div>
         </div>
       </section>
+
+      <CommissieBalk afdeling="engineering" omzet={commissieOmzet} maandLabel={periodRange(cm.maand).label} dagenOver={cm.dagenOver} />
 
       {/* Offerte-strip */}
       <section className="mb-8">
@@ -754,27 +765,9 @@ export default async function EngineeringPage({
         </Card>
       </section>
 
-      {/* Geslacht (demografie) — placeholder, veld nog toe te voegen in Pipedrive */}
+      {/* Geslacht (demografie) — uit het persoonsveld "Geslacht" in Pipedrive */}
       <section id="geslacht" className="mb-8 scroll-mt-40">
-        <Card title="Geslacht (demografie)">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
-            <span className="rounded bg-zinc-400 px-1.5 py-0.5 font-semibold text-white">BINNENKORT</span>
-            Wacht op nieuw veld in Pipedrive — nog geen data.
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {["Man", "Vrouw", "Onbekend"].map((g) => (
-              <div key={g} className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 p-4">
-                <div className="label">{g}</div>
-                <div className="mt-1 kpi-groot text-zinc-300">—</div>
-                <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100" />
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-zinc-400">
-            Zodra het geslacht-veld in Pipedrive bestaat en gesynct is, vullen deze cijfers zich automatisch (verdeling
-            over contactpersonen van de aanvragen).
-          </p>
-        </Card>
+        <GeslachtBlok data={getEngineeringGender(period, scope)} periodLabel={periodLabel} />
       </section>
 
       {/* Meetings / afspraken — placeholder, wacht op data uit Pipedrive-activiteiten */}

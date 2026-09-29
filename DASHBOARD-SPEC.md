@@ -92,6 +92,17 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
   regels (enkel geaggregeerde cijfers, geen namen).
 - Jaardoel: sleutel `energy` in `config/targets.json`.
 
+## 6c. Teamdoel en geslacht (Engineering + Energy, sept 2026)
+- **Teamdoel** = voortgang naar de maandmijlpalen uit het incentivemodel van Joey & Shelton
+  (`config/commissie.json`, bron: "Sales Team Incentive & Growth Model", voorstel sep 2026).
+  Altijd **per maand** (gekozen maand, anders de lopende), los van de periodeknoppen en de firmakeuze.
+  Engineering = UNABO ENGINEERING-producten + TKN-Buro; EPB = UNABO ENERGY-producten (Energie Efficient
+  staat niet in Pipedrive als omzet). Pot = hoogst behaalde mijlpaal, 50/50. De balk meet **gewonnen**
+  omzet; uitbetaling gebeurt op **geïnde** omzet — dat staat ook op de balk. Salarissen nooit tonen.
+- **Geslacht** = persoonsveld "Geslacht" in Pipedrive (UNABO én TKN, op naam gezocht want de sleutel
+  verschilt per account), gesynct in de tabel `persons`. Per aanvraag via `raw.person_id.value`;
+  aandeel man/vrouw op de ingevulde, vulgraad erbij.
+
 ## 7. Afdelingen, verborgen pipelines, verlies-redenen
 - **Afdeling (UNABO)** = tekst vóór eerste dubbele punt in productnaam (ENERGY, ENGINEERING, SAFETY,
   3D-SCANNING, PERMIT, DRAFTING, CONTRACTOR SUPPORT, …). Geen prefix → "Niet toegewezen" (rood).

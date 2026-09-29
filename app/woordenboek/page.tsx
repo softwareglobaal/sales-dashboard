@@ -120,8 +120,23 @@ const BEGRIPPEN: Term[] = [
   },
   {
     term: "Geslacht",
-    def: <>Placeholder — dit veld bestaat nog niet in Pipedrive. De sectie vult zich zodra het veld ingevuld wordt.</>,
+    def: (
+      <>
+        Uit het persoonsveld <b>Geslacht</b> in Pipedrive (UNABO en TKN-Buro), per aanvraag het geslacht van de gekoppelde
+        contactpersoon. Het aandeel man/vrouw is berekend op de aanvragen waar het veld is ingevuld; de vulgraad staat erbij.
+      </>
+    ),
     check: true,
+  },
+  {
+    term: "Teamdoel (teambeloning)",
+    def: (
+      <>
+        Maandelijkse voortgang naar de mijlpalen uit het incentivemodel van Joey &amp; Shelton: Engineering (UNABO Stabiliteit +
+        TKN-Buro) en EPB (UNABO Energy). De pot is het bedrag van de hoogst behaalde mijlpaal, 50/50 verdeeld. De balk meet{" "}
+        <b>gewonnen</b> omzet; de uitbetaling gebeurt enkel op <b>geïnde</b> omzet. Klik op de balk voor alle regels.
+      </>
+    ),
   },
 ];
 

@@ -9,6 +9,7 @@ import {
   ProductRow,
   fetchAllOrganizations,
   fetchDealOfferteTime,
+  fetchPersonGenders,
 } from "./pipedrive";
 import { POSTCODE_COORDS } from "./postcodeCoords";
 import { postcodeToProvince } from "./regio";
@@ -50,6 +51,19 @@ async function syncOrganizations(account: Account): Promise<number> {
   });
   tx(orgs);
   return orgs.length;
+}
+
+// Contactpersonen (geslacht) — enkel lezen, volledige vervanging per account.
+async function syncPersons(account: Account): Promise<number> {
+  const db = getDb();
+  const rows = await fetchPersonGenders(account);
+  const insert = db.prepare("INSERT OR REPLACE INTO persons (account_key, id, gender) VALUES (?, ?, ?)");
+  const tx = db.transaction(() => {
+    db.prepare("DELETE FROM persons WHERE account_key = ?").run(account.key);
+    for (const r of rows) insert.run(account.key, r.id, r.gender);
+  });
+  tx();
+  return rows.length;
 }
 
 function nowIso(): string {
@@ -180,6 +194,15 @@ export async function syncAccount(account: Account) {
       await syncOrganizations(account);
     } catch {
       // organisatie-sync mag de deal-sync niet blokkeren
+    }
+
+    // geslacht van de contactpersonen — enkel accounts met afdelings-tabs
+    if (account.syncProducts) {
+      try {
+        await syncPersons(account);
+      } catch {
+        // persoon-sync mag de deal-sync niet blokkeren
+      }
     }
 
     // deal-flow (aanvraag -> offerte-tijd) — enkel accounts met afdelings-tabs, incrementeel
