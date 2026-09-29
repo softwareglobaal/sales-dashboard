@@ -86,6 +86,15 @@ function initSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_org_account ON organizations(account_key);
 
+    -- Contactpersonen: enkel wat de analyses nodig hebben (geslacht uit het
+    -- persoonsveld "Geslacht"). Gekoppeld aan deals via raw.person_id.value.
+    CREATE TABLE IF NOT EXISTS persons (
+      account_key TEXT NOT NULL,
+      id          INTEGER NOT NULL,
+      gender      TEXT,             -- optielabel uit Pipedrive (Man / Vrouw / X / onbekend) of NULL
+      PRIMARY KEY (account_key, id)
+    );
+
     CREATE TABLE IF NOT EXISTS deal_flow (
       account_key  TEXT NOT NULL,
       deal_id      INTEGER NOT NULL,

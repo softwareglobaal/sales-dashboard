@@ -1,4 +1,5 @@
 import { getDb } from "./db";
+import { genderSplit, type GenderSplit } from "./gender";
 import { ACCOUNTS } from "./accounts";
 import { hiddenExclusion, HIDDEN_PIPELINES } from "./hiddenPipelines";
 import { ENG_IGNORE_PIPELINES, channelsForLabels, channelsInfoForLabels, isOfferteStage } from "./engineeringConfig";
@@ -1562,4 +1563,11 @@ export function hasData(): boolean {
   const db = getDb();
   const r = db.prepare("SELECT COUNT(*) AS c FROM deals").get() as any;
   return (r?.c || 0) > 0;
+}
+
+// ---------- Geslacht (contactpersoon van de aanvraag) ----------
+export function getEngineeringGender(period: Period, scope: EngScope = "all"): GenderSplit {
+  const { from, to } = periodBounds(period);
+  const h = engHidden("egn_h");
+  return genderSplit(`${engLeadScope(scope)} ${h.clause}`, h.named, from, to);
 }

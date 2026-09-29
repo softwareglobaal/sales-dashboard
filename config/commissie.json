@@ -1,0 +1,51 @@
+{
+  "_uitleg": "Teambeloning Joey & Shelton (voorstel 'Sales Team Incentive & Growth Model', sep 2026). Per maand: de pot is het bedrag van de hoogst behaalde mijlpaal, verdeeld volgens 'verdeling'. De balk op het dashboard meet gewonnen omzet (product-prijs, excl. btw); de uitbetaling gebeurt enkel op geïnde omzet. Salarissen horen hier bewust niet in.",
+  "status": "Voorstel ter bespreking met Angela & Mehdi · proef van 3 maanden, daarna evaluatie",
+  "verdeling": [
+    { "naam": "Joey", "aandeel": 0.5 },
+    { "naam": "Shelton", "aandeel": 0.5 }
+  ],
+  "algemeneRegels": [
+    "Teambeloning, geen individuele: Joey (offertes, administratieve opvolging) en Shelton (calls, lead-activatie) delen de pot 50/50.",
+    "Per maand telt de hoogst behaalde mijlpaal; de bedragen stapelen niet.",
+    "Enkel betaalde of geïnde omzet telt. Niet: mondeling gewonnen dossiers, offertes of onbetaalde projecten.",
+    "Deze balk meet gewonnen omzet (product-prijs, excl. btw) als voorlopige indicatie. De definitieve afrekening gebeurt op de geïnde omzet."
+  ],
+  "engineering": {
+    "titel": "Teamdoel Engineering",
+    "omvat": "UNABO Stabiliteit (ENGINEERING-producten) + TKN-Buro, gecombineerd",
+    "vertrek": 7500,
+    "doel": 30000,
+    "mijlpalen": [
+      { "omzet": 10000, "pot": 100 },
+      { "omzet": 15000, "pot": 200 },
+      { "omzet": 20000, "pot": 350 },
+      { "omzet": 25000, "pot": 500 },
+      { "omzet": 30000, "pot": 700 }
+    ],
+    "extraRegels": [
+      "Hoofdprioriteit: engineering heeft het grootste groeipotentieel. Daarom liggen de beloningen hier hoger dan bij EPB.",
+      "Vertrekpunt: gemiddeld € 7.500 per maand (UNABO Stabiliteit € 5.000 + TKN-Buro € 2.500)."
+    ]
+  },
+  "energy": {
+    "titel": "Teamdoel EPB",
+    "omvat": "UNABO Energy (ENERGY-producten, ook het Energy-aandeel van bundels)",
+    "vertrek": 9000,
+    "breakeven": 15000,
+    "doel": 30000,
+    "mijlpalen": [
+      { "omzet": 10000, "pot": 50 },
+      { "omzet": 15000, "pot": 100 },
+      { "omzet": 20000, "pot": 200 },
+      { "omzet": 25000, "pot": 300 },
+      { "omzet": 30000, "pot": 500 }
+    ],
+    "extraRegels": [
+      "Breakeven-KPI: € 15.000 per maand.",
+      "Volgens het model telt ook de omzet van Energie Efficient mee. Die EPB-omzet staat niet in Pipedrive (daar zit enkel de B2B-prospectie), dus deze balk toont voorlopig enkel UNABO.",
+      "Klanten van Energie Efficient tellen maar één jaar mee na het binnenhalen. Daarna is het behoud de taak van de uitvoering, niet van sales.",
+      "Vertrekpunt: gemiddeld € 9.000 per maand (UNABO EPB € 5.000 + Energie Efficient € 4.000)."
+    ]
+  }
+}

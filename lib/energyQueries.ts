@@ -11,6 +11,7 @@
 //  - Omzet-scope (waarde/diensten): UNABO ENERGY-productregels; omzet = product-prijs.
 //  - Verborgen UNABO-pipelines (SETUP, ARCHIVE, …) worden uitgesloten.
 
+import { genderSplit, type GenderSplit } from "./gender";
 import { getDb } from "./db";
 import {
   periodBounds,
@@ -822,3 +823,10 @@ export function getEnergyFunnel(period: Period): PipelineFunnel[] {
 // periodRange wordt in de page gebruikt voor het periode-label; hier doorgeven zodat
 // de Energy-page enkel uit deze module hoeft te importeren voor de data.
 export { periodRange };
+
+// ---------- Geslacht (contactpersoon van de aanvraag) ----------
+export function getEnergyGender(period: Period): GenderSplit {
+  const { from, to } = periodBounds(period);
+  const h = hidden("egs_h");
+  return genderSplit(`${LEAD_SCOPE} ${h.clause}`, h.named, from, to);
+}

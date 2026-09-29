@@ -298,3 +298,30 @@ export async function fetchAllOrganizations(account: Account): Promise<OrgRow[]>
   }
   return rows;
 }
+
+// Geslacht per contactpersoon, uit het persoonsveld met de naam "Geslacht".
+// Op naam gezocht (niet op sleutel): elk Pipedrive-account heeft een eigen veldsleutel.
+// Geen veld in dit account -> lege lijst.
+export async function fetchPersonGenders(account: Account): Promise<{ id: number; gender: string | null }[]> {
+  const fields = await api(account, "/personFields", { limit: 500 });
+  const f = (fields.data || []).find((x: any) => String(x.name || "").trim().toLowerCase() === "geslacht");
+  if (!f) return [];
+  const options = new Map<string, string>();
+  for (const o of f.options || []) options.set(String(o.id), o.label);
+
+  const rows: { id: number; gender: string | null }[] = [];
+  let start = 0;
+  const limit = 500;
+  for (let guard = 0; guard < 1000; guard++) {
+    const json = await api(account, "/persons", { start, limit, sort: "id ASC" });
+    for (const p of json.data || []) {
+      const v = p[f.key];
+      const raw = v && typeof v === "object" ? v.id ?? v.value : v;
+      rows.push({ id: p.id, gender: raw == null || raw === "" ? null : options.get(String(raw)) ?? String(raw) });
+    }
+    const pag = json.additional_data?.pagination;
+    if (!pag || !pag.more_items_in_collection) break;
+    start = pag.next_start ?? start + limit;
+  }
+  return rows;
+}
