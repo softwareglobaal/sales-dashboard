@@ -10,6 +10,7 @@
     { "sleutel": "elevait", "naam": "Elevait", "url": "https://elevaitnv.com", "domeinen": ["elevaitnv.com", "www.elevaitnv.com", "elevaitservices.com", "www.elevaitservices.com"], "firma": "Elevait N.V.", "kleur": "#4a3aa7", "live": true },
     { "sleutel": "h-architects", "naam": "H-Architects", "url": "https://h-architects.be", "domeinen": ["h-architects.be", "www.h-architects.be"], "firma": "H-Architects", "kleur": "#e34948", "live": false },
     { "sleutel": "harmoniebouw", "naam": "HarmonieBOUW", "url": "https://harmoniebouw.be", "domeinen": ["harmoniebouw.be", "www.harmoniebouw.be"], "firma": "HarmonieBOUW", "kleur": "#5f5a52", "live": false },
+    { "sleutel": "nook", "naam": "Nook", "url": "https://nook.elevaitservices.com", "domeinen": ["nook.elevaitservices.com"], "firma": "Elevait N.V.", "kleur": "#a39e96", "live": true },
     { "sleutel": "tkn-buro", "naam": "TKN-Buro", "url": "https://tkn-buro.be", "domeinen": ["tkn-buro.be", "www.tkn-buro.be"], "firma": "TKN-Buro", "kleur": "#8f8a82", "live": false }
   ]
 }
