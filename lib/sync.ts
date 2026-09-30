@@ -241,8 +241,8 @@ export async function syncAccount(account: Account) {
       // organisatie-sync mag de deal-sync niet blokkeren
     }
 
-    // geslacht van de contactpersonen — enkel accounts met afdelings-tabs
-    if (account.syncProducts) {
+    // geslacht van de contactpersonen — enkel accounts met een Analyse-tab
+    if (account.analyse) {
       try {
         await syncPersons(account);
       } catch {
@@ -250,8 +250,8 @@ export async function syncAccount(account: Account) {
       }
     }
 
-    // deal-flow (aanvraag -> offerte-tijd) — enkel accounts met afdelings-tabs, incrementeel
-    if (account.syncProducts) {
+    // deal-flow (aanvraag -> offerte-tijd) — enkel accounts met een Analyse-tab, incrementeel
+    if (account.analyse) {
       try {
         await syncDealFlow(account, lookups.stageMap);
       } catch {
