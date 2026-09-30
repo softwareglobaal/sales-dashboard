@@ -1,3 +1,4 @@
+import { DienstTabs } from "@/components/dienst/DienstKop";
 import {
   getRegister,
   getRegisterTotalen,
@@ -31,6 +32,7 @@ export default async function RegisterPage({
   if (!concurrentieHeeftData()) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
+      <DienstTabs pad="energy" tab="/energy/register" />
         <h1 className="h1-glas klein">Register EPB-verslaggevers</h1>
         <p className="mt-4 text-sm text-zinc-500">Nog geen register ingelezen.</p>
       </main>
@@ -50,6 +52,7 @@ export default async function RegisterPage({
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
+      <DienstTabs pad="energy" tab="/energy/register" />
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="h1-glas klein">Register EPB-verslaggevers</h1>
         <div className="text-xs text-zinc-500">Bron: VEKA / energiesparen.be — export augustus 2026</div>

@@ -15,11 +15,12 @@ const colorByKey = Object.fromEntries(ACCOUNTS.map((a) => [a.key, a.color]));
 // Vaste periodes ("12m", "ytd", "prev_year", "all") of een specifieke maand "JJJJ-MM".
 export type Period = string;
 
+// Het dashboard toont enkel dit en vorig jaar (keuze Siyan, 30/09/2026): genoeg om
+// groei te zien, zonder oude data die niemand meer stuurt. "12m" en "all" blijven
+// geldig voor de agent-API (lib/agentApi.ts), maar staan niet meer als knop.
 export const PERIOD_OPTIONS: { key: Period; label: string }[] = [
-  { key: "12m", label: "Laatste 12 maanden" },
   { key: "ytd", label: "Dit jaar" },
   { key: "prev_year", label: "Vorig jaar" },
-  { key: "all", label: "Alle tijd" },
 ];
 
 // Geëxporteerd zodat afdelings-querymodules (bv. lib/energyQueries.ts) dezelfde
@@ -29,15 +30,17 @@ export const MONTH_NAMES = [
   "juli", "augustus", "september", "oktober", "november", "december",
 ];
 
-// Maandopties voor 2026 (jan t/m huidige maand)
+// Maandopties: januari vorig jaar t/m de huidige maand (naam is historisch).
 export function monthOptions2026(): { key: Period; label: string }[] {
   const now = new Date();
   const y = now.getFullYear();
-  const last = y > 2026 ? 12 : y === 2026 ? now.getMonth() + 1 : 0;
   const out: { key: Period; label: string }[] = [];
-  for (let m = 1; m <= last; m++) {
-    const mm = String(m).padStart(2, "0");
-    out.push({ key: `2026-${mm}`, label: MONTH_NAMES[m - 1].slice(0, 3) + " '26" });
+  for (let jr = y - 1; jr <= y; jr++) {
+    const last = jr === y ? now.getMonth() + 1 : 12;
+    for (let m = 1; m <= last; m++) {
+      const mm = String(m).padStart(2, "0");
+      out.push({ key: `${jr}-${mm}`, label: MONTH_NAMES[m - 1].slice(0, 3) + ` '${String(jr).slice(2)}` });
+    }
   }
   return out;
 }
@@ -85,8 +88,9 @@ export function weekOptions2026(): { key: Period; label: string }[] {
 
 export function isValidPeriod(p: string | undefined): boolean {
   if (!p) return false;
-  if (PERIOD_OPTIONS.some((o) => o.key === p)) return true;
-  if (/^2026-(0[1-9]|1[0-2])$/.test(p)) return true;
+  if (PERIOD_OPTIONS.some((o) => o.key === p) || p === "12m" || p === "all") return true;
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(p);
+  if (m) return +m[1] >= new Date().getFullYear() - 1;
   return /^wk:\d{4}-\d{2}-\d{2}$/.test(p);
 }
 

@@ -103,6 +103,22 @@ function initSchema(db: Database.Database) {
       PRIMARY KEY (account_key, deal_id)
     );
 
+    -- Monday-projectborden die verkoop buiten Pipedrive tonen (spec §17). Nu enkel
+    -- Projects-EE: onderaanneming die EE rechtstreeks met de klant regelt, zonder salesteam.
+    CREATE TABLE IF NOT EXISTS monday_projecten (
+      bord         TEXT NOT NULL,
+      id           TEXT NOT NULL,   -- Monday item-id
+      naam         TEXT,
+      groep        TEXT,            -- Nog te starten / In behandeling / ... / Geannuleerd
+      soort        TEXT,            -- kolom Project Type (EPB-OA, VENT, ...)
+      klant_oa     TEXT,            -- kolom Client OA: voor wie EE de onderaanneming doet
+      goedgekeurd  TEXT,            -- kolom Approval Date (JJJJ-MM-DD) = verkocht op
+      bedrag       REAL,            -- kolom Quotation amount (excl. btw)
+      meerwerk     REAL,            -- kolom Additional work Quotation amount
+      aangemaakt   TEXT,
+      PRIMARY KEY (bord, id)
+    );
+
     CREATE TABLE IF NOT EXISTS sync_meta (
       account_key TEXT PRIMARY KEY,
       last_sync   TEXT,

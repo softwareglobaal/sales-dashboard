@@ -15,6 +15,7 @@ import { POSTCODE_COORDS } from "./postcodeCoords";
 import { postcodeToProvince } from "./regio";
 import { isOfferteStage } from "./engineeringConfig";
 import { syncGoogleAds } from "./adsSync";
+import { syncMonday } from "./mondaySync";
 
 // haal een BE-postcode uit een adres-string (voor accounts zonder los postcode-veld)
 function postcodeFromAddress(addr: string | null): string | null {
@@ -111,7 +112,9 @@ async function syncProducts(account: Account, rows: DealRow[], vorige: Map<numbe
   const start = laatsteVolledig ?? (bestaand.size > 0 ? nowIso() : null);
   const volledig = !start || Date.now() - Date.parse(start) > VOLLEDIG_NA_MS;
 
-  const metProducten = dealIdsWithProducts(rows);
+  const vanaf = account.productenVanaf;
+  const recent = vanaf ? rows.filter((r) => (r.add_time || "") >= vanaf || (r.won_time || "") >= vanaf) : rows;
+  const metProducten = dealIdsWithProducts(recent);
   const nieuw = new Map(rows.map((r) => [r.id, r.update_time]));
   const ids = volledig
     ? metProducten
@@ -288,6 +291,13 @@ export async function syncAll() {
     await syncGoogleAds();
   } catch {
     // negeren — Google Ads is optioneel
+  }
+  // Monday (EE-onderaanneming): zelfde regel, een fout daar mag de sync niet stoppen.
+  // De status staat in sync_meta onder monday:<bord>.
+  try {
+    await syncMonday();
+  } catch {
+    // negeren
   }
   return results;
 }

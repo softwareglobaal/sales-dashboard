@@ -1,7 +1,7 @@
-import { UnderConstruction } from "@/components/UnderConstruction";
+import { DienstPagina } from "@/components/dienst/DienstPagina";
 
 export const dynamic = "force-dynamic";
 
-export default function Page() {
-  return <UnderConstruction title="3D Scanning" />;
+export default async function Page({ searchParams }: { searchParams: Promise<{ periode?: string; firma?: string }> }) {
+  return <DienstPagina pad="3d-scanning" tab="overzicht" searchParams={await searchParams} />;
 }

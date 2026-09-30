@@ -119,15 +119,11 @@ Grafiek "aanvragen vs. omzet per maand": expliciet labelen dat aanvragen op `add
   TKN heeft deze velden niet). "Toelichting lost deal" (~14%) als optionele tekst.
 
 ## 8. Tab-structuur (platform)
-- **Algemeen** (`/`), **Engineering** (`/engineering`), **Energy** (`/energy`, met
-  `/energy/concurrentie` en `/energy/register`) — volledig uitgewerkt.
-- **Onder constructie** (nette placeholder, exacte tekst
-  "Under construction — Siyan is doing his best to finish this as soon as possible."):
-  3D Scanning, Safety, Plaatsbeschrijving, Meetstaten, H-Architects. Onder
-  H-Architects hangen wél al `/h-architects/concurrentie` (zie §13) en
-  `/h-architects/projecten` (zie §15).
-  SEO/SEA = afdeling (Google Ads + zoekdata), geen Pipedrive-account.
-- Nieuwe afdelings-tab moet met minimale moeite toegevoegd kunnen worden (Engineering als template).
+Sinds 30 september 2026 staat de structuur in **§17** en in `config/afdelingen.json`.
+Kort: **Algemeen** (`/`), één tab per **dienst** (Engineering, Energy, Architectuur,
+Regularisatie, 3D-Scanning, Plaatsbeschrijving, Safety, Meetstaten, Permits) met telkens
+dezelfde subtabs, en daarnaast **Marketing** (SEO / SEA, Websites) en **Team**.
+De "Under construction"-placeholders zijn weg: elke dienst heeft data.
 
 ## 9. UI/UX & kwaliteit
 - Professioneel, één kleurensysteem, consistente typografie/terminologie (altijd "offerte"),
@@ -401,55 +397,11 @@ blijven staan om te zien wie er rankt, maar komen door de volgorde op volume noo
 meting. Nu 57 termen; het SERP-quotum verandert niet, want de limiet van 15 per meting
 bepaalt het verbruik, niet de lengte van de lijst.
 
-## 15. Projectenlijst H-Architects met fototelling (september 2026)
+## 15. Projectenlijst H-Architects (vervallen 30 september 2026)
 
-Onder `/h-architects/projecten`, naast de concurrentiemonitor. Geen markt-module en
-geen Pipedrive: dit is een **werklijst voor Mehdi**, die moet kunnen zien welke gebouwen
-nog bezocht en gefotografeerd moeten worden. De lijst verving een Excel-bestand; sinds
-14 september 2026 is het een pagina met een deelbare link.
-
-**Bron.** `data-bronnen/h-architects-projecten-2026-09-14.json`, gemaakt met
-`scripts/h-architects-projecten.py` uit
-`marketing/seo/firmas/H-Architects/H-Architects-projectenlijst-fotos-2026-09-14.xlsx`.
-614 projecten uit de telling van 9 september, met de Dropbox-doorloop van 14 september
-(481.580 items) eroverheen. Handmatig ververst, zoals het VEKA-register en het
-architectenregister; er draait geen automaat op.
-
-**Persoonsgegevens.** De mapnamen bevatten klant- en medewerkersnamen. Ze mogen hier omdat
-de repo privé is en de pagina achter Authentik staat (afdeling `architectuur`), precies
-zoals het VEKA-register. Niet exporteren, niet op een website zetten.
-
-**De regel achter "Te fotograferen"** (de snelknop, 361 van de 614): geen
-opleveringsfoto's **én** (geen beeld óf geen beeld meer sinds 2024) **én** het dossier is
-niet opgezegd. De kolom *Foto's aanwezig* telt bewust **niet** mee in die regel: die staat
-op "ja" zodra er één beeldbestand in de map zit, en de helft van de 161.387 beelden zijn
-png's van plannen, uitsneden en schermafdrukken. De scherpe signalen zijn
-*Opleveringsfoto's* (18 projecten) en *Recentste foto* (213 met beeld van 2024 of later).
-Een map die Dropbox niet wil geven ("onbekend", 6 stuks) telt als kandidaat: onbekend is
-een reden om te gaan kijken, geen reden om over te slaan.
-
-**Opbouw.** Servercomponent leest het bronbestand en toont zes vaste tegels (die bewegen
-niet mee met de filters, ze beschrijven de telling). De clientcomponent
-`app/h-architects/projecten/Projectenlijst.tsx` krijgt alle 614 rijen in één keer mee en
-filtert in de browser. Filters staan in de querystring en worden met
-`window.history.replaceState` bijgewerkt, dus zonder herlaadbeurt en toch deelbaar. De
-filterregels zelf staan in `lib/haProjectenFilter.ts` (vrij van `fs` en React), zodat de
-gemeentetabel "te fotograferen" met exact dezelfde regel telt als de snelknop.
-
-**Sortering.** Standaard provincie, gemeente, jaar aflopend, zoals in de Excel. Gemeenten
-en provincies die "(onbekend)" of "(geen gemeente in mapnaam)" heten staan onderaan, niet
-bovenaan; een haakje sorteert van nature vóór de letters. Kolomkoppen zijn klikbaar en
-houden binnen dezelfde waarde diezelfde rust aan.
-
-**Weergaven.** Tabblad *Projecten* (alle kolommen van de Excel, met de Dropbox-link als
-knop "Open in Dropbox" in een nieuw tabblad) en tabblad *Per gemeente* (aantal, met foto,
-te fotograferen; klik op een gemeente zet het filter en springt naar de lijst). Opgezegde
-dossiers staan gedempt; "nee" en "onbekend" zijn chips met betekeniskleur én woord.
-
-**Wat de pagina zelf zegt.** Onderaan staat de toelichting uit het LEESMIJ-bestand: datum
-van de telling, wat "foto's aanwezig" wel en niet betekent, de zes onleesbare projectmappen
-en de vier gedeelde mappen die met dit Dropbox-account `not_found` geven (projecten die
-uitsluitend daar zitten, staan niet in de lijst).
+De tijdelijke werklijst onder `/h-architects/projecten` is verwijderd op vraag van Siyan.
+Ze hing aan niets anders (geen API, geen cron). Wie ze terug wil: tak `ha-projectenlijst`
+en commit vóór de herinrichting van §17.
 
 ## Aanvullingen (feedback-ronde)
 - **Grafiek "aanvragen vs. direct gewonnen omzet (zelfde maand)"**: SAME-MONTH cohort — balken = leads
@@ -499,6 +451,7 @@ vormgeving en blijft staan als geschiedenis.
 ## Config-bestanden (aanpasbaar zonder code)
 - `config/engineering.json` — label→kanaal + hoofdkanaal-groepen, genegeerde labels/pipelines, `offerteStages`.
 - `config/zoekwoorden-energie.json` / `-engineering.json` / `-architectuur.json` / `-regularisatie.json` — de zoektermen per markt.
+- `config/afdelingen.json` — **de diensten** (§17): bronnen, firma's, kanalen, websites, advertentiediensten, facturatie-afdelingen en maanddoelen.
 - `config/themes.json` — thema → match-regels (productkeywords/afdelingen).
 - `config/lossReasons.json` — variant → genormaliseerde verlies-reden.
 - `config/customFields.json` — per account: vriendelijke naam → Pipedrive-veld-key (custom_json).
@@ -554,3 +507,102 @@ Eigen bezoeken uitsluiten: `?meet=uit` op de site (zet één vlag in localStorag
   en gsm/tablet; secties = `main section`, `footer` of `[data-meet-sectie]`, met tijd in beeld
   (≥ 50% zichtbaar).
 - *Laadsnelheid*: LCP, INP, CLS, TTFB en volledig geladen, 75e percentiel.
+
+## 17. Diensten, firma's en koppelingen (herinrichting 30 september 2026)
+
+**Waarom.** Elke tab had een eigen querybestand (Engineering in `queries.ts`, Energy in
+`energyQueries.ts`, 800 regels per stuk) en vijf diensten stonden op "Under construction".
+Nu staat per dienst in `config/afdelingen.json` waar de verkoop zit. Eén generieke laag
+(`lib/afdelingen.ts`) rekent erop. **Een nieuwe dienst is een blok config, geen code.**
+Menu, toegangsslot (`lib/toegang.ts`), dienstpagina's en Algemeen komen allemaal uit
+datzelfde bestand.
+
+**Niveau = dienst, firma = filter.** Een tab is een dienst. De firma is een filter
+binnen de dienst (Engineering: Alles / UNABO / TKN-Buro). Architectuur en Regularisatie
+zijn aparte diensten, allebei H-Architects. "Wat heeft H-Architects verkocht" staat op
+**Algemeen met de firmakeuze**: dan toont de tabel enkel de diensten waarin die firma
+verkoopt, met de cijfers van die firma. De route `/h-architects` is de dienst
+Architectuur (naam bewust behouden, zodat bestaande links blijven werken).
+
+**Bronnen per dienst** (soort `pipedrive` of `monday`):
+| Dienst | Bron | Lead-regel | Omzet |
+|---|---|---|---|
+| Engineering | UNABO | product ENGINEERING of pipeline UNABO-Engineering | productregels |
+| | TKN-Buro | alle deals (min. genegeerde pipelines) | productregels |
+| Energy | UNABO | product ENERGY of pipeline UNABO-Energy | productregels |
+| | EE salesteam | alle deals van het EE-account (B2B-prospectie) | deal value |
+| | EE rechtstreeks | Monday-bord Projects-EE (7326219382), zonder Client OA "Unabo" | Quotation amount |
+| Architectuur | H-Architects | pipelines B2C prospecties + UNABO Forwarded, zonder regularisatie | deal value |
+| Regularisatie | H-Architects | product of label met "regularis" | deal value |
+| | UNABO | product of titel met "regularis" (komt in de Permits-pijplijn binnen) | deal value |
+| 3D-Scanning | UNABO | product 3D-SCANNING of pipeline | productregels |
+| Plaatsbeschrijving | UNABO | product PLAATSBESCHRIJVING of pipeline | productregels |
+| Safety | UNABO (uitvoering Corenbo) | product SAFETY of pipeline | productregels |
+| Meetstaten | UNABO (uitvoering Peter, freelance) | product "Meetstaten…" of pipeline | productregels |
+| Permits | UNABO | product PERMIT of pipeline, zonder regularisatie | productregels |
+
+- **Pariteit.** Engineering (alles en per firma) en Energy (UNABO) geven exact dezelfde
+  aanvragen, gewonnen en omzet als de oude tabs (getest op dit jaar, vorig jaar, 2026-08
+  en 2025-06). De oude pagina's staan ongewijzigd onder `/engineering/analyse` en
+  `/energy/analyse`.
+- **Monday (EE).** Na één gewonnen offerte stuurt een EPB-bureau volgende dossiers
+  rechtstreeks naar de uitvoering; die komen nooit in Pipedrive. Projecten met Client OA
+  "Unabo" zijn door UNABO verkocht en tellen al in UNABO's Pipedrive: uitgesloten tegen
+  dubbeltelling. Groep "Geannuleerd" = verloren. Verkocht op = Approval Date.
+  Sync: `lib/mondaySync.ts`, na de Pipedrive-sync, met `MONDAY_API_TOKEN`. Status in
+  `sync_meta` onder `monday:<bord>`.
+- **H-Architects-producten** worden sinds deze herinrichting gesynct, enkel voor deals
+  vanaf 2025 (`productenVanaf` in `lib/accounts.ts`): één oproep per deal. H-A heeft er
+  6.000+. Zonder die grens blaast de eerste sync het dagbudget op.
+- **Totalen over diensten heen** tellen een bundeldeal één keer (`uniekeTotalen`), de
+  rijen per dienst tellen hem bij elke dienst. Dat staat ook bij de tabel.
+
+**Periodes: enkel dit jaar en vorig jaar.** Knoppen "Dit jaar" (standaard, vergeleken
+met dezelfde dagen vorig jaar) en "Vorig jaar", plus een maandkeuze vanaf januari vorig
+jaar (een lopende maand vergelijkt met dezelfde dagen van die maand vorig jaar). Geldt
+voor alle pagina's; `12m` en `all` blijven enkel voor de agent-API.
+
+**Subtabs per dienst:** Overzicht · Kanalen · Concurrentie · (Analyse) · (extra).
+- *Overzicht*: kerncijfers met groei, doel, facturatie, kanalen in het kort, per maand
+  dit jaar tegenover vorig jaar, per firma, wat er verkocht is, wat open staat, waarom
+  verloren, laatst gewonnen.
+- *Kanalen*: aanvragen per kanaal (deal-label, §5; Monday = "Rechtstreeks
+  (onderaanneming)"), de websites en de Google Ads-campagnes van de dienst.
+- *Concurrentie*: de bestaande monitor (§10-§14). Diensten zonder markt tonen waarom er
+  nog geen is (SERP-quotum).
+
+**Websites per dienst.** `kanalen.websites` noemt de sites. Met `paden` telt enkel het
+deel van een gedeelde site dat over de dienst gaat (unabo.be bedient zes diensten).
+Per site staat:
+- **laatst aangepast**: de `Last-Modified`-kop van de homepagina (onze statische sites
+  geven daar de publicatietijd, zes uur gecachet), anders de nieuwste `lastmod` uit de
+  sitemap;
+- **SEO-basis** uit de laatste crawl: titel, metabeschrijving, schema, LocalBusiness,
+  sitemap. Daarbij ook of er pagina's over de dienst zijn;
+- **bezoekers en contactacties** van de laatste 30 dagen uit de eigen meting (§16).
+De knop opent `/websites?site=a,b&dienst=<pad>`: de tab Websites aanvaardt een lijst sites.
+
+**Google Ads per dienst.** `kanalen.ads` = service_keys uit `config/ads.json`. Een
+campagne is actief als haar status ENABLED is. De badge klikt door naar
+`/seo-sea?dienst=<pad>`, dat bovenaan de campagnes van die dienst toont.
+
+**Koppeling met facturatiecontrole (proactief).** Het dashboard leest
+`GET /api/koppeling/sales` van `app-facturatiecontrole` over het interne dockernetwerk,
+met het gedeelde geheim `KOPPELING_TOKEN` (kop `X-Koppeling-Token`) en `FACTURATIE_URL`
+(`http://app-facturatiecontrole:8080`). Tien minuten gecachet. Per dienst: verkocht,
+gefactureerd en nog te factureren. Daarnaast de **gaten**:
+- verkocht maar niet gefactureerd, pas na **30 dagen** (`WACHTTIJD_DAGEN`), omdat
+  facturatie normaal achterloopt;
+- meer gefactureerd dan verkocht;
+- gefactureerd zonder verkoop in Pipedrive (dat is het TKN-patroon: verkoop die buiten
+  het CRM loopt).
+De gaten staan als melding bovenaan de dienst en op Algemeen, per dienst in de tabel.
+`facturatie` in de config noemt de afdelingsnamen van het facturatieplatform (Engineering
+= "Engineering" + "Tekenwerk"). Regularisatie zit daar onder Architectuur. Safety wordt
+door Corenbo gefactureerd en staat niet in onze boekhouding. Zonder instelling toont de
+pagina "koppeling niet ingesteld" en werkt de rest gewoon.
+
+**Doelen.** `doel` per dienst: `{"bron": "commissie.engineering"}` neemt het doel uit het
+incentivemodel (`config/commissie.json`), `{"maand": 12000}` zet een eigen maanddoel,
+`0` = geen doel. Algemeen toont per dienst de lopende maand en de stand sinds januari.
+Energy telt nu ook Energie Efficiënt mee, zoals het incentivemodel voorschrijft.

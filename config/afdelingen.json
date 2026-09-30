@@ -1,0 +1,552 @@
+{
+  "_uitleg": "ENIGE BRON voor de diensten (afdelingen) van het dashboard, spec §17. Menu, dienstpagina's, firmafilter, kanalen, websites, advertenties, concurrentie, facturatiekoppeling en doelen worden hieruit opgebouwd. Een nieuwe dienst = een nieuw blok hier, geen code. 'pad' is de URL en de sleutel voor de toegang (lib/toegang.ts); 'registerAfdeling' is de naam in Watch Tower en de Authentik-groep wp-<naam>. Een BRON zegt waar de verkoop van die dienst staat. soort 'pipedrive': een deal telt als lead als hij in het account zit en (alleDeals) of (een product matcht, of de pipeline, of de titel, of het label) en niet uitgesloten is. Namen en titels zijn LIKE-patronen zonder hoofdlettergevoeligheid; pipelines worden vergeleken zonder spaties ('UNABO - Energy' = 'UNABO-Energy'). omzet 'product' = som van de matchende productregels (bundels!), 'dealwaarde' = de deal value. soort 'monday': projecten van een Monday-bord, verkocht op de goedkeuringsdatum, geannuleerd = verloren. 'kanalen.websites': site = sleutel uit config/websites.json, 'paden' = woorden in het paginapad die bij deze dienst horen (leeg = de hele site). 'ads' = service_key uit config/ads.json. 'facturatie' = de afdelingsnamen in het facturatiecontroleplatform. 'doel' = maanddoel in euro gewonnen omzet (0 = geen doel).",
+  "firmas": [
+    {
+      "sleutel": "unabo",
+      "naam": "UNABO",
+      "account": "unabo"
+    },
+    {
+      "sleutel": "tkn",
+      "naam": "TKN-Buro",
+      "account": "tknburo"
+    },
+    {
+      "sleutel": "ee",
+      "naam": "Energie Efficiënt",
+      "account": "energieefficient"
+    },
+    {
+      "sleutel": "ha",
+      "naam": "H-Architects",
+      "account": "harchitects"
+    }
+  ],
+  "afdelingen": [
+    {
+      "pad": "engineering",
+      "naam": "Engineering",
+      "icoon": "engineering",
+      "registerAfdeling": "engineering",
+      "wie": {
+        "verkoop": "UNABO · TKN-Buro",
+        "uitvoering": "TKN-Buro",
+        "factuur": "TKN-Buro"
+      },
+      "verbergPipelines": [
+        "B2B: UNABO",
+        "Setup",
+        "B2B: EPB Campaigne [NEW]"
+      ],
+      "bronnen": [
+        {
+          "sleutel": "unabo",
+          "firma": "unabo",
+          "soort": "pipedrive",
+          "label": "UNABO Engineering",
+          "producten": {
+            "afdelingen": [
+              "ENGINEERING"
+            ]
+          },
+          "pipelines": [
+            "UNABO-Engineering"
+          ],
+          "omzet": "product"
+        },
+        {
+          "sleutel": "tkn",
+          "firma": "tkn",
+          "soort": "pipedrive",
+          "label": "TKN-Buro",
+          "alleDeals": true,
+          "omzet": "product"
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "unabo",
+            "paden": [
+              "stabiliteit"
+            ]
+          },
+          {
+            "site": "tkn-buro"
+          }
+        ],
+        "ads": [
+          "engineering"
+        ]
+      },
+      "concurrentie": "/engineering/concurrentie",
+      "analyse": "/engineering/analyse",
+      "facturatie": [
+        "Engineering",
+        "Tekenwerk"
+      ],
+      "doel": {
+        "bron": "commissie.engineering"
+      }
+    },
+    {
+      "pad": "energy",
+      "naam": "Energy",
+      "icoon": "energy",
+      "registerAfdeling": "energy",
+      "wie": {
+        "verkoop": "UNABO · Energie Efficiënt",
+        "uitvoering": "Energie Efficiënt",
+        "factuur": "Energie Efficiënt"
+      },
+      "bronnen": [
+        {
+          "sleutel": "unabo",
+          "firma": "unabo",
+          "soort": "pipedrive",
+          "label": "UNABO Energy",
+          "producten": {
+            "afdelingen": [
+              "ENERGY"
+            ]
+          },
+          "pipelines": [
+            "UNABO-Energy"
+          ],
+          "omzet": "product"
+        },
+        {
+          "sleutel": "ee",
+          "firma": "ee",
+          "soort": "pipedrive",
+          "label": "EE salesteam (B2B-prospectie)",
+          "alleDeals": true,
+          "omzet": "dealwaarde"
+        },
+        {
+          "sleutel": "ee-direct",
+          "firma": "ee",
+          "soort": "monday",
+          "label": "EE rechtstreeks (onderaanneming)",
+          "bord": "7326219382",
+          "uitsluitenKlantOa": [
+            "unabo"
+          ]
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "unabo",
+            "paden": [
+              "epb",
+              "energie",
+              "ventilat",
+              "blowerdoor",
+              "warmteverlies"
+            ]
+          },
+          {
+            "site": "energie-efficient"
+          },
+          {
+            "site": "epb-boete"
+          }
+        ],
+        "ads": [
+          "epb",
+          "ventilatie"
+        ]
+      },
+      "concurrentie": "/energy/concurrentie",
+      "analyse": "/energy/analyse",
+      "extra": [
+        {
+          "href": "/energy/register",
+          "label": "Verslaggevers"
+        }
+      ],
+      "facturatie": [
+        "Energy"
+      ],
+      "doel": {
+        "bron": "commissie.energy"
+      }
+    },
+    {
+      "pad": "h-architects",
+      "naam": "Architectuur",
+      "icoon": "architectuur",
+      "registerAfdeling": "architectuur",
+      "wie": {
+        "verkoop": "H-Architects",
+        "uitvoering": "H-Architects",
+        "factuur": "H-Architects"
+      },
+      "bronnen": [
+        {
+          "sleutel": "ha",
+          "firma": "ha",
+          "soort": "pipedrive",
+          "label": "H-Architects",
+          "pipelines": [
+            "B2C:H-Architectsprospecties",
+            "B2C:UNABOForwarded"
+          ],
+          "uitsluiten": {
+            "producten": {
+              "namen": [
+                "%regularis%"
+              ]
+            },
+            "labels": [
+              "%regularis%"
+            ]
+          },
+          "omzet": "dealwaarde"
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "h-architects"
+          }
+        ],
+        "ads": []
+      },
+      "concurrentie": "/h-architects/concurrentie",
+      "facturatie": [
+        "Architectuur"
+      ],
+      "doel": {
+        "maand": 0
+      }
+    },
+    {
+      "pad": "regularisatie",
+      "naam": "Regularisatie",
+      "icoon": "regularisatie",
+      "registerAfdeling": "regularisatie",
+      "wie": {
+        "verkoop": "H-Architects · UNABO",
+        "uitvoering": "H-Architects",
+        "factuur": "H-Architects"
+      },
+      "bronnen": [
+        {
+          "sleutel": "ha",
+          "firma": "ha",
+          "soort": "pipedrive",
+          "label": "H-Architects",
+          "producten": {
+            "namen": [
+              "%regularis%"
+            ]
+          },
+          "labels": [
+            "%regularis%"
+          ],
+          "omzet": "dealwaarde"
+        },
+        {
+          "sleutel": "unabo",
+          "firma": "unabo",
+          "soort": "pipedrive",
+          "label": "UNABO (via unabo.be en Ads)",
+          "producten": {
+            "namen": [
+              "%regularis%"
+            ]
+          },
+          "titels": [
+            "%regularis%"
+          ],
+          "omzet": "dealwaarde"
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "regulariseren"
+          },
+          {
+            "site": "mijnregularisatie"
+          },
+          {
+            "site": "unabo",
+            "paden": [
+              "regularis",
+              "bouwovertreding",
+              "vermoeden-van-vergunning"
+            ]
+          },
+          {
+            "site": "h-architects",
+            "paden": [
+              "regularis"
+            ]
+          }
+        ],
+        "ads": [
+          "regularisatie"
+        ]
+      },
+      "concurrentie": "/regularisatie/concurrentie",
+      "facturatie": [],
+      "facturatieNoot": "Het facturatieplatform telt regularisatie mee onder Architectuur.",
+      "doel": {
+        "maand": 0
+      }
+    },
+    {
+      "pad": "3d-scanning",
+      "naam": "3D-Scanning",
+      "icoon": "3d-scanning",
+      "registerAfdeling": "3d-scanning",
+      "wie": {
+        "verkoop": "UNABO",
+        "uitvoering": "UNABO",
+        "factuur": "UNABO"
+      },
+      "bronnen": [
+        {
+          "sleutel": "unabo",
+          "firma": "unabo",
+          "soort": "pipedrive",
+          "label": "UNABO",
+          "producten": {
+            "afdelingen": [
+              "3D-SCANNING"
+            ]
+          },
+          "pipelines": [
+            "UNABO-3D-Scanning"
+          ],
+          "omzet": "product"
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "unabo",
+            "paden": [
+              "3d-scan",
+              "opmeting-3d",
+              "as-built",
+              "3d-rendering"
+            ]
+          }
+        ],
+        "ads": [
+          "scanning"
+        ]
+      },
+      "facturatie": [
+        "Scanning"
+      ],
+      "doel": {
+        "maand": 0
+      }
+    },
+    {
+      "pad": "plaatsbeschrijving",
+      "naam": "Plaatsbeschrijving",
+      "icoon": "plaatsbeschrijving",
+      "registerAfdeling": "plaatsbeschrijving",
+      "wie": {
+        "verkoop": "UNABO",
+        "uitvoering": "UNABO",
+        "factuur": "UNABO"
+      },
+      "bronnen": [
+        {
+          "sleutel": "unabo",
+          "firma": "unabo",
+          "soort": "pipedrive",
+          "label": "UNABO",
+          "producten": {
+            "afdelingen": [
+              "PLAATSBESCHRIJVING"
+            ]
+          },
+          "pipelines": [
+            "UNABO-Plaatsbeschrijving"
+          ],
+          "omzet": "product"
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "unabo",
+            "paden": [
+              "plaatsbeschrijving"
+            ]
+          }
+        ],
+        "ads": [
+          "plaatsbeschrijving"
+        ]
+      },
+      "facturatie": [
+        "Plaatsbeschrijving"
+      ],
+      "doel": {
+        "maand": 0
+      }
+    },
+    {
+      "pad": "safety",
+      "naam": "Safety",
+      "icoon": "safety",
+      "registerAfdeling": "veiligheidscoordinatie",
+      "wie": {
+        "verkoop": "UNABO",
+        "uitvoering": "Corenbo",
+        "factuur": "Corenbo"
+      },
+      "bronnen": [
+        {
+          "sleutel": "unabo",
+          "firma": "unabo",
+          "soort": "pipedrive",
+          "label": "UNABO",
+          "producten": {
+            "afdelingen": [
+              "SAFETY"
+            ]
+          },
+          "pipelines": [
+            "UNABO-Safety"
+          ],
+          "omzet": "product"
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "unabo",
+            "paden": [
+              "veiligheid",
+              "postinterventie"
+            ]
+          }
+        ],
+        "ads": [
+          "veiligheid"
+        ]
+      },
+      "facturatie": [],
+      "facturatieNoot": "Corenbo factureert zelf; die facturen staan niet in onze boekhouding.",
+      "doel": {
+        "maand": 0
+      }
+    },
+    {
+      "pad": "meetstaten",
+      "naam": "Meetstaten",
+      "icoon": "meetstaten",
+      "registerAfdeling": "meetstaten",
+      "wie": {
+        "verkoop": "UNABO",
+        "uitvoering": "Peter (freelance)",
+        "factuur": "UNABO"
+      },
+      "bronnen": [
+        {
+          "sleutel": "unabo",
+          "firma": "unabo",
+          "soort": "pipedrive",
+          "label": "UNABO",
+          "producten": {
+            "namen": [
+              "meetsta%"
+            ]
+          },
+          "pipelines": [
+            "UNABO-Meetstaten"
+          ],
+          "omzet": "product"
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "unabo",
+            "paden": [
+              "meetstaat"
+            ]
+          }
+        ],
+        "ads": [
+          "meetstaten"
+        ]
+      },
+      "facturatie": [
+        "Meetstaten"
+      ],
+      "doel": {
+        "maand": 0
+      }
+    },
+    {
+      "pad": "permits",
+      "naam": "Permits",
+      "icoon": "permits",
+      "registerAfdeling": "permits",
+      "wie": {
+        "verkoop": "UNABO",
+        "uitvoering": "UNABO",
+        "factuur": "UNABO"
+      },
+      "bronnen": [
+        {
+          "sleutel": "unabo",
+          "firma": "unabo",
+          "soort": "pipedrive",
+          "label": "UNABO",
+          "producten": {
+            "afdelingen": [
+              "PERMIT"
+            ]
+          },
+          "pipelines": [
+            "UNABO-Permits"
+          ],
+          "uitsluiten": {
+            "producten": {
+              "namen": [
+                "%regularis%"
+              ]
+            },
+            "titels": [
+              "%regularis%"
+            ]
+          },
+          "omzet": "product"
+        }
+      ],
+      "kanalen": {
+        "websites": [
+          {
+            "site": "unabo",
+            "paden": [
+              "vergunning",
+              "functiewijziging",
+              "dakkapel",
+              "zonder-architect",
+              "aankoopbegeleiding"
+            ]
+          }
+        ],
+        "ads": []
+      },
+      "facturatie": [
+        "Permits"
+      ],
+      "doel": {
+        "maand": 0
+      }
+    }
+  ]
+}

@@ -1,10 +1,7 @@
-import { UnderConstruction } from "@/components/UnderConstruction";
+import { DienstPagina } from "@/components/dienst/DienstPagina";
 
 export const dynamic = "force-dynamic";
 
-// De afdelingspagina zelf wacht op een salesbron: regularisatiedossiers lopen
-// nu nog door de H-Architects-pipeline zonder eigen label. De concurrentiemonitor
-// eronder (/regularisatie/concurrentie) draait wel al.
-export default function Page() {
-  return <UnderConstruction title="Regularisatie" />;
+export default async function Page({ searchParams }: { searchParams: Promise<{ periode?: string; firma?: string }> }) {
+  return <DienstPagina pad="regularisatie" tab="overzicht" searchParams={await searchParams} />;
 }
