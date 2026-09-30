@@ -54,8 +54,14 @@ async function syncOrganizations(account: Account): Promise<number> {
 }
 
 // Contactpersonen (geslacht) — enkel lezen, volledige vervanging per account.
+// Eén keer per dag volstaat: het veld verandert zelden en elke pagina kost een oproep.
+const PERSONEN_NA_MS = 20 * 3600 * 1000;
+
 async function syncPersons(account: Account): Promise<number> {
   const db = getDb();
+  const metaKey = `personen:${account.key}`;
+  const laatste = (db.prepare("SELECT last_sync FROM sync_meta WHERE account_key = ?").get(metaKey) as any)?.last_sync;
+  if (laatste && Date.now() - Date.parse(laatste) < PERSONEN_NA_MS) return 0;
   const rows = await fetchPersonGenders(account);
   const insert = db.prepare("INSERT OR REPLACE INTO persons (account_key, id, gender) VALUES (?, ?, ?)");
   const tx = db.transaction(() => {
@@ -63,6 +69,8 @@ async function syncPersons(account: Account): Promise<number> {
     for (const r of rows) insert.run(account.key, r.id, r.gender);
   });
   tx();
+  db.prepare("INSERT OR REPLACE INTO sync_meta (account_key, last_sync, deal_count, status, message) VALUES (?, ?, ?, 'ok', ?)")
+    .run(metaKey, nowIso(), rows.length, `${rows.length} contactpersonen gesynchroniseerd`);
   return rows.length;
 }
 
@@ -84,28 +92,57 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
   return results;
 }
 
-async function syncProducts(account: Account, rows: DealRow[]): Promise<number> {
+// Productregels: enkel opnieuw ophalen voor deals die nieuw of gewijzigd zijn.
+// Eén oproep per deal; alles telkens opnieuw ophalen kostte bij UNABO ~740 oproepen
+// per sync en blies op 29/09/2026 het dagbudget van Pipedrive op (429 "daily request
+// budget exceeded"), waardoor ook de aanvraagketen en de Zoom-koppeling stillagen.
+// Eén keer per week toch alles, als vangnet voor een wijziging die update_time niet raakt.
+const VOLLEDIG_NA_MS = 7 * 24 * 3600 * 1000;
+
+async function syncProducts(account: Account, rows: DealRow[], vorige: Map<number, string | null>): Promise<number> {
   const db = getDb();
-  const ids = dealIdsWithProducts(rows);
-  const lists = await mapLimit(ids, 6, (id) => fetchDealProducts(account, id).catch(() => [] as ProductRow[]));
-  const products = lists.flat();
+  const metaKey = `producten-volledig:${account.key}`;
+  const laatsteVolledig = (db.prepare("SELECT last_sync FROM sync_meta WHERE account_key = ?").get(metaKey) as any)?.last_sync;
+  const bestaand = new Set(
+    (db.prepare("SELECT DISTINCT deal_id FROM deal_products WHERE account_key = ?").all(account.key) as any[]).map((r) => r.deal_id)
+  );
+  // Zonder vorige volledige herlading maar mét regels (eerste sync na deze wijziging):
+  // de bestaande regels zijn vers genoeg, de klok start nu.
+  const start = laatsteVolledig ?? (bestaand.size > 0 ? nowIso() : null);
+  const volledig = !start || Date.now() - Date.parse(start) > VOLLEDIG_NA_MS;
+
+  const metProducten = dealIdsWithProducts(rows);
+  const nieuw = new Map(rows.map((r) => [r.id, r.update_time]));
+  const ids = volledig
+    ? metProducten
+    : metProducten.filter((id) => !bestaand.has(id) || !vorige.has(id) || vorige.get(id) !== nieuw.get(id));
+  const lists = await mapLimit(ids, 6, (id) => fetchDealProducts(account, id).catch(() => null));
 
   const insert = db.prepare(`
     INSERT OR REPLACE INTO deal_products
       (account_key, id, deal_id, name, department, quantity, item_price, line_sum)
     VALUES (@account_key, @id, @deal_id, @name, @department, @quantity, @item_price, @line_sum)
   `);
-  const tx = db.transaction((items: ProductRow[]) => {
-    db.prepare("DELETE FROM deal_products WHERE account_key = ?").run(account.key);
-    for (const p of items) insert.run(p);
+  const houden = new Set(metProducten);
+  const del = db.prepare("DELETE FROM deal_products WHERE account_key = ? AND deal_id = ?");
+  const tx = db.transaction(() => {
+    // regels van deals die weg zijn of geen producten meer hebben
+    for (const id of bestaand) if (!houden.has(id)) del.run(account.key, id);
+    ids.forEach((id, i) => {
+      const list = lists[i];
+      if (list === null) return; // ophalen mislukt: oude regels laten staan
+      del.run(account.key, id);
+      for (const p of list) insert.run(p);
+    });
   });
-  tx(products);
-  return products.length;
+  tx();
+  if (volledig || !laatsteVolledig) {
+    db.prepare("INSERT OR REPLACE INTO sync_meta (account_key, last_sync, deal_count, status, message) VALUES (?, ?, ?, 'ok', ?)")
+      .run(metaKey, nowIso(), ids.length, volledig ? `${ids.length} deals volledig herladen` : "klok gestart");
+  }
+  return (db.prepare("SELECT COUNT(*) AS n FROM deal_products WHERE account_key = ?").get(account.key) as any).n;
 }
 
-// Deal-flow: exacte aanvraag->offerte-tijd. Alleen deals uit de scope van een afdelings-tab
-// (Engineering + Energy voor UNABO, alles voor TKN), en alleen deals die nog niet in
-// deal_flow zitten (incrementeel — snel na de eerste keer).
 async function syncDealFlow(account: Account, stageMap: Map<number, string>) {
   const db = getDb();
   const offerteStageIds = new Set<number>();
@@ -177,6 +214,11 @@ export async function syncAccount(account: Account) {
       )
     `);
 
+    // update_time van vóór deze sync: bepaalt welke deals hun producten opnieuw moeten ophalen
+    const vorige = new Map<number, string | null>(
+      (db.prepare("SELECT id, update_time FROM deals WHERE account_key = ?").all(account.key) as any[]).map((r) => [r.id, r.update_time])
+    );
+
     const tx = db.transaction((items: DealRow[]) => {
       // oude deals van dit account wissen zodat verwijderde deals verdwijnen
       db.prepare("DELETE FROM deals WHERE account_key = ?").run(account.key);
@@ -186,7 +228,7 @@ export async function syncAccount(account: Account) {
 
     let productCount = 0;
     if (account.syncProducts) {
-      productCount = await syncProducts(account, rows);
+      productCount = await syncProducts(account, rows, vorige);
     }
 
     // organisatie-adressen (voor de B2B-kaartlaag) — alleen lezen

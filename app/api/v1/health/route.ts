@@ -19,7 +19,9 @@ export async function GET(req: Request) {
     .all() as { account_key: string; last_sync: string | null; deal_count: number; status: string; message: string | null }[];
 
   const nu = Date.now();
-  const bronnen = rijen.map((r) => {
+  // Interne boekhouding van lib/sync.ts (wekelijkse volledige productherlading,
+  // dagelijkse contactpersonen) is geen bron en veroudert bewust: niet meetellen.
+  const bronnen = rijen.filter((r) => !/^(producten-volledig|personen):/.test(r.account_key)).map((r) => {
     const ouderdomUren = r.last_sync ? Math.round(((nu - Date.parse(r.last_sync)) / 3_600_000) * 10) / 10 : null;
     return {
       bron: r.account_key,
