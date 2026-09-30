@@ -6,6 +6,10 @@ export type Account = {
   token: string;
   color: string; // kleur in grafieken
   syncProducts?: boolean; // producten per deal ophalen (voor afdelings-/omzetanalyse)
+  // Producten enkel ophalen voor deals die op of na deze datum aangemaakt of gewonnen
+  // zijn. Eén oproep per deal: bij H-Architects (6.000+ deals) zou alles ophalen het
+  // Pipedrive-dagbudget opblazen, en het dashboard toont toch enkel dit en vorig jaar.
+  productenVanaf?: string;
 };
 
 export const ACCOUNTS: Account[] = [
@@ -15,6 +19,10 @@ export const ACCOUNTS: Account[] = [
     domain: "h-architects",
     token: process.env.PIPEDRIVE_TOKEN_HARCHITECTS || "",
     color: "#2563eb", // blauw
+    // Enkel om Regularisatie van Architectuur te scheiden: dat staat bij H-A als
+    // product "Regularisatie" op de deal. De omzet blijft de deal value.
+    syncProducts: true,
+    productenVanaf: "2025-01-01",
   },
   {
     key: "unabo",

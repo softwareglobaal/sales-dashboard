@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { afdeling } from "@/lib/afdelingen";
+import { campagnes } from "@/lib/kanalen";
 import {
   isValidPeriod,
   periodRange,
@@ -58,9 +61,11 @@ function StatusBadge({ status }: { status: string }) {
 export default async function SeoSeaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; dienst?: string }>;
 }) {
   const sp = await searchParams;
+  const vanDienst = sp.dienst ? afdeling(sp.dienst) : undefined;
+  const dienstCampagnes = vanDienst ? campagnes(vanDienst) : [];
   const period: Period = isValidPeriod(sp.period) ? (sp.period as Period) : "ytd";
   const periodLabel = periodRange(period).label;
   const monthOpts = monthOptions2026();
@@ -70,6 +75,54 @@ export default async function SeoSeaPage({
   const accountKeys = accounts.map((a) => a.key);
   const label = accounts.map((a) => a.label).join(" + ") || PIPEDRIVE;
   const meerdere = accounts.length > 1;
+
+  // Doorklik vanaf een dienst (spec §17): eerst de campagnes van die dienst, daarna de volledige tab.
+  const DienstBanner = () =>
+    vanDienst ? (
+      <div className="paneel mb-4">
+        <div className="kop">
+          <h2>Campagnes voor {vanDienst.naam}</h2>
+          <Link href={`/${vanDienst.pad}/kanalen`} className="text-[12px] font-medium underline">
+            ← terug naar {vanDienst.naam}
+          </Link>
+        </div>
+        {dienstCampagnes.length === 0 ? (
+          <p className="text-[13px] text-zinc-500">Er loopt geen campagne voor deze dienst.</p>
+        ) : (
+          <div className="tabelwrap">
+            <table className="tabel">
+              <thead>
+                <tr>
+                  <th>Campagne</th>
+                  <th>Status</th>
+                  <th className="num">Kost dit jaar</th>
+                  <th className="num">Klikken</th>
+                  <th className="num">Conversies</th>
+                  <th className="num">Kost per conversie</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dienstCampagnes.map((c) => (
+                  <tr key={c.account + c.id}>
+                    <td className="font-medium">
+                      {c.naam}
+                      <div className="text-[11.5px] font-normal text-zinc-500">{c.account}</div>
+                    </td>
+                    <td>
+                      <span className={c.status === "ENABLED" ? "chip goed" : "chip"}>{c.status === "ENABLED" ? "Actief" : "Gepauzeerd"}</span>
+                    </td>
+                    <td className="num">{euro(c.kost)}</td>
+                    <td className="num">{num(c.klikken)}</td>
+                    <td className="num">{num(c.conversies)}</td>
+                    <td className="num">{c.conversies ? euro(c.kost / c.conversies) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    ) : null;
 
   const Header = () => (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
@@ -90,6 +143,7 @@ export default async function SeoSeaPage({
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
         <Header />
+        <DienstBanner />
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
           <h2 className="text-lg font-semibold text-zinc-800">Google Ads nog niet gekoppeld</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
@@ -109,6 +163,7 @@ export default async function SeoSeaPage({
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
         <Header />
+        <DienstBanner />
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
           <h2 className="text-lg font-semibold text-zinc-800">Nog geen Google Ads-data</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
@@ -132,6 +187,7 @@ export default async function SeoSeaPage({
     <main className="mx-auto max-w-7xl px-6 pb-10">
       <div className="kopbalk">
         <Header />
+        <DienstBanner />
         <div className="flex flex-wrap gap-2 text-[11.5px]">
           <SyncFreshness />
           {accounts.map((a) => (

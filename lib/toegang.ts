@@ -8,19 +8,17 @@
 // Authentik-groep `wp-<afdeling>` geeft toegang tot die afdeling, `wp-alles` tot alles.
 // Watch Tower gebruikt exact dezelfde afspraak.
 
-/** Route in dit dashboard -> afdeling zoals Watch Tower hem noemt. */
-export const AFDELING_VAN_PAD: Record<string, string> = {
-  engineering: "engineering",
-  energy: "energy",
-  "3d-scanning": "3d-scanning",
-  plaatsbeschrijving: "plaatsbeschrijving",
-  meetstaten: "meetstaten",
-  regularisatie: "regularisatie",
-  // Deze twee heten hier anders dan in het register. Op termijn de route
-  // hernoemen zodat er één woordenlijst overblijft.
-  safety: "veiligheidscoordinatie",
-  "h-architects": "architectuur",
-};
+import cfg from "@/config/afdelingen.json";
+
+/**
+ * Route in dit dashboard -> afdeling zoals Watch Tower hem noemt. Komt uit
+ * config/afdelingen.json (pad -> registerAfdeling), zodat een nieuwe dienst
+ * meteen ook zijn slot krijgt. Twee routes heten hier anders dan in het register
+ * (safety = veiligheidscoordinatie, h-architects = architectuur); dat staat in de config.
+ */
+export const AFDELING_VAN_PAD: Record<string, string> = Object.fromEntries(
+  cfg.afdelingen.map((a) => [a.pad, a.registerAfdeling]),
+);
 
 export const AFDELINGSPADEN = Object.keys(AFDELING_VAN_PAD);
 

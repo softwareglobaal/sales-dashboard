@@ -1,3 +1,4 @@
+import { DienstTabs } from "@/components/dienst/DienstKop";
 import {
   concurrentieHeeftData,
   getMarktKpis,
@@ -90,6 +91,7 @@ export default async function ConcurrentiePage({
   if (!concurrentieHeeftData()) {
     return (
       <main className="mx-auto max-w-7xl px-6 py-8">
+      <DienstTabs pad="energy" tab="concurrentie" />
         <h1 className="h1-glas klein">Concurrentie — Energie</h1>
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
           Nog geen data. Draai eerst <code className="rounded bg-white px-1.5 py-0.5">/api/concurrentie</code> om
@@ -140,6 +142,7 @@ export default async function ConcurrentiePage({
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
+      <DienstTabs pad="energy" tab="concurrentie" />
       <div className="kopbalk">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h1 className="h1-glas klein">Concurrentie — Energie</h1>

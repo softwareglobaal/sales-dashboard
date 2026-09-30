@@ -19,12 +19,10 @@
     "project uitgesteld": "Project uitgesteld",
     "geen urgente interesse": "Geen (urgente) interesse",
     "prijs budget": "Prijs / budget",
-
     "geen reactie niet teruggekoppeld": "Geen reactie / contact verloren",
     "niet meer opgevolgd": "Geen reactie / contact verloren",
     "email niet meer actief": "Geen reactie / contact verloren",
     "secr wil zaakvoerder niet doorgeven ook gsm niet enkel via mail": "Geen reactie / contact verloren",
-
     "gekozen voor een andere partij": "Concurrent / bestaande samenwerking",
     "gekozen voor andere partij": "Concurrent / bestaande samenwerking",
     "gekozen voor een ander partij": "Concurrent / bestaande samenwerking",
@@ -33,30 +31,24 @@
     "werken al samen met andere partners en hebben geen interesse in een andere samenwerking": "Concurrent / bestaande samenwerking",
     "heeft al iemand anders": "Concurrent / bestaande samenwerking",
     "data leads heeft al iemand anders": "Concurrent / bestaande samenwerking",
-
     "gekozen voor andere partij te duur": "Prijs / budget",
     "gekozen voor een ander partij te duur": "Prijs / budget",
     "te duur": "Prijs / budget",
     "ze vinden de prijs goed maar willen het in 2d": "Prijs / budget",
-
     "geen behoefte nu maar misschien later wel": "Geen nood momenteel",
     "neemt later contact op met ons": "Geen nood momenteel",
     "maakt later contact met ons op": "Geen nood momenteel",
     "geen behoefte in onze diensten": "Geen nood momenteel",
     "niet meer nodig": "Geen nood momenteel",
-
     "geen interesse": "Geen (urgente) interesse",
     "geen interesse in ons": "Geen (urgente) interesse",
-
     "doen geen stabiliteits of dergelijke studies": "Niet juiste fit / scope",
     "niet voor ons": "Niet juiste fit / scope",
     "geen woningen": "Niet juiste fit / scope",
     "tekenwerk wordt zelf gedaan": "Niet juiste fit / scope",
     "niet passende klant te hoog samenwerkingsrisico": "Niet juiste fit / scope",
-
     "project gaat niet door": "Project uitgesteld",
     "project stopgezet misschien later nieuwe": "Project uitgesteld",
-
     "reeds benaderd via unabo": "Andere / administratief",
     "reeds benaderd via ee": "Andere / administratief",
     "foutief nummer": "Andere / administratief",
@@ -74,6 +66,24 @@
     "onvoldoende plannen voor berekening": "Andere / administratief",
     "medeweker geen zaakvoerder": "Andere / administratief",
     "heeft offerte aangevraagd nieuwe deal": "Andere / administratief",
-    "collega": "Andere / administratief"
+    "collega": "Andere / administratief",
+    "geen reactie na meerdere opvolgingen": "Geen reactie / contact verloren",
+    "geen reactie": "Geen reactie / contact verloren",
+    "pp niet meer teruggekoppelt met ons nog geen off ontvangen": "Geen reactie / contact verloren",
+    "pp geen reactie niet bereikbaar na meerdere pogingen nog geen off ontvangen": "Geen reactie / contact verloren",
+    "pp niet meer teruggekoppeld met ons off ontvangen": "Geen reactie / contact verloren",
+    "niet meer teruggekoppeld met ons": "Geen reactie / contact verloren",
+    "rot geworden niet opgevolgd": "Geen reactie / contact verloren",
+    "pp andere architect gekozen in de buurt geen off ontvangen": "Concurrent / bestaande samenwerking",
+    "pp andere architect gekozen in de buurt off ontvangen": "Concurrent / bestaande samenwerking",
+    "concurrent": "Concurrent / bestaande samenwerking",
+    "pp andere architect gekozen betere prijsofferte": "Prijs / budget",
+    "pp reactie onze prijsofferte is te duur": "Prijs / budget",
+    "niet geintereseerd": "Geen (urgente) interesse",
+    "geen interesse in onze diensten": "Geen (urgente) interesse",
+    "niet nu misschien later wel": "Geen nood momenteel",
+    "pp project uitgesteld": "Project uitgesteld",
+    "pp project niks voor ons": "Niet juiste fit / scope",
+    "doet geen epb": "Niet juiste fit / scope"
   }
 }

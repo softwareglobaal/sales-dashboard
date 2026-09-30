@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { afdeling } from "@/lib/afdelingen";
 import { Suspense } from "react";
 import { SubNav } from "@/components/SubNav";
 import { Kpi } from "@/components/ui";
@@ -60,7 +61,7 @@ const KLIKSOORT: Record<string, string> = {
   whatsapp: "WhatsApp", download: "Download", knop: "Knop", formulier: "Formulier verzonden", overig: "Klik naast een link",
 };
 
-type Zoek = { site?: string; periode?: string; pagina?: string; apparaat?: string };
+type Zoek = { site?: string; periode?: string; pagina?: string; apparaat?: string; dienst?: string };
 
 function href(sp: Zoek, wijziging: Partial<Zoek>) {
   const p = new URLSearchParams();
@@ -295,8 +296,13 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
   const b = bereik(periode);
   const perMaand = periode === "12m";
   const alleSites = zichtbareSites();
-  const gekozen = alleSites.find((s) => s.sleutel === sp.site);
-  const sites = gekozen ? [gekozen.sleutel] : alleSites.map((s) => s.sleutel);
+  // site mag een lijst zijn ("regulariseren,mijnregularisatie"): zo opent een dienst
+  // met meerdere sites (spec §17) meteen op al zijn sites samen.
+  const gevraagd = (sp.site || "").split(",").filter(Boolean);
+  const gekozenLijst = alleSites.filter((s) => gevraagd.includes(s.sleutel));
+  const gekozen = gekozenLijst.length === 1 ? gekozenLijst[0] : undefined;
+  const sites = gekozenLijst.length ? gekozenLijst.map((s) => s.sleutel) : alleSites.map((s) => s.sleutel);
+  const vanDienst = sp.dienst ? afdeling(sp.dienst) : undefined;
   const geo = geoStatus();
   const laatste = laatsteMeting();
 
@@ -316,11 +322,16 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        <Pil actief={!gekozen} naar={href(sp, { site: "" })}>Alle sites</Pil>
+        {vanDienst && (
+          <Link href={`/${vanDienst.pad}/kanalen`} className="chip accent" style={{ padding: "6px 13px", fontSize: 12.5 }}>
+            ← {vanDienst.naam}
+          </Link>
+        )}
+        <Pil actief={gekozenLijst.length === 0} naar={href(sp, { site: "" })}>Alle sites</Pil>
         {alleSites.map((s) => {
           const l = laatste.find((x) => x.site === s.sleutel);
           return (
-            <Pil key={s.sleutel} actief={gekozen?.sleutel === s.sleutel} naar={href(sp, { site: s.sleutel })} kleur={s.kleur}>
+            <Pil key={s.sleutel} actief={gevraagd.includes(s.sleutel)} naar={href(sp, { site: s.sleutel })} kleur={s.kleur}>
               {s.naam}
               {!l && <span className="text-[10.5px] opacity-60">(geen meting)</span>}
             </Pil>
@@ -414,7 +425,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
           <KernKpis n={k.nu} v={k.vorig} />
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <Paneel titel={gekozen ? `Verloop ${gekozen.naam}` : "Verloop alle sites samen"} uitleg={perMaand ? "Per maand." : "Per dag."}>
+              <Paneel titel={gekozen ? `Verloop ${gekozen.naam}` : gekozenLijst.length ? `Verloop ${gekozenLijst.map((x) => x.naam).join(" + ")}` : "Verloop alle sites samen"} uitleg={perMaand ? "Per maand." : "Per dag."}>
                 <KernReeks data={reeksKern(sites, b, perMaand)} />
               </Paneel>
             </div>

@@ -4,59 +4,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SyncButton } from "./SyncButton";
+import afdelingenCfg from "@/config/afdelingen.json";
 
 // Vormgeving: de gedeelde huisstijl (app/glas.css, ~/Claude/platform-huisstijl):
 // glazen zijbalk met pilvormige menu-items, actief = zwarte pil. De logica
 // (welke afdeling open staat, slot-rijen, inklappen) is ongewijzigd.
 
 type Item = { href: string; label: string; icon?: string; soon?: boolean };
-type Afdeling = Item & { pad: string; onder?: Item[] };
+type Afdeling = Item & { pad: string };
 
 const OVERZICHT: Item[] = [
   { href: "/", label: "Algemeen", icon: "overzicht" },
   { href: "/kaart", label: "Kaart (alles)", icon: "kaart" },
 ];
 
-// Afdeling-eerst: wat bij één afdeling hoort, hangt eronder. Concurrentie en
-// Verslaggevers stonden hiervoor in een globale groep "Marketing", terwijl ze
-// alleen over Energy gaan -- dat breekt zodra Engineering hetzelfde krijgt.
-const AFDELINGEN: Afdeling[] = [
-  {
-    pad: "engineering", href: "/engineering", label: "Engineering", icon: "engineering",
-    onder: [
-      { href: "/engineering/concurrentie", label: "Concurrentie", icon: "doel" },
-    ],
-  },
-  {
-    pad: "energy", href: "/energy", label: "Energy", icon: "energy",
-    onder: [
-      { href: "/energy/concurrentie", label: "Concurrentie", icon: "doel" },
-      { href: "/energy/register", label: "Verslaggevers", icon: "lijst" },
-    ],
-  },
-  { pad: "3d-scanning", href: "/3d-scanning", label: "3D Scanning", icon: "3d-scanning", soon: true },
-  { pad: "safety", href: "/safety", label: "Safety", icon: "safety", soon: true },
-  { pad: "plaatsbeschrijving", href: "/plaatsbeschrijving", label: "Plaatsbeschrijving", icon: "plaatsbeschrijving", soon: true },
-  { pad: "meetstaten", href: "/meetstaten", label: "Meetstaten", icon: "meetstaten", soon: true },
-  {
-    // De afdelingspagina zelf is nog in aanbouw; de concurrentiemonitor en de
-    // projectenlijst eronder niet. Daarom blijft "soon" op de tab staan maar
-    // hangen de onderdelen er wel al.
-    pad: "h-architects", href: "/h-architects", label: "H-Architects", icon: "architectuur", soon: true,
-    onder: [
-      { href: "/h-architects/concurrentie", label: "Concurrentie", icon: "doel" },
-      { href: "/h-architects/projecten", label: "Projecten", icon: "lijst" },
-    ],
-  },
-  {
-    // Zelfde situatie: de afdeling wacht op een salesbron, de concurrentiemonitor
-    // (vierde markt: bouwovertredingen regulariseren) draait al.
-    pad: "regularisatie", href: "/regularisatie", label: "Regularisatie", icon: "regularisatie", soon: true,
-    onder: [
-      { href: "/regularisatie/concurrentie", label: "Concurrentie", icon: "doel" },
-    ],
-  },
-];
+// Diensten komen uit config/afdelingen.json (spec §17): dezelfde bron als de
+// pagina's en het toegangsslot. Onderdelen (Overzicht, Kanalen, Concurrentie,
+// Analyse) staan als subtabs op de dienstpagina zelf, niet meer in dit menu.
+const AFDELINGEN: Afdeling[] = afdelingenCfg.afdelingen.map((a) => ({
+  pad: a.pad,
+  href: "/" + a.pad,
+  label: a.naam,
+  icon: a.icoon,
+}));
 
 const MARKETING: Item[] = [
   { href: "/seo-sea", label: "SEO / SEA", icon: "zoek" },
@@ -79,6 +49,7 @@ const ICONEN: Record<string, string> = {
   plaatsbeschrijving: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/>',
   meetstaten: '<path d="M5 6h14M5 12h14M5 18h9"/>',
   architectuur: '<path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/>',
+  permits: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 13h5M10 17h3"/>',
   // Zelfde tekening als in Watch Tower: een dossier met een vinkje.
   regularisatie: '<path d="M6 3h9l4 4v14H6z"/><path d="m9 14 2 2 4-4"/>',
   doel: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
@@ -122,8 +93,9 @@ export function Sidebar({ afdelingen }: { afdelingen: string[] }) {
       return n;
     });
 
-  const row = (it: Item) => {
-    const active = pathname === it.href;
+  // Een dienst blijft actief op zijn subtabs (/energy/kanalen, /energy/analyse, ...).
+  const row = (it: Item, metOnderdelen = false) => {
+    const active = pathname === it.href || (metOnderdelen && pathname.startsWith(it.href + "/"));
     return (
       <Link
         key={it.href}
@@ -150,13 +122,10 @@ export function Sidebar({ afdelingen }: { afdelingen: string[] }) {
   // bestaat. De gegevens komen er niet: middleware.ts blokkeert het adres.
   const afdelingGroep = () => (
     <div key="afdelingen">
-      {collapsed ? <div className="streep" /> : <span className="groep">Afdelingen</span>}
+      {collapsed ? <div className="streep" /> : <span className="groep">Diensten</span>}
       {AFDELINGEN.map((it) =>
         mag(it.pad) ? (
-          <div key={it.href}>
-            {row(it)}
-            {!collapsed && it.onder && <div className="onder">{it.onder.map((sub) => row(sub))}</div>}
-          </div>
+          <div key={it.href}>{row(it, true)}</div>
         ) : (
           slotRij(it)
         ),
@@ -167,7 +136,7 @@ export function Sidebar({ afdelingen }: { afdelingen: string[] }) {
   const group = (label: string, items: Item[]) => (
     <div key={label}>
       {collapsed ? <div className="streep" /> : <span className="groep">{label}</span>}
-      {items.map(row)}
+      {items.map((it) => row(it))}
     </div>
   );
 
