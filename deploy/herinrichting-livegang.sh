@@ -72,5 +72,8 @@ fetch(process.env.FACTURATIE_URL + "/api/koppeling/sales", { headers: { "X-Koppe
   .catch((e) => console.log("   koppeling faalt:", e.message));
 console.log("   MONDAY_API_TOKEN gezet:", !!process.env.MONDAY_API_TOKEN);'
 echo
+echo "Watch Tower: de tegels van Architectuur, Regularisatie, 3D-Scanning, Plaatsbeschrijving, Safety"
+echo "en Meetstaten staan lokaal op live. Vanaf de Mac: scp ~/Claude/watchtower/register.json ubuntu@54.80.98.233:~/watchtower/"
+echo
 echo "Klaar. De eerste sync (uurlijks, of de knop Data verversen) leest het Monday-bord en de"
 echo "H-Architects-producten vanaf 2025 (~1.000 oproepen op het H-A-account, eenmalig)."
