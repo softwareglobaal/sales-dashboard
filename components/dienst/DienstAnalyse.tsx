@@ -20,7 +20,7 @@ import officesConfig from "@/config/offices.json";
 function Tabelletje({ titel, rijen, totaal, leeg }: { titel: string; rijen: Telling[]; totaal: number; leeg: string }) {
   const ingevuld = rijen.reduce((s, r) => s + r.aantal, 0);
   return (
-    <div>
+    <div className="min-w-0">
       <div className="mb-2 flex items-baseline justify-between">
         <span className="label">{titel}</span>
         <span className="text-[11.5px] text-zinc-500">
@@ -365,7 +365,7 @@ export function DienstAnalyse({ a, sp }: { a: Afdeling; sp: DienstZoek & { rs?: 
           <h2>Project en motivatie</h2>
           <small>uit de Pipedrive-velden; toont meer naarmate ze ingevuld worden</small>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Tabelletje titel="Gebouwtype" rijen={vel.gebouwtype} totaal={vel.aanvragen} leeg="Nog niet ingevuld." />
           <Tabelletje titel="Type aanvraag" rijen={vel.typeAanvraag} totaal={vel.aanvragen} leeg="Nog niet ingevuld." />
           <Tabelletje titel="Reden gewonnen" rijen={vel.redenGewonnen} totaal={vel.gewonnen} leeg="Nog niet ingevuld." />
