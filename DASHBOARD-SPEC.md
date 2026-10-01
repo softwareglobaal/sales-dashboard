@@ -581,6 +581,9 @@ Per site staat:
   sitemap. Daarbij ook of er pagina's over de dienst zijn;
 - **bezoekers en contactacties** van de laatste 30 dagen uit de eigen meting (§16).
 De knop opent `/websites?site=a,b&dienst=<pad>`: de tab Websites aanvaardt een lijst sites.
+Met `dienst` telt van een gedeelde site enkel het deel over die dienst (`Scope` in
+`lib/websitesQueries.ts`): pagina-tabellen filteren op het pad, sessies tellen mee als ze
+minstens één pagina van de dienst bekeken. Een chip bovenaan zegt welk deel er telt.
 
 **Google Ads per dienst.** `kanalen.ads` = service_keys uit `config/ads.json`. Een
 campagne is actief als haar status ENABLED is. De badge klikt door naar
@@ -600,7 +603,9 @@ De gaten staan als melding bovenaan de dienst en op Algemeen, per dienst in de t
 `facturatie` in de config noemt de afdelingsnamen van het facturatieplatform (Engineering
 = "Engineering" + "Tekenwerk"). Regularisatie zit daar onder Architectuur. Safety wordt
 door Corenbo gefactureerd en staat niet in onze boekhouding. Zonder instelling toont de
-pagina "koppeling niet ingesteld" en werkt de rest gewoon.
+pagina "koppeling niet ingesteld" en werkt de rest gewoon. **Proactief:** `GET /api/v1/facturatie`
+(agent-API) geeft dezelfde stand; de dagelijkse sales-wacht van de agents zet per dienst met
+gaten één signaal op het board (AppPortal, `siyanagents-runner/sales_wacht.py`).
 
 **Doelen.** `doel` per dienst: `{"bron": "commissie.engineering"}` neemt het doel uit het
 incentivemodel (`config/commissie.json`), `{"maand": 12000}` zet een eigen maanddoel,

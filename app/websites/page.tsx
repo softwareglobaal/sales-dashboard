@@ -293,7 +293,6 @@ function Leegstand({ sites, geo }: { sites: { naam: string; sleutel: string; url
 export default async function WebsitesPage({ searchParams }: { searchParams: Promise<Zoek> }) {
   const sp = await searchParams;
   const periode: Periode = isPeriode(sp.periode) ? sp.periode : "30d";
-  const b = bereik(periode);
   const perMaand = periode === "12m";
   const alleSites = zichtbareSites();
   // site mag een lijst zijn ("regulariseren,mijnregularisatie"): zo opent een dienst
@@ -303,6 +302,12 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
   const gekozen = gekozenLijst.length === 1 ? gekozenLijst[0] : undefined;
   const sites = gekozenLijst.length ? gekozenLijst.map((s) => s.sleutel) : alleSites.map((s) => s.sleutel);
   const vanDienst = sp.dienst ? afdeling(sp.dienst) : undefined;
+  // Doorklik vanaf een dienst: van een gedeelde site (unabo.be) telt enkel het deel
+  // over die dienst. Sites zonder woorden in de config tellen volledig mee.
+  const scope: Record<string, string[]> = Object.fromEntries(
+    (vanDienst?.kanalen.websites || []).filter((w) => w.paden?.length).map((w) => [w.site, w.paden!]),
+  );
+  const b = bereik(periode, scope);
   const geo = geoStatus();
   const laatste = laatsteMeting();
 
@@ -327,6 +332,14 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
             ← {vanDienst.naam}
           </Link>
         )}
+        {Object.entries(scope)
+          .filter(([site]) => sites.includes(site))
+          .map(([site, woorden]) => (
+            <span key={site} className="chip" style={{ padding: "6px 13px", fontSize: 12.5 }}>
+              {alleSites.find((x) => x.sleutel === site)?.naam || site}: enkel pagina&apos;s over {woorden.slice(0, 3).join(", ")}
+              {woorden.length > 3 ? "…" : ""}
+            </span>
+          ))}
         <Pil actief={gekozenLijst.length === 0} naar={href(sp, { site: "" })}>Alle sites</Pil>
         {alleSites.map((s) => {
           const l = laatste.find((x) => x.site === s.sleutel);
