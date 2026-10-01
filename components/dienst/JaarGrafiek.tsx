@@ -1,25 +1,39 @@
 "use client";
 
-// Dit jaar tegenover vorig jaar, per maand. Eén as per grafiek (nooit twee
-// schalen): de keuze Omzet/Aanvragen/Gewonnen wisselt de maat, niet de as.
-// Kleuren gevalideerd met de dataviz-validator (lichte modus, alle checks PASS):
-// dit jaar = staven #2a78d6, vorig jaar = lijn #eb6834 als referentie.
+// Dit jaar tegenover vorig jaar, per maand, gestapeld per bron (bv. Energy: UNABO,
+// EE-campagne, EE onderaanneming), zoals de verdeling op het Monday-bord. Eén as per
+// grafiek (nooit twee schalen): de keuze Omzet/Aanvragen/Gewonnen wisselt de maat.
+// Kleuren gevalideerd met de dataviz-validator (lichte modus): bronnen in vaste
+// volgorde #2a78d6, #eb6834, #1baf7a (alle checks PASS, aqua heeft een contrast-WARN:
+// daarom altijd legende + tooltip met de getallen). Vorig jaar = gestippelde
+// neutrale lijn als referentie, geen categoriekleur.
 
 import { useState } from "react";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { euro, euroShort, num } from "@/lib/format";
 
-type Rij = { maand: string; nu: Record<string, number> | null; vorig: Record<string, number> };
+type Maten = { omzet: number; aanvragen: number; gewonnen: number };
+export type GrafiekRij = { maand: string; nu: Record<string, Maten> | null; vorig: Maten };
+export type GrafiekBron = { key: string; label: string };
+
+const KLEUREN = ["#2a78d6", "#eb6834", "#1baf7a"];
+const VORIG = "#52514e";
 const MATEN = [
   { key: "omzet", label: "Omzet" },
   { key: "aanvragen", label: "Aanvragen" },
   { key: "gewonnen", label: "Gewonnen" },
 ] as const;
 
-export function JaarGrafiek({ rijen, jaar }: { rijen: Rij[]; jaar: number }) {
+export function JaarGrafiek({ rijen, jaar, bronnen }: { rijen: GrafiekRij[]; jaar: number; bronnen: GrafiekBron[] }) {
   const [maat, setMaat] = useState<(typeof MATEN)[number]["key"]>("omzet");
-  const data = rijen.map((r) => ({ maand: r.maand, nu: r.nu ? r.nu[maat] : null, vorig: r.vorig[maat] }));
+  const data = rijen.map((r) => {
+    const punt: Record<string, string | number | null> = { maand: r.maand, vorig: r.vorig[maat] };
+    for (const b of bronnen) punt[b.key] = r.nu ? r.nu[b.key]?.[maat] ?? 0 : null;
+    return punt;
+  });
   const fmt = (v: number) => (maat === "omzet" ? euro(v) : num(v));
+  const zichtbaar = bronnen.slice(0, KLEUREN.length);
+
   return (
     <div>
       <div className="seg" style={{ marginBottom: 12 }}>
@@ -29,7 +43,7 @@ export function JaarGrafiek({ rijen, jaar }: { rijen: Rij[]; jaar: number }) {
           </button>
         ))}
       </div>
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={280}>
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
           <CartesianGrid vertical={false} stroke="rgba(22,21,15,.08)" />
           <XAxis dataKey="maand" tick={{ fontSize: 11, fill: "#8f8a82" }} axisLine={false} tickLine={false} />
@@ -43,12 +57,62 @@ export function JaarGrafiek({ rijen, jaar }: { rijen: Rij[]; jaar: number }) {
           />
           <Tooltip
             cursor={{ fill: "rgba(22,21,15,.05)" }}
-            formatter={(v: any, naam: any) => [v == null ? "—" : fmt(Number(v)), naam]}
-            contentStyle={{ borderRadius: 12, border: "1px solid rgba(22,21,15,.1)", fontSize: 12 }}
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null;
+              const nu = payload.filter((p) => p.dataKey !== "vorig" && p.value != null);
+              const som = nu.reduce((s, p) => s + Number(p.value || 0), 0);
+              const vorig = payload.find((p) => p.dataKey === "vorig")?.value;
+              return (
+                <div style={{ background: "#fff", border: "1px solid rgba(22,21,15,.1)", borderRadius: 12, padding: "8px 12px", fontSize: 12 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                  {nu.map((p) => (
+                    <div key={String(p.dataKey)} style={{ display: "flex", gap: 12, justifyContent: "space-between" }}>
+                      <span>
+                        <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: p.color, marginRight: 6 }} />
+                        {p.name}
+                      </span>
+                      <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmt(Number(p.value))}</span>
+                    </div>
+                  ))}
+                  {nu.length > 1 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(22,21,15,.1)", marginTop: 4, paddingTop: 4, fontWeight: 600 }}>
+                      <span>Totaal {jaar}</span>
+                      <span>{fmt(som)}</span>
+                    </div>
+                  )}
+                  {vorig != null && (
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#52514e", marginTop: 2 }}>
+                      <span>Totaal {jaar - 1}</span>
+                      <span>{fmt(Number(vorig))}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            }}
           />
           <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="nu" name={String(jaar)} fill="#2a78d6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-          <Line dataKey="vorig" name={String(jaar - 1)} stroke="#eb6834" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+          {zichtbaar.map((b, i) => (
+            <Bar
+              key={b.key}
+              dataKey={b.key}
+              name={b.label}
+              stackId="nu"
+              fill={KLEUREN[i]}
+              stroke="#fcfcfb"
+              strokeWidth={zichtbaar.length > 1 ? 2 : 0}
+              radius={i === zichtbaar.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+              isAnimationActive={false}
+            />
+          ))}
+          <Line
+            dataKey="vorig"
+            name={`Totaal ${jaar - 1}`}
+            stroke={VORIG}
+            strokeWidth={2}
+            strokeDasharray="5 4"
+            dot={{ r: 3, fill: VORIG }}
+            isAnimationActive={false}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

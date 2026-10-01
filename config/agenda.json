@@ -1,0 +1,14 @@
+{
+  "_uitleg": "Agenda-koppeling (spec §17): welke Google-agenda's het dashboard leest om te zien of er met een aanvrager een meeting was. Een afspraak wordt aan een deal gekoppeld via het e-mailadres van de genodigde (contactpersoon in Pipedrive), anders via de naam in de titel. De code tussen haakjes in de titel ([UNABO-PO], [TKN-PO], [HA-PO]) zegt bij welke firma; prefixAccount vertaalt die. Afspraken met een interne code (intern) tellen niet als meeting. Leestoken: GOOGLE_AGENDA_CLIENT_ID / _CLIENT_SECRET / _REFRESH_TOKEN (dezelfde als de Zoom-dossier-automatisering).",
+  "vanaf": "2025-01-01",
+  "agendas": [
+    { "id": "zoomafspraken@gmail.com", "naam": "zoomafspraken" },
+    { "id": "mehdiprivewerkagenda@gmail.com", "naam": "werkagenda Mehdi" },
+    { "id": "73e8b6359d04b7bdb02aa045e668cd6f9d9f007bec51ce370494e7de7501f0c4@group.calendar.google.com", "naam": "H-Architects" },
+    { "id": "projects@h-architects.be", "naam": "projects@h-architects.be" }
+  ],
+  "prefixAccount": { "UNABO": "unabo", "TKN": "tknburo", "TKNB": "tknburo", "HA": "harchitects", "HARC": "harchitects", "ENEF": "energieefficient", "EE": "energieefficient" },
+  "intern": ["IN"],
+  "interneDomeinen": ["globaal.be", "unabo.be", "tkn-buro.be", "h-architects.be", "energie-efficient.be", "harmoniebouw.be", "elevaitservices.com", "calendly.com", "zoom.us"],
+  "interneAdressen": ["zoomafspraken@gmail.com", "mehdiprivewerkagenda@gmail.com", "haprospecties@gmail.com", "elevaitservices@gmail.com"]
+}

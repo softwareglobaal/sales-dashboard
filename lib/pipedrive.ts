@@ -302,22 +302,33 @@ export async function fetchAllOrganizations(account: Account): Promise<OrgRow[]>
 // Geslacht per contactpersoon, uit het persoonsveld met de naam "Geslacht".
 // Op naam gezocht (niet op sleutel): elk Pipedrive-account heeft een eigen veldsleutel.
 // Geen veld in dit account -> lege lijst.
-export async function fetchPersonGenders(account: Account): Promise<{ id: number; gender: string | null }[]> {
+// Contactpersonen: geslacht (persoonsveld "Geslacht", niet in elk account) plus naam en
+// e-mailadressen. Die laatste twee zijn nodig om agenda-afspraken aan deals te koppelen
+// (lib/agenda.ts): de genodigde van een afspraak wordt op e-mail herkend.
+export type PersoonRij = { id: number; gender: string | null; naam: string | null; emails: string };
+export async function fetchPersonGenders(account: Account): Promise<PersoonRij[]> {
   const fields = await api(account, "/personFields", { limit: 500 });
   const f = (fields.data || []).find((x: any) => String(x.name || "").trim().toLowerCase() === "geslacht");
-  if (!f) return [];
   const options = new Map<string, string>();
-  for (const o of f.options || []) options.set(String(o.id), o.label);
+  for (const o of f?.options || []) options.set(String(o.id), o.label);
 
-  const rows: { id: number; gender: string | null }[] = [];
+  const rows: PersoonRij[] = [];
   let start = 0;
   const limit = 500;
   for (let guard = 0; guard < 1000; guard++) {
     const json = await api(account, "/persons", { start, limit, sort: "id ASC" });
     for (const p of json.data || []) {
-      const v = p[f.key];
+      const v = f ? p[f.key] : null;
       const raw = v && typeof v === "object" ? v.id ?? v.value : v;
-      rows.push({ id: p.id, gender: raw == null || raw === "" ? null : options.get(String(raw)) ?? String(raw) });
+      const emails = (Array.isArray(p.email) ? p.email : [])
+        .map((e: any) => String(e?.value || "").trim().toLowerCase())
+        .filter((e: string) => e.includes("@"));
+      rows.push({
+        id: p.id,
+        gender: raw == null || raw === "" ? null : options.get(String(raw)) ?? String(raw),
+        naam: p.name ? String(p.name) : null,
+        emails: emails.join(" "),
+      });
     }
     const pag = json.additional_data?.pagination;
     if (!pag || !pag.more_items_in_collection) break;

@@ -15,6 +15,8 @@ import {
   perMaand,
   recentGewonnen,
   verliesredenen,
+  perMaandPerBron,
+  campagneStand,
   type Afdeling,
 } from "@/lib/afdelingen";
 import { campagnes, websites, websitesLink, seoLink } from "@/lib/kanalen";
@@ -23,6 +25,7 @@ import { MONTH_NAMES } from "@/lib/queries";
 import { euro, num } from "@/lib/format";
 import { DienstKop, dienstHref, type DienstZoek } from "./DienstKop";
 import { JaarGrafiek } from "./JaarGrafiek";
+import { MaandHistoriek } from "./MaandHistoriek";
 import { SyncFreshness } from "@/components/SyncFreshness";
 
 // Overzicht van één dienst (spec §17). Bewust kort: wat is er binnengekomen en
@@ -40,13 +43,24 @@ function Delta({ nu, vorig, label }: { nu: number; vorig: number | null; label?:
   );
 }
 
-function Kaart({ label, waarde, children }: { label: string; waarde: string; children?: React.ReactNode }) {
-  return (
-    <div className="paneel kpi">
-      <span className="label">{label}</span>
+function Kaart({ label, waarde, children, naar }: { label: string; waarde: string; children?: React.ReactNode; naar?: string }) {
+  const inhoud = (
+    <>
+      <span className="label">
+        {label}
+        {naar && <span aria-hidden="true"> ›</span>}
+      </span>
       <div className="groot">{waarde}</div>
       {children}
-    </div>
+    </>
+  );
+  // Doorklikbaar: Gewonnen en Verloren openen de lijst met alle deals.
+  return naar ? (
+    <Link href={naar} className="paneel kpi" style={{ textDecoration: "none", color: "inherit" }} title={`Toon alle deals: ${label.toLowerCase()}`}>
+      {inhoud}
+    </Link>
+  ) : (
+    <div className="paneel kpi">{inhoud}</div>
   );
 }
 
@@ -69,11 +83,22 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
   const reeksNu = perMaand(d, nuJaar);
   const reeksVorig = perMaand(d, nuJaar - 1);
   const huidigeMaand = new Date().getMonth();
+  // Gestapeld per bron (UNABO / EE-campagne / EE onderaanneming, ...), vorig jaar als totaallijn.
+  const perBron = perMaandPerBron(a, d, nuJaar);
   const grafiek = reeksNu.map((r, i) => ({
     maand: MONTH_NAMES[i].slice(0, 3),
-    nu: i <= huidigeMaand ? { omzet: r.omzet, aanvragen: r.aanvragen, gewonnen: r.gewonnen } : null,
+    nu:
+      i <= huidigeMaand
+        ? Object.fromEntries(perBron.map((x) => [x.sleutel, { omzet: x.reeks[i].omzet, aanvragen: x.reeks[i].aanvragen, gewonnen: x.reeks[i].gewonnen }]))
+        : null,
     vorig: { omzet: reeksVorig[i].omzet, aanvragen: reeksVorig[i].aanvragen, gewonnen: reeksVorig[i].gewonnen },
   }));
+  const grafiekBronnen = perBron.map((x) => ({ key: x.sleutel, label: x.label }));
+  const campagne = campagneStand(d, b.van, b.tot);
+  const dealsHref = (status: string, reden?: string) => {
+    const u = dienstHref(`/${a.pad}/deals`, zoek);
+    return u + (u.includes("?") ? "&" : "?") + `status=${status}` + (reden ? `&reden=${encodeURIComponent(reden)}` : "");
+  };
 
   // Doel: altijd per maand. Dit jaar = lopende maand + optelsom sinds januari.
   const doel = maanddoel(a);
@@ -94,7 +119,7 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
   const actieveAds = ads.filter((c) => c.status === "ENABLED");
   const fnaam = f ? firmaVan(f)?.naam : null;
   const fact = kop.status === "ok" && a.facturatie.length ? standVoor(kop.data, a, String(jaar)) : null;
-  const gaten = fact ? fact.gaten.filter((g) => !fnaam || g.firma === fnaam) : [];
+  const gaten = fact ? fact.gaten.filter((g) => !fnaam || (g.verkocht_via ? g.verkocht_via === fnaam : g.firma === fnaam)) : [];
 
   return (
     <main className="mx-auto max-w-7xl px-6 pb-10">
@@ -131,15 +156,15 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
             </div>
           </Kaart>
         )}
-        <Kaart label="Gewonnen" waarde={num(k.gewonnen)}>
+        <Kaart label="Gewonnen" waarde={num(k.gewonnen)} naar={dealsHref("won")}>
           <Delta nu={k.gewonnen} vorig={v?.gewonnen ?? null} label={vl} />
         </Kaart>
         <Kaart label="Omzet" waarde={euro(k.omzet)}>
           <Delta nu={k.omzet} vorig={v?.omzet ?? null} label={vl} />
         </Kaart>
-        <Kaart label="Winratio" waarde={k.winratio == null ? "—" : `${Math.round(k.winratio * 100)}%`}>
+        <Kaart label="Winratio" waarde={k.winratio == null ? "—" : `${Math.round(k.winratio * 100)}%`} naar={dealsHref("lost")}>
           <div className="delta">
-            {num(k.gewonnen)} gewonnen · {num(k.verloren)} verloren
+            {num(k.verloren)} verloren (klik voor de lijst)
             {k.gemDagen != null ? ` · gem. ${k.gemDagen} d tot gewonnen` : ""}
           </div>
         </Kaart>
@@ -157,6 +182,7 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
               maandLabel={`${MONTH_NAMES[doelMaand]} ${doelJaar}`}
               maandOmzet={omzetDoelMaand}
               sindsJan={periode === "ytd" ? { omzet: omzetSindsJan, doel: doel * (huidigeMaand + 1) } : null}
+              historiek={reeksNu.slice(0, huidigeMaand).map((r, i) => ({ maand: MONTH_NAMES[i].slice(0, 3), omzet: r.omzet }))}
               gefilterd={!!f}
             />
           ) : (
@@ -220,6 +246,43 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
         </div>
       </section>
 
+      {campagne && (
+        <section className="paneel mt-4">
+          <div className="kop">
+            <h2>Campagne: {campagne.bronnen.join(", ")}</h2>
+            <small>koude prospectie · telt niet als aanvraag, een gewonnen klant wel als verkoop</small>
+          </div>
+          <div className="grid gap-4 text-[13px] sm:grid-cols-4">
+            <div>
+              <span className="label">In de lijst</span>
+              <div className="text-[22px] tabular-nums">{num(campagne.inLijst)}</div>
+              <div className="text-zinc-500">laatst toegevoegd {campagne.laatsteNieuw ? datumNl(campagne.laatsteNieuw) : "—"}</div>
+            </div>
+            <div>
+              <span className="label">Nog open</span>
+              <div className="text-[22px] tabular-nums">{num(campagne.open)}</div>
+              <div className="text-zinc-500">{num(campagne.slapend)} slapend (90 dagen geen beweging)</div>
+            </div>
+            <div>
+              <span className="label">Echt in gesprek</span>
+              <div className="text-[22px] tabular-nums" style={{ color: "var(--goed)" }}>{num(campagne.inGesprekTotaal)}</div>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {campagne.inGesprek.map((x) => (
+                  <span key={x.fase} className="chip goed">
+                    {x.fase}: {x.aantal}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="label">Gewonnen</span>
+              <div className="text-[22px] tabular-nums">{num(campagne.gewonnen)}</div>
+              <div className="text-zinc-500">{b.label}</div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="paneel mt-4">
         <div className="kop">
           <h2>Per maand</h2>
@@ -227,7 +290,7 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
             {nuJaar} tegenover {nuJaar - 1} · aanvragen op aanmaakdatum, gewonnen en omzet op datum gewonnen
           </small>
         </div>
-        <JaarGrafiek rijen={grafiek} jaar={nuJaar} />
+        <JaarGrafiek rijen={grafiek} jaar={nuJaar} bronnen={grafiekBronnen} />
       </section>
 
       <section className={"mt-4 grid gap-4 " + (firmaRijen.length ? "lg:grid-cols-2" : "")}>
@@ -326,13 +389,13 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
           ) : (
             <div className="lijst">
               {verlies.map((r) => (
-                <div key={r.reden} className="flex items-center gap-3 text-[13px]">
+                <Link key={r.reden} href={dealsHref("lost", r.reden)} className="flex items-center gap-3 text-[13px] hover:underline" title="Toon de deals met deze reden">
                   <span className="min-w-0 flex-1 truncate">{r.reden}</span>
                   <span className="staaf" style={{ width: 80 }}>
                     <i style={{ width: `${Math.round((r.aantal / verlies[0].aantal) * 100)}%` }} />
                   </span>
                   <span className="w-8 text-right tabular-nums">{r.aantal}</span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -371,12 +434,14 @@ function DoelBlok({
   maandOmzet,
   sindsJan,
   gefilterd,
+  historiek,
 }: {
   doel: number;
   maandLabel: string;
   maandOmzet: number;
   sindsJan: { omzet: number; doel: number } | null;
   gefilterd: boolean;
+  historiek: { maand: string; omzet: number }[];
 }) {
   const balk = (waarde: number, max: number) => (
     <span className="staaf" style={{ display: "block", height: 8, marginTop: 6 }}>
@@ -405,6 +470,7 @@ function DoelBlok({
           {balk(sindsJan.omzet, sindsJan.doel)}
         </div>
       )}
+      <MaandHistoriek doel={doel} maanden={historiek} />
       {gefilterd && <p className="text-[11.5px] text-zinc-500">Het doel geldt voor de hele dienst; met een firmafilter telt enkel die firma.</p>}
     </div>
   );
@@ -450,18 +516,15 @@ function FacturatieBlok({
       </p>
       {gaten.length > 0 ? (
         <div className="lijst">
-          {gaten.slice(0, 3).map((g, i) => (
-            <div key={i} className="item" style={{ padding: "8px 10px" }}>
-              <div className="t">
-                <b>{g.werf || g.klant || "(onbekend dossier)"}</b>
-                <small>
-                  {g.soort}
-                  {g.firma ? ` · ${g.firma}` : ""}
-                </small>
+          {gaten.slice(0, 3).map((g, i) => <GatRij key={i} g={g} />)}
+          {gaten.length > 3 && (
+            <details>
+              <summary className="cursor-pointer text-[12px] font-medium">Toon alle {gaten.length} gaten</summary>
+              <div className="lijst mt-2">
+                {gaten.slice(3).map((g, i) => <GatRij key={i} g={g} />)}
               </div>
-              <span className="chip let">{euro(Math.abs(g.verschil))}</span>
-            </div>
-          ))}
+            </details>
+          )}
         </div>
       ) : (
         <span className="chip goed" style={{ alignSelf: "flex-start" }}>
@@ -469,9 +532,27 @@ function FacturatieBlok({
         </span>
       )}
       <a href={FACTURATIE_WEB} target="_blank" rel="noreferrer" className="text-[12px] font-medium underline">
-        Naar facturatiecontrole{gaten.length > 3 ? ` (${gaten.length - 3} meer)` : ""}
+        Naar facturatiecontrole
       </a>
       {a.facturatieNoot && <p className="text-[11.5px] text-zinc-500">{a.facturatieNoot}</p>}
+    </div>
+  );
+}
+
+function GatRij({ g }: { g: ReturnType<typeof standVoor>["gaten"][number] }) {
+  return (
+    <div className="item" style={{ padding: "8px 10px" }}>
+      <div className="t">
+        <b>{g.werf || g.klant || "(onbekend dossier)"}</b>
+        <small>
+          {g.soort}
+          {" · "}
+          {g.verkocht_via ? `verkocht via ${g.verkocht_via}` : "niet in Pipedrive"}
+          {g.firma ? ` · uitvoering ${g.firma}` : ""}
+          {g.gefactureerd_door?.length ? ` · gefactureerd door ${g.gefactureerd_door.join(", ")}` : ""}
+        </small>
+      </div>
+      <span className="chip let">{euro(Math.abs(g.verschil))}</span>
     </div>
   );
 }

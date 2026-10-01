@@ -43,6 +43,11 @@ export function middleware(req: NextRequest) {
   if (req.method === "GET" || req.method === "HEAD") {
     return NextResponse.next();
   }
+  // De agent-API (/api/v1) komt buiten Authentik binnen en heeft geen gebruikersnaam:
+  // elke route daar eist zelf het SALES_AGENT_TOKEN (lib/agentAuth.ts).
+  if (pad.startsWith("/api/v1/")) {
+    return NextResponse.next();
+  }
   const wie = (req.headers.get("x-authentik-username") || "").toLowerCase();
   if (!EDITORS.includes(wie)) {
     return NextResponse.json(

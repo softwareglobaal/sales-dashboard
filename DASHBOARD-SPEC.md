@@ -316,8 +316,8 @@ Vierde markt op dezelfde motor, onder `/regularisatie/concurrentie`. Onderwerp:
 bewust zonder link naar elkaar (doorway-beleid, zie de contentstrategie regularisatie):
 `regulariseren.be` (de specialist, uitgever UNABO, uitvoerder H-Architects),
 `mijnregularisatie.be` (de zelfcheck) en `h-architects.be` (het moederbureau, met acht
-eigen regularisatiepagina's). regulariseren.be is de maat op de pagina; in het leaderboard
-telt de hele groep als "wij" — twee eigen sites in één top 5 is geen dubbele winst maar een
+eigen regularisatiepagina's). Elke eigen site krijgt een eigen vergelijking (zie §14b); in het
+leaderboard telt de hele groep als "wij" — twee eigen sites in één top 5 is geen dubbele winst maar een
 teken dat ze elkaar beconcurreren.
 
 **Geen register, wel een startlijst.** Iedere architect mag regulariseren en niet alleen
@@ -397,6 +397,55 @@ blijven staan om te zien wie er rankt, maar komen door de volgorde op volume noo
 meting. Nu 57 termen; het SERP-quotum verandert niet, want de limiet van 15 per meting
 bepaalt het verbruik, niet de lengte van de lijst.
 
+## 14b. Concurrentie: onze plek en opklapbare blokken (oktober 2026)
+
+Feedback van Siyan op de vier concurrentiepagina's (Energie, Engineering, Architectuur,
+Regularisatie): één "wij"-regel zegt te weinig als er drie eigen sites in een markt spelen,
+en de pagina's waren eindeloos scrollen.
+
+**Wie "wij" is.** `ONZE_SITES` in `lib/concurrentieQueries.ts` bepaalt per markt welke
+sites "wij" zijn, in de volgorde van de pagina; `EIGEN_DOMEINEN` in `lib/concurrentie.ts`
+zet de categorie `eigen` in de databank. Beide lijsten blijven gelijk. Erbij gekomen:
+`epb-boete.be` (Energie) en `tkn-buro.be` (Engineering). Die twee kwamen eerder via de
+zoekresultaten binnen en stonden daardoor als concurrent in de lijsten. Een eigen site wordt
+nu op domein én op categorie uit elke concurrentenlijst geweerd (`nietEigen()`), zodat dat
+ook klopt vóór de volgende registerimport de categorie zet; `herclassificeerSerpDomeinen()`
+blijft van eigen domeinen af. Energie: energie-efficient.be, unabo.be, epb-boete.be.
+Engineering: unabo.be, tkn-buro.be. Architectuur: h-architects.be plus de proefomgeving
+(meegemeten, nooit opgeteld, niet in Google). Regularisatie: regulariseren.be,
+mijnregularisatie.be, h-architects.be, unabo.be.
+
+**Onze plek.** Bovenaan elke concurrentiepagina staat een klein paneel met één kaartje per
+eigen site: de plaats in elke ranglijst van die pagina, plus de zoekposities. De ranglijsten
+tonen alleen concurrenten, dus een eigen site staat er nooit in; het paneel zegt dat
+expliciet ("niet in de lijst") en geeft de plek die de site zou hebben als je hem meetelt,
+met exact dezelfde sorteersleutel als de lijst (Sterkst/Grootst online: omvang in de markt,
+dan artikels; Energie-concurrenten: omvang, dan verslaggevers; Meeste mensen in dienst:
+verslaggevers; Wie er nog beweegt: artikels per maand, alleen wie het afgelopen jaar
+publiceerde). Rangschikking zoals in een klassement: 1 + het aantal sites dat strikt beter
+scoort, gelijke stand deelt de plek. In het Google-leaderboard (top 5 per term) staat een
+eigen site wél zodra hij hoog genoeg rankt; staat hij er niet in, dan toont het paneel zijn
+beste echte positie buiten die top 5 (de meting gaat tot #10). Zoekposities per site: hoeveel
+gemeten termen in de top 3 en de top 10 staan plus de beste term, uit dezelfde SERP-meting als het
+leaderboard; daaronder hetzelfde uit Search Console (28 dagen, beste term = laagste
+gemiddelde positie bij minstens tien vertoningen). De rekenregels staan in `lib/onzePlek.ts`;
+de pagina haalt de volledige ranglijst op en toont er de top van.
+
+**Vergelijking per site.** De "Wij"-regel onder het leaderboard werd een rij kaartjes, één per
+eigen site, met dezelfde cijfers als de top 5 erboven. "Onze eigen site" werd de tabel
+"Onze sites tegenover de markt": één rij per eigen site met de nummer één van de markt en het
+gemiddelde eronder als maatstok. De KPI "Onze omvang" is de som over de live sites, met elke
+site in de onderregel.
+
+**Opklapbare blokken.** Elk paneel klapt open en dicht met zijn kop (native `<details>`,
+component `Blok`), met het aantal als chip in de kop. Lange lijsten tonen standaard een korte
+versie met een knop "Toon alle …" (client-component `Ingekort`; rijen voorbij de grens dragen
+`data-extra`): leaderboard 4 termen, ranglijsten en tabellen 10, eigen Search Console-termen,
+herschrijfkansen en adverteerders 5, Nakijken 15. Nakijken en "Hoe deze lijst tot stand
+komt" staan standaard dicht. Open- en dichtklappen raakt geen URL-parameter, dus `toon`,
+`provincie` en `gemeente` blijven werken zoals voorheen. Op een gsm van 375 px scrollt de
+pagina niet horizontaal; brede tabellen scrollen binnen hun eigen kader.
+
 ## 15. Projectenlijst H-Architects (vervallen 30 september 2026)
 
 De tijdelijke werklijst onder `/h-architects/projecten` is verwijderd op vraag van Siyan.
@@ -465,7 +514,7 @@ vormgeving en blijft staan als geschiedenis.
   `login-customer-id` met de manager-id; de rechtstreekse accounts weigeren die header
   met een 403.** Daarom staat de manager-id per account in de config en nooit serverbreed
   (`GOOGLE_ADS_LOGIN_CUSTOMER_ID` blijft leeg). De pagina telt de accounts op in de KPI's
-  en houdt ze apart in "Per account" (kost per aanvraag per account) en in de campagnetabel;
+  en houdt ze apart in de campagnetabel en in de splitsing per account (§17, "SEO/SEA-tab");
   `/api/v1/campagnes?account=<key>` geeft één account, `?account=alle:unabo` beide samen.
 - `lib/hiddenPipelines.ts` — verborgen pipelines (Algemeen).
 
@@ -587,7 +636,28 @@ minstens één pagina van de dienst bekeken. Een chip bovenaan zegt welk deel er
 
 **Google Ads per dienst.** `kanalen.ads` = service_keys uit `config/ads.json`. Een
 campagne is actief als haar status ENABLED is. De badge klikt door naar
-`/seo-sea?dienst=<pad>`, dat bovenaan de campagnes van die dienst toont.
+`/seo-sea?dienst=<pad>`: dan filtert de hele SEO/SEA-tab op die dienst.
+
+**SEO/SEA-tab: kosten per campagne en per dienst (1 oktober 2026).** Periodes zoals de
+dienstpagina's (`?periode=ytd|prev_year|JJJJ-MM`; de oude `?period=` blijft werken),
+filter `?dienst=<pad>`. Logica in `lib/adsPerDienst.ts`. Van boven naar onder:
+- *Kerncijfers*: kost, klikken, vertoningen, Google-conversies.
+- *Kosten per campagne*: per campagne de dienst, het account, de status, kost, klikken,
+  vertoningen, conversies, kost per klik, kost per conversie en kost per aanvraag.
+  Gesorteerd op kost; gepauzeerde campagnes zonder kosten in de periode staan ingeklapt.
+  Kost per aanvraag staat enkel bij een campagne die de enige met kosten voor haar dienst
+  is: Pipedrive weet niet via welke advertentie een aanvraag binnenkwam.
+- *Splitsing per account*: betaalt één Ads-account voor meer diensten (UNABO: Energy en
+  Engineering), dan staat per dienst een kaart met kost, aandeel in het budget van dat
+  account, aanvragen, kost per aanvraag en kost per conversie.
+- *Per dienst*: elke dienst met `kanalen.ads` (ook zonder campagne: "geen campagne" =
+  kandidaat) met kost, aandeel, klikken, conversies, aanvragen en kost per aanvraag.
+  Vervangt de vroegere tabellen "Per account", "Dekking" en "Rendement".
+- *Aanvragen* komen uit de dienstlaag (`dataset` + `kpis`), gefilterd op de firma achter
+  de Ads-accounts (`pipedriveKey` → firma, nu UNABO). Zelfde getal als de dienstpagina met
+  `?firma=unabo`. Start de eerste campagne van een dienst pas tijdens de periode, dan tellen
+  de aanvragen vanaf die dag (Regularisatie: 26 september 2026). Aanvragen via andere
+  kanalen tellen mee; een bundeldeal telt bij elke dienst, dus geen totaal van de aanvragen.
 
 **Koppeling met facturatiecontrole (proactief).** Het dashboard leest
 `GET /api/koppeling/sales` van `app-facturatiecontrole` over het interne dockernetwerk,
@@ -611,3 +681,43 @@ gaten één signaal op het board (AppPortal, `siyanagents-runner/sales_wacht.py`
 incentivemodel (`config/commissie.json`), `{"maand": 12000}` zet een eigen maanddoel,
 `0` = geen doel. Algemeen toont per dienst de lopende maand en de stand sinds januari.
 Energy telt nu ook Energie Efficiënt mee, zoals het incentivemodel voorschrijft.
+
+### 17b. Tweede ronde (1 oktober 2026)
+
+- **Campagnes zijn geen aanvragen.** Een bron met `"campagne": true` (nu: het EE-account met
+  de koude prospectie bij EPB-verslaggevers) telt niet mee in aanvragen, open, verloren of
+  winratio; een gewonnen klant telt wel als verkoop. De dienstpagina toont een eigen blok:
+  hoeveel contacten er in de lijst staan, hoeveel nog open, hoeveel slapend (90 dagen geen
+  fasewissel) en hoeveel **echt in gesprek** (fases met de woorden uit `inGesprekFases`).
+- **Monday-namen**: `soortNamen` maakt van de Project Type een leesbare naam ("EPB
+  (onderaanneming)", "EPB (eigen klant EE)"); `uitsluitenNamen` haalt testkaarten weg.
+- **Label DNCM** (do-not-call-lijst van de campagnes) is geen kanaal: in `ignoreLabels`.
+- **Doorklik Gewonnen / Verloren** (`/<dienst>/deals?status=won|lost`): per deal
+  aanvraagdatum, offerte ja/nee met datum (deal-flow, enkel UNABO/TKN), datum gewonnen of
+  verloren, doorlooptijd, fase waarin hij verloren ging, verliesreden (genormaliseerd én de
+  originele) en de **productwaarde van enkel deze dienst**. Verliesredenen zijn filterbaar.
+- **Facturatiegaten** tonen langs welke firma verkocht is (Pipedrive-account), wie uitvoert en
+  welke dossiers factureerden (facturatiecontrole, tak `koppeling-kanaal`). Het firmafilter
+  gebruikt de verkopende firma.
+- **Per maand** is gestapeld per bron (UNABO / EE-campagne / EE onderaanneming), met vorig
+  jaar als gestippelde totaallijn en de getallen per bron in de tooltip.
+- **Doelhistoriek**: onder de lopende maand een staafje per voorbije maand van dit jaar.
+- **Analyse** is één generieke subtab voor elke dienst (`lib/analyse.ts`): teamdoel en
+  AI-advies (Engineering, Energy), meetings, per pipeline, trechter, regio-kaart, dag en
+  uur, bundel tegenover los, project en motivatie, geslacht. De oude pagina's
+  `/engineering/analyse` en `/energy/analyse` (originele look) zijn weg.
+- **Meetings** (`lib/agenda.ts`, `config/agenda.json`): de sync leest de agenda's van
+  Mehdi, zoomafspraken en H-Architects (token `GOOGLE_AGENDA_*`) en koppelt een afspraak
+  aan een deal via het e-mailadres van de genodigde (contactpersoon in Pipedrive), anders
+  via een unieke naam in de titel. De firma volgt uit de code `[UNABO-PO]`; interne
+  afspraken (`-IN`) tellen niet. Elke koppeling bewaart de redenering. Daarnaast telt het
+  Pipedrive-veld "Meeting gehad" (UNABO en TKN, sinds 1 okt 2026 ook "Datum meeting").
+  Daarvoor synct de dagelijkse personenronde nu naam en e-mail van alle vier de accounts.
+- **Proactieve content** (`lib/content.ts`, `/content` "Wacht op jou"): het dashboard zet
+  kansen klaar (`GET /api/v1/contentkansen`: herschrijfkansen en nieuwe blogs van echte
+  concurrenten over ons vak, laatste 21 dagen). Een geplande taak op de Mac
+  (`seo-contentkansen`, werkdagen 08:00) laat de SEO-agents twee kansen per dag toetsen,
+  onderzoeken, schrijven en controleren, en meldt het resultaat via `POST /api/v1/content`.
+  **Eén goedkeuringsmoment**: Siyan keurt op `/content` goed of af (naam uit de login).
+  Het menu toont een teller. Publiceren blijft een aparte stap van de website-keten.
+- De zijbalk zegt "Alleen lezen" (het dashboard leest meer dan Pipedrive).

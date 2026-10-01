@@ -3,6 +3,7 @@ import { bereik, dataset, filterFirma, firmasVan, isDienstPeriode, perKanaal, ty
 import { campagnes, websites, websitesLink, seoLink } from "@/lib/kanalen";
 import { euro, num } from "@/lib/format";
 import { DienstKop, type DienstZoek } from "./DienstKop";
+import { KanaalTabel } from "./KanaalTabel";
 
 // Subtab Kanalen (spec §17): langs waar komen de aanvragen binnen. Daarnaast: hoe staan de
 // eigen kanalen erbij. Elke website en campagne klikt door naar de volledige
@@ -35,45 +36,7 @@ export async function DienstKanalen({ a, sp }: { a: Afdeling; sp: DienstZoek }) 
         {kanalen.length === 0 ? (
           <p className="text-[13px] text-zinc-500">Geen aanvragen in deze periode.</p>
         ) : (
-          <div className="tabelwrap">
-            <table className="tabel">
-              <thead>
-                <tr>
-                  <th>Kanaal</th>
-                  <th className="num">Aanvragen</th>
-                  <th className="num">Aandeel</th>
-                  <th className="num">Gewonnen</th>
-                  <th className="num">Winratio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {kanalen.map((k) => (
-                  <tr key={k.kanaal}>
-                    <td>
-                      {k.subs.length > 0 ? (
-                        <details>
-                          <summary className="cursor-pointer font-medium">{k.kanaal}</summary>
-                          <div className="mt-2 flex flex-col gap-1 text-[12px] text-zinc-600">
-                            {k.subs.slice(0, 12).map((s) => (
-                              <span key={s.sub}>
-                                {s.sub}: {num(s.aanvragen)} aanvragen · {num(s.gewonnen)} gewonnen
-                              </span>
-                            ))}
-                          </div>
-                        </details>
-                      ) : (
-                        <span className="font-medium">{k.kanaal}</span>
-                      )}
-                    </td>
-                    <td className="num">{num(k.aanvragen)}</td>
-                    <td className="num">{totaal ? Math.round((k.aanvragen / totaal) * 100) : 0}%</td>
-                    <td className="num">{num(k.gewonnen)}</td>
-                    <td className="num">{k.aanvragen ? Math.round((k.gewonnen / k.aanvragen) * 100) : 0}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <KanaalTabel kanalen={kanalen} totaal={totaal} />
         )}
         <p className="mt-3 text-[11.5px] text-zinc-500">
           Winratio hier = gewonnen van de aanvragen uit de periode. Een deal met twee labels telt bij beide kanalen.
@@ -119,13 +82,19 @@ export async function DienstKanalen({ a, sp }: { a: Afdeling; sp: DienstZoek }) 
                 )}
               </div>
               <div className="voet">
-                <span className="text-zinc-600">
-                  {s.bezoekers30 == null
-                    ? s.live
-                      ? "nog geen meting"
-                      : "meting nog niet live"
-                    : `${num(s.bezoekers30)} bezoekers · ${num(s.contact30 || 0)} contact · 30 d`}
-                </span>
+                {s.bezoekers30 == null ? (
+                  <span className="text-zinc-600">{s.live ? "nog geen meting" : "meting nog niet live"}</span>
+                ) : (
+                  <span className="flex items-baseline gap-3 text-zinc-600">
+                    <span>
+                      <b className="font-medium tabular-nums text-zinc-900">{num(s.bezoekers30)}</b> bezoekers
+                    </span>
+                    <span>
+                      <b className="font-medium tabular-nums text-zinc-900">{num(s.contact30 || 0)}</b> contact
+                    </span>
+                    <span className="text-[11px] text-zinc-400">30 d</span>
+                  </span>
+                )}
                 <Link href={websitesLink(a, s.sleutel)} className="font-medium underline">
                   Analyse
                 </Link>

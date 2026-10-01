@@ -4,7 +4,16 @@
     "gebouwtype": "68f15f6c93058199f625aff59b5d8e903d3cae87",
     "type_aanvraag": "cd1e5146cea21aecff4172a25ad7c99a7d4dfff0",
     "lost_influenceable": "e923cfe7d26be988137ed71fe7969e5697456fa9",
-    "lost_cause": "466c6b9334a6957c0184ef1f3dc35a12342648ad"
+    "lost_cause": "466c6b9334a6957c0184ef1f3dc35a12342648ad",
+    "meeting_gehad": "2bde9282962b93ee13f43b45c2d4441fa2844c9d",
+    "datum_meeting": "152bbf642b6d34b985d380fa8564df16a6f1126f",
+    "reden_gewonnen": "a1eeab9fc661f416149882e316179a4cf1906842"
   },
-  "tknburo": {}
+  "tknburo": {
+    "gebouwtype": "05f40a52f858360e1ec699601237ffb403cf1cf9",
+    "type_aanvraag": "b3bdb4afeed8e0d367f45420dd2cce3ab079060b",
+    "reden_gewonnen": "c8c17fc07e6f2d7918bcd3a9506cd2c6da9b9e5c",
+    "meeting_gehad": "aceb7290bc10f61153fdf02adeb128dbba9b3779",
+    "datum_meeting": "47d7a1ea0c4e6a725b31a7f90677d7ccfb942c1d"
+  }
 }

@@ -15,6 +15,7 @@ type Afdeling = Item & { pad: string };
 
 const OVERZICHT: Item[] = [
   { href: "/", label: "Algemeen", icon: "overzicht" },
+  { href: "/content", label: "Wacht op jou", icon: "inbox" },
   { href: "/kaart", label: "Kaart (alles)", icon: "kaart" },
 ];
 
@@ -59,6 +60,7 @@ const ICONEN: Record<string, string> = {
   team: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5A5 5 0 0 1 22 19"/>',
   boek: '<path d="M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z"/>',
   apps: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
+  inbox: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M5 5h14l1 8v6H4v-6z"/>',
   slot: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   links: '<path d="M15 5l-7 7 7 7"/>',
   rechts: '<path d="m9 5 7 7-7 7"/>',
@@ -76,7 +78,7 @@ function Icoon({ naam, className }: { naam: string; className?: string }) {
   );
 }
 
-export function Sidebar({ afdelingen }: { afdelingen: string[] }) {
+export function Sidebar({ afdelingen, wachtend = 0 }: { afdelingen: string[]; wachtend?: number }) {
   const mag = (pad: string) => afdelingen.includes(pad);
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -106,6 +108,11 @@ export function Sidebar({ afdelingen }: { afdelingen: string[] }) {
       >
         <Icoon naam={it.icon || "overzicht"} />
         <span className="lbl">{it.label}</span>
+        {it.href === "/content" && wachtend > 0 && (
+          <span className="chip let" style={{ marginLeft: "auto", padding: "1px 7px", fontSize: 11 }} title={`${wachtend} teksten wachten op je goedkeuring`}>
+            {wachtend}
+          </span>
+        )}
       </Link>
     );
   };
@@ -157,8 +164,8 @@ export function Sidebar({ afdelingen }: { afdelingen: string[] }) {
       <div className="voet">
         {!collapsed && (
           <>
-            <span className="verbonden">
-              <i /> Pipedrive, alleen lezen
+            <span className="verbonden" title="Het dashboard leest Pipedrive, Monday, Google Ads, Search Console, de websitemeting en facturatiecontrole. Het schrijft nergens naartoe.">
+              <i /> Alleen lezen
             </span>
             <div className="sync">
               <SyncButton variant="sidebar" />

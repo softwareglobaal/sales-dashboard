@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
+import { aantalWachtend } from "@/lib/content";
 import { headers } from "next/headers";
 import { afdelingenVoor, AFDELING_VAN_PAD } from "@/lib/toegang";
 
@@ -40,7 +41,7 @@ export default async function RootLayout({
           <i className="b4" />
         </div>
         <div className="app-sales">
-          <Sidebar afdelingen={paden} />
+          <Sidebar afdelingen={paden} wachtend={aantalWachtend()} />
           <div className="min-w-0">{children}</div>
         </div>
       </body>

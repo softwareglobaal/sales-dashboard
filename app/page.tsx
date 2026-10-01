@@ -22,6 +22,7 @@ import { euro, num, dateTime } from "@/lib/format";
 import { dienstHref } from "@/components/dienst/DienstKop";
 import { MaandKeuze } from "@/components/dienst/MaandKeuze";
 import { JaarGrafiek } from "@/components/dienst/JaarGrafiek";
+import { MaandHistoriek } from "@/components/dienst/MaandHistoriek";
 import { SyncButton } from "@/components/SyncButton";
 import { NotesPanel } from "@/components/NotesPanel";
 
@@ -91,7 +92,7 @@ export default async function Algemeen({ searchParams }: { searchParams: Promise
   let gatenTotaal = 0;
   if (fact) {
     for (const x of diensten) {
-      const g = x.a.facturatie.length ? standVoor(fact, x.a, factJaar).gaten.filter((g) => !firmaNaam || g.firma === firmaNaam).length : 0;
+      const g = x.a.facturatie.length ? standVoor(fact, x.a, factJaar).gaten.filter((g) => !firmaNaam || (g.verkocht_via ? g.verkocht_via === firmaNaam : g.firma === firmaNaam)).length : 0;
       gatenPer.set(x.a.pad, g);
       gatenTotaal += g;
     }
@@ -117,7 +118,7 @@ export default async function Algemeen({ searchParams }: { searchParams: Promise
   };
   const nuReeks = som(nuJaar);
   const vorigReeks = som(nuJaar - 1);
-  const grafiek = nuReeks.map((r, i) => ({ maand: MONTH_NAMES[i].slice(0, 3), nu: i <= maand ? r : null, vorig: vorigReeks[i] }));
+  const grafiek = nuReeks.map((r, i) => ({ maand: MONTH_NAMES[i].slice(0, 3), nu: i <= maand ? { totaal: r } : null, vorig: vorigReeks[i] }));
 
   const metDoel = diensten.filter((x) => x.doel > 0);
   const zonderDoel = diensten.filter((x) => x.doel === 0);
@@ -309,7 +310,7 @@ export default async function Algemeen({ searchParams }: { searchParams: Promise
               alle diensten samen · {nuJaar} tegenover {nuJaar - 1}
             </small>
           </div>
-          <JaarGrafiek rijen={grafiek} jaar={nuJaar} />
+          <JaarGrafiek rijen={grafiek} jaar={nuJaar} bronnen={[{ key: "totaal", label: `Alle diensten ${nuJaar}` }]} />
         </div>
         <div className="paneel">
           <div className="kop">
@@ -339,6 +340,9 @@ export default async function Algemeen({ searchParams }: { searchParams: Promise
                     </span>
                   </div>
                   <Balk waarde={sindsJan} max={x.doel * (maand + 1)} />
+                  <div className="mt-3">
+                    <MaandHistoriek doel={x.doel} maanden={x.reeks.slice(0, maand).map((r, i) => ({ maand: MONTH_NAMES[i].slice(0, 3), omzet: r.omzet }))} />
+                  </div>
                 </div>
               );
             })}
