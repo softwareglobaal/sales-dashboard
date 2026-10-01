@@ -124,6 +124,8 @@ export type Lead = {
   url: string;
   offerte: boolean; // offerte verstuurd (indicatief, spec §2)
   offerteOp: string | null; // eerste moment in een offertefase (deal-flow; enkel UNABO/TKN)
+  productwaarde: number; // productregels van deze dienst op de deal, ongeacht de status (of de deal value)
+  producten: string[];
   campagne: boolean; // koude prospectie, geen aanvraag (zie PipedriveBron.campagne)
   inGesprek: boolean; // campagne-deal in een fase met reactie/offerte/afspraak
   personId: number | null;
@@ -276,6 +278,8 @@ function pipedriveData(a: Afdeling, b: PipedriveBron): Dataset {
         isOfferteStage(r.stage_name) ||
         (drempel != null && r.stage_order != null && r.stage_order >= drempel),
       offerteOp: r.offerte_time || null,
+      productwaarde: Math.round(r.value || 0),
+      producten: [],
       campagne: !!b.campagne,
       inGesprek: !!b.campagne && r.status === "open" && fases.some((f) => String(r.stage_name || "").toLowerCase().includes(f)),
       personId: r.person_id ?? null,
@@ -284,6 +288,28 @@ function pipedriveData(a: Afdeling, b: PipedriveBron): Dataset {
       custom,
     };
   });
+
+  // Productwaarde per deal, ook voor open en verloren deals (deallijst): enkel de regels
+  // van deze dienst, dezelfde afbakening als de omzet hieronder.
+  if (b.omzet === "product") {
+    const ps3 = new Params();
+    const w3 = bronWhere(a, b, ps3, false);
+    const pm3 = b.alleDeals ? null : productMatch(b.producten, ps3);
+    const per = new Map<string, { som: number; namen: Set<string> }>();
+    for (const r of db
+      .prepare(`SELECT d.id, p.line_sum, p.name FROM deal_products p JOIN deals d ON d.account_key = p.account_key AND d.id = p.deal_id WHERE ${w3} ${pm3 ? "AND " + pm3 : ""}`)
+      .all(ps3.named) as any[]) {
+      const e = per.get(String(r.id)) || { som: 0, namen: new Set<string>() };
+      e.som += r.line_sum || 0;
+      e.namen.add(productNaam(r.name));
+      per.set(String(r.id), e);
+    }
+    for (const l of leads) {
+      const e = per.get(l.id);
+      l.productwaarde = Math.round(e?.som || 0);
+      l.producten = e ? [...e.namen] : [];
+    }
+  }
 
   let omzet: OmzetRegel[];
   if (b.omzet === "product") {
@@ -353,6 +379,8 @@ function mondayData(b: MondayBron): Dataset {
       url: `https://${MONDAY_ACCOUNT}.monday.com/boards/${b.bord}/pulses/${r.id}`,
       offerte: true,
       offerteOp: null,
+      productwaarde: Math.round(r.bedrag || 0),
+      producten: [soortNaam(r.soort)],
       campagne: false,
       inGesprek: false,
       personId: null,
@@ -741,8 +769,8 @@ export function dealLijst(d: Dataset, status: "won" | "lost", van: string, tot: 
         pipeline: l.pipeline,
         verliesreden: status === "lost" ? normalizeLossReason(l.lostReason) : null,
         verliesredenRuw: status === "lost" ? l.lostReason : null,
-        productwaarde: Math.round(p?.bedrag || 0),
-        producten: p ? [...p.producten] : [],
+        productwaarde: status === "won" ? Math.round(p?.bedrag ?? l.productwaarde) : l.productwaarde,
+        producten: p ? [...p.producten] : l.producten,
       };
     })
     .sort((a, b) => (b.afgerond || "").localeCompare(a.afgerond || ""));
