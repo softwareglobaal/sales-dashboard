@@ -465,7 +465,7 @@ vormgeving en blijft staan als geschiedenis.
   `login-customer-id` met de manager-id; de rechtstreekse accounts weigeren die header
   met een 403.** Daarom staat de manager-id per account in de config en nooit serverbreed
   (`GOOGLE_ADS_LOGIN_CUSTOMER_ID` blijft leeg). De pagina telt de accounts op in de KPI's
-  en houdt ze apart in "Per account" (kost per aanvraag per account) en in de campagnetabel;
+  en houdt ze apart in de campagnetabel en in de splitsing per account (§17, "SEO/SEA-tab");
   `/api/v1/campagnes?account=<key>` geeft één account, `?account=alle:unabo` beide samen.
 - `lib/hiddenPipelines.ts` — verborgen pipelines (Algemeen).
 
@@ -587,7 +587,28 @@ minstens één pagina van de dienst bekeken. Een chip bovenaan zegt welk deel er
 
 **Google Ads per dienst.** `kanalen.ads` = service_keys uit `config/ads.json`. Een
 campagne is actief als haar status ENABLED is. De badge klikt door naar
-`/seo-sea?dienst=<pad>`, dat bovenaan de campagnes van die dienst toont.
+`/seo-sea?dienst=<pad>`: dan filtert de hele SEO/SEA-tab op die dienst.
+
+**SEO/SEA-tab: kosten per campagne en per dienst (1 oktober 2026).** Periodes zoals de
+dienstpagina's (`?periode=ytd|prev_year|JJJJ-MM`; de oude `?period=` blijft werken),
+filter `?dienst=<pad>`. Logica in `lib/adsPerDienst.ts`. Van boven naar onder:
+- *Kerncijfers*: kost, klikken, vertoningen, Google-conversies.
+- *Kosten per campagne*: per campagne de dienst, het account, de status, kost, klikken,
+  vertoningen, conversies, kost per klik, kost per conversie en kost per aanvraag.
+  Gesorteerd op kost; gepauzeerde campagnes zonder kosten in de periode staan ingeklapt.
+  Kost per aanvraag staat enkel bij een campagne die de enige met kosten voor haar dienst
+  is: Pipedrive weet niet via welke advertentie een aanvraag binnenkwam.
+- *Splitsing per account*: betaalt één Ads-account voor meer diensten (UNABO: Energy en
+  Engineering), dan staat per dienst een kaart met kost, aandeel in het budget van dat
+  account, aanvragen, kost per aanvraag en kost per conversie.
+- *Per dienst*: elke dienst met `kanalen.ads` (ook zonder campagne: "geen campagne" =
+  kandidaat) met kost, aandeel, klikken, conversies, aanvragen en kost per aanvraag.
+  Vervangt de vroegere tabellen "Per account", "Dekking" en "Rendement".
+- *Aanvragen* komen uit de dienstlaag (`dataset` + `kpis`), gefilterd op de firma achter
+  de Ads-accounts (`pipedriveKey` → firma, nu UNABO). Zelfde getal als de dienstpagina met
+  `?firma=unabo`. Start de eerste campagne van een dienst pas tijdens de periode, dan tellen
+  de aanvragen vanaf die dag (Regularisatie: 26 september 2026). Aanvragen via andere
+  kanalen tellen mee; een bundeldeal telt bij elke dienst, dus geen totaal van de aanvragen.
 
 **Koppeling met facturatiecontrole (proactief).** Het dashboard leest
 `GET /api/koppeling/sales` van `app-facturatiecontrole` over het interne dockernetwerk,
