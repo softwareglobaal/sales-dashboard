@@ -12,6 +12,7 @@ export type FactuurJaar = {
   verkocht: number;
   gefactureerd: number;
   nog_te_factureren: number;
+  openstaand?: number; // gefactureerd maar nog niet betaald (sinds koppeling-cash)
   dossiers: number;
   statussen: Record<string, number>;
 };
@@ -87,13 +88,14 @@ export type FactuurStand = {
   verkocht: number;
   gefactureerd: number;
   nogTeFactureren: number;
+  openstaand: number;
   dossiers: number;
   gaten: Gat[];
 };
 
 /** Stand voor één dienst in één jaar, met de gaten die gemeld moeten worden. */
 export function standVoor(k: Samenvatting, a: Afdeling, jaar: string): FactuurStand {
-  const uit: FactuurStand = { verkocht: 0, gefactureerd: 0, nogTeFactureren: 0, dossiers: 0, gaten: [] };
+  const uit: FactuurStand = { verkocht: 0, gefactureerd: 0, nogTeFactureren: 0, openstaand: 0, dossiers: 0, gaten: [] };
   for (const [naam, perJaar] of Object.entries(k.afdelingen)) {
     if (!hoort(a, naam)) continue;
     const j = perJaar[jaar];
@@ -101,6 +103,7 @@ export function standVoor(k: Samenvatting, a: Afdeling, jaar: string): FactuurSt
     uit.verkocht += j.verkocht;
     uit.gefactureerd += j.gefactureerd;
     uit.nogTeFactureren += j.nog_te_factureren;
+    uit.openstaand += j.openstaand || 0;
     uit.dossiers += j.dossiers;
   }
   uit.gaten = k.gaten.filter(
@@ -110,4 +113,10 @@ export function standVoor(k: Samenvatting, a: Afdeling, jaar: string): FactuurSt
       !(g.soort.startsWith("Verkocht, niet") && (g.dagen_sinds_verkoop ?? 999) < WACHTTIJD_DAGEN)
   );
   return uit;
+}
+
+/** Doorklik naar facturatiecontrole: het tabblad van de dienst, eventueel op één dossier. */
+export function facturatieLink(a: Pick<Afdeling, "facturatieTab">, zoek?: string | null): string {
+  const q = zoek ? `?zoek=${encodeURIComponent(zoek)}` : "";
+  return `${FACTURATIE_WEB}/${q}${a.facturatieTab ? "#" + a.facturatieTab : ""}`;
 }

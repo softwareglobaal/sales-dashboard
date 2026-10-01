@@ -20,7 +20,7 @@ import {
   type Afdeling,
 } from "@/lib/afdelingen";
 import { campagnes, websites, websitesLink, seoLink } from "@/lib/kanalen";
-import { koppeling, standVoor, FACTURATIE_WEB, WACHTTIJD_DAGEN } from "@/lib/facturatie";
+import { koppeling, standVoor, facturatieLink, WACHTTIJD_DAGEN } from "@/lib/facturatie";
 import { MONTH_NAMES } from "@/lib/queries";
 import { euro, num } from "@/lib/format";
 import { DienstKop, dienstHref, type DienstZoek } from "./DienstKop";
@@ -507,6 +507,17 @@ function FacturatieBlok({
           <div className="text-[20px] tabular-nums">{euro(fact.gefactureerd)}</div>
         </div>
       </div>
+      {/* Cash (vraag Mehdi): wat nog gefactureerd moet worden en wat gefactureerd maar onbetaald is. */}
+      <a href={facturatieLink(a)} target="_blank" rel="noreferrer" className="grid grid-cols-2 gap-2 rounded-xl bg-white/50 p-2 hover:bg-white/80" style={{ textDecoration: "none", color: "inherit" }}>
+        <div>
+          <span className="label">Nog te factureren</span>
+          <div className="text-[16px] tabular-nums">{euro(fact.nogTeFactureren)}</div>
+        </div>
+        <div>
+          <span className="label">Gefactureerd, onbetaald</span>
+          <div className="text-[16px] tabular-nums">{euro(fact.openstaand)}</div>
+        </div>
+      </a>
       <p className="text-zinc-600">
         {Math.abs(verschil) < 1
           ? "Verkoop en facturatie lopen gelijk."
@@ -516,12 +527,12 @@ function FacturatieBlok({
       </p>
       {gaten.length > 0 ? (
         <div className="lijst">
-          {gaten.slice(0, 3).map((g, i) => <GatRij key={i} g={g} />)}
+          {gaten.slice(0, 3).map((g, i) => <GatRij key={i} g={g} a={a} />)}
           {gaten.length > 3 && (
             <details>
               <summary className="cursor-pointer text-[12px] font-medium">Toon alle {gaten.length} gaten</summary>
               <div className="lijst mt-2">
-                {gaten.slice(3).map((g, i) => <GatRij key={i} g={g} />)}
+                {gaten.slice(3).map((g, i) => <GatRij key={i} g={g} a={a} />)}
               </div>
             </details>
           )}
@@ -531,17 +542,18 @@ function FacturatieBlok({
           Geen gaten ouder dan {WACHTTIJD_DAGEN} dagen
         </span>
       )}
-      <a href={FACTURATIE_WEB} target="_blank" rel="noreferrer" className="text-[12px] font-medium underline">
-        Naar facturatiecontrole
+      <a href={facturatieLink(a)} target="_blank" rel="noreferrer" className="text-[12px] font-medium underline">
+        Naar facturatiecontrole ({a.naam})
       </a>
       {a.facturatieNoot && <p className="text-[11.5px] text-zinc-500">{a.facturatieNoot}</p>}
     </div>
   );
 }
 
-function GatRij({ g }: { g: ReturnType<typeof standVoor>["gaten"][number] }) {
+function GatRij({ g, a }: { g: ReturnType<typeof standVoor>["gaten"][number]; a: Afdeling }) {
+  // Klik = dat dossier openen in facturatiecontrole (zoekt op werfadres of projectnummer).
   return (
-    <div className="item" style={{ padding: "8px 10px" }}>
+    <a href={facturatieLink(a, g.projectnr || g.werf || g.klant)} target="_blank" rel="noreferrer" className="item" style={{ padding: "8px 10px", textDecoration: "none", color: "inherit" }}>
       <div className="t">
         <b>{g.werf || g.klant || "(onbekend dossier)"}</b>
         <small>
@@ -553,6 +565,6 @@ function GatRij({ g }: { g: ReturnType<typeof standVoor>["gaten"][number] }) {
         </small>
       </div>
       <span className="chip let">{euro(Math.abs(g.verschil))}</span>
-    </div>
+    </a>
   );
 }
