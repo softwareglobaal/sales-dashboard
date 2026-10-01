@@ -17,7 +17,7 @@ import { ACCOUNTS } from "./accounts";
 import { HIDDEN_PIPELINES } from "./hiddenPipelines";
 import { channelsInfoForLabels, isOfferteStage } from "./engineeringConfig";
 import { normalizeLossReason } from "./lossReasons";
-import { MONTH_NAMES } from "./queries";
+import { MONTH_NAMES, UNABO_ADDR_HASH } from "./queries";
 
 // ---------- config ----------
 
@@ -36,6 +36,11 @@ export type PipedriveBron = {
   labels?: string[];
   uitsluiten?: Uitsluiten;
   omzet: "product" | "dealwaarde";
+  // Koude prospectie (bv. de EE-campagne bij EPB-verslaggevers): die deals zijn geen
+  // aanvragen. Ze tellen niet mee in aanvragen, open, verloren of winratio; een
+  // gewonnen klant telt wel als verkoop. Fases met deze woorden = "in gesprek".
+  campagne?: boolean;
+  inGesprekFases?: string[];
 };
 export type MondayBron = {
   sleutel: string;
@@ -44,6 +49,8 @@ export type MondayBron = {
   label: string;
   bord: string;
   uitsluitenKlantOa?: string[];
+  uitsluitenNamen?: string[]; // LIKE-patronen op de kaartnaam (testkaarten)
+  soortNamen?: Record<string, string>; // Project Type -> leesbare naam
 };
 export type Bron = PipedriveBron | MondayBron;
 export type WebsiteKanaal = { site: string; paden?: string[] };
@@ -57,7 +64,6 @@ export type Afdeling = {
   bronnen: Bron[];
   kanalen: { websites: WebsiteKanaal[]; ads: string[] };
   concurrentie?: string;
-  analyse?: string;
   extra?: { href: string; label: string }[];
   facturatie: string[];
   facturatieNoot?: string;
@@ -117,6 +123,13 @@ export type Lead = {
   waarde: number;
   url: string;
   offerte: boolean; // offerte verstuurd (indicatief, spec §2)
+  offerteOp: string | null; // eerste moment in een offertefase (deal-flow; enkel UNABO/TKN)
+  campagne: boolean; // koude prospectie, geen aanvraag (zie PipedriveBron.campagne)
+  inGesprek: boolean; // campagne-deal in een fase met reactie/offerte/afspraak
+  personId: number | null;
+  postcode: string | null;
+  stageChange: string | null;
+  custom: Record<string, any>;
   kanaal?: { main: string; sub: string | null }; // vaste bron zonder labels (Monday)
 };
 export type OmzetRegel = { bron: string; firma: string; dealId: string; won: string; bedrag: number; dienst: string };
@@ -221,14 +234,24 @@ function pipedriveData(a: Afdeling, b: PipedriveBron): Dataset {
   const rijen = db
     .prepare(
       `SELECT d.id, d.title, d.status, d.add_time, d.won_time, d.lost_time, d.pipeline_name, d.stage_name,
-              d.stage_order, d.label_names, d.lost_reason, d.value,
-              COALESCE(json_extract(d.raw, '$.org_name'), json_extract(d.raw, '$.person_name')) AS klant
-       FROM deals d WHERE ${where}`
+              d.stage_order, d.label_names, d.lost_reason, d.value, d.custom_json,
+              COALESCE(json_extract(d.raw, '$.org_name'), json_extract(d.raw, '$.person_name')) AS klant,
+              json_extract(d.raw, '$.person_id.value') AS person_id,
+              json_extract(d.raw, '$.stage_change_time') AS stage_change,
+              json_extract(d.raw, '$.${UNABO_ADDR_HASH}_postal_code') AS postcode,
+              f.offerte_time
+       FROM deals d LEFT JOIN deal_flow f ON f.account_key = d.account_key AND f.deal_id = d.id
+       WHERE ${where}`
     )
     .all(ps.named) as any[];
 
+  const fases = (b.inGesprekFases || []).map((x) => x.toLowerCase());
   const leads: Lead[] = rijen.map((r) => {
     const drempel = drempels.get(r.pipeline_name);
+    let custom: Record<string, any> = {};
+    try {
+      custom = r.custom_json ? JSON.parse(r.custom_json) : {};
+    } catch {}
     return {
       uid: `${acc}:${r.id}`,
       bron: b.sleutel,
@@ -252,6 +275,13 @@ function pipedriveData(a: Afdeling, b: PipedriveBron): Dataset {
         r.status === "won" ||
         isOfferteStage(r.stage_name) ||
         (drempel != null && r.stage_order != null && r.stage_order >= drempel),
+      offerteOp: r.offerte_time || null,
+      campagne: !!b.campagne,
+      inGesprek: !!b.campagne && r.status === "open" && fases.some((f) => String(r.stage_name || "").toLowerCase().includes(f)),
+      personId: r.person_id ?? null,
+      postcode: r.postcode ?? null,
+      stageChange: r.stage_change ?? null,
+      custom,
     };
   });
 
@@ -290,12 +320,15 @@ const MONDAY_ACCOUNT = "admin126016";
 function mondayData(b: MondayBron): Dataset {
   const rijen = getDb().prepare("SELECT * FROM monday_projecten WHERE bord = ?").all(b.bord) as any[];
   const uitsluiten = (b.uitsluitenKlantOa || []).map((s) => s.toLowerCase());
+  const naamWeg = (b.uitsluitenNamen || []).map((p) => new RegExp("^" + p.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*") + "$"));
+  const soortNaam = (s: string | null) => (s && b.soortNamen?.[s]) || s || b.label;
   const leads: Lead[] = [];
   const omzet: OmzetRegel[] = [];
   for (const r of rijen) {
     const oa = String(r.klant_oa || "");
     // "Unabo" als klant = door UNABO verkocht: die telt al in UNABO's Pipedrive.
     if (uitsluiten.some((u) => oa.toLowerCase().includes(u))) continue;
+    if (naamWeg.some((re) => re.test(String(r.naam || "").toLowerCase()))) continue;
     const datum = r.goedgekeurd || r.aangemaakt || "";
     if (!datum) continue;
     const geannuleerd = /geannuleerd/i.test(r.groep || "");
@@ -319,11 +352,18 @@ function mondayData(b: MondayBron): Dataset {
       waarde: r.bedrag || 0,
       url: `https://${MONDAY_ACCOUNT}.monday.com/boards/${b.bord}/pulses/${r.id}`,
       offerte: true,
+      offerteOp: null,
+      campagne: false,
+      inGesprek: false,
+      personId: null,
+      postcode: null,
+      stageChange: null,
+      custom: { soort: soortNaam(r.soort) },
       kanaal: { main: "Rechtstreeks (onderaanneming)", sub: oa || "Klant onbekend" },
     };
     leads.push(lead);
     if (!geannuleerd) {
-      omzet.push({ bron: b.sleutel, firma: b.firma, dealId: lead.id, won: datum, bedrag: r.bedrag || 0, dienst: r.soort || b.label });
+      omzet.push({ bron: b.sleutel, firma: b.firma, dealId: lead.id, won: datum, bedrag: r.bedrag || 0, dienst: soortNaam(r.soort) });
     }
   }
   return { leads, omzet };
@@ -438,6 +478,11 @@ export function kpis(d: Dataset, van: string, tot: string): Kpis {
   let aanvragen = 0, offertes = 0, gewonnen = 0, verloren = 0, dagen = 0, dagenN = 0;
   let meetbaar = false;
   for (const l of d.leads) {
+    if (l.campagne) {
+      // Koude prospectie: enkel een gewonnen klant telt (als verkoop).
+      if (l.status === "won" && binnen(l.won, van, tot)) gewonnen++;
+      continue;
+    }
     if (binnen(l.add, van, tot)) {
       aanvragen++;
       if (l.pipeline != null) meetbaar = true;
@@ -456,6 +501,7 @@ export function kpis(d: Dataset, van: string, tot: string): Kpis {
     if (l.status === "lost" && binnen(l.lost, van, tot)) verloren++;
   }
   const omzet = d.omzet.reduce((s, o) => s + (binnen(o.won, van, tot) ? o.bedrag : 0), 0);
+  const gewonnenZonderCampagne = d.leads.filter((l) => !l.campagne && l.status === "won" && binnen(l.won, van, tot)).length;
   return {
     aanvragen,
     offertes,
@@ -463,7 +509,7 @@ export function kpis(d: Dataset, van: string, tot: string): Kpis {
     gewonnen,
     verloren,
     omzet: Math.round(omzet),
-    winratio: gewonnen + verloren > 0 ? gewonnen / (gewonnen + verloren) : null,
+    winratio: gewonnenZonderCampagne + verloren > 0 ? gewonnenZonderCampagne / (gewonnenZonderCampagne + verloren) : null,
     gemDagen: dagenN ? Math.round(dagen / dagenN) : null,
   };
 }
@@ -476,7 +522,7 @@ export function perMaand(d: Dataset, jaar: number): { maand: number; aanvragen: 
   const j = String(jaar);
   const mnd = (s: string | null) => (s && s.slice(0, 4) === j ? +s.slice(5, 7) - 1 : -1);
   for (const l of d.leads) {
-    const a = mnd(l.add);
+    const a = l.campagne ? -1 : mnd(l.add);
     if (a >= 0) uit[a].aanvragen++;
     if (l.status === "won") {
       const w = mnd(l.won);
@@ -521,7 +567,7 @@ export type KanaalRij = { kanaal: string; aanvragen: number; gewonnen: number; s
 export function perKanaal(d: Dataset, van: string, tot: string): KanaalRij[] {
   const m = new Map<string, { a: number; w: number; subs: Map<string, { a: number; w: number }> }>();
   for (const l of d.leads) {
-    if (!binnen(l.add, van, tot)) continue;
+    if (l.campagne || !binnen(l.add, van, tot)) continue;
     const infos = l.kanaal ? [l.kanaal] : channelsInfoForLabels(l.labels);
     for (const i of infos) {
       const e = m.get(i.main) || { a: 0, w: 0, subs: new Map() };
@@ -550,7 +596,7 @@ export function perKanaal(d: Dataset, van: string, tot: string): KanaalRij[] {
 export function verliesredenen(d: Dataset, van: string, tot: string): { reden: string; aantal: number }[] {
   const m = new Map<string, number>();
   for (const l of d.leads) {
-    if (l.status !== "lost" || !binnen(l.lost, van, tot)) continue;
+    if (l.campagne || l.status !== "lost" || !binnen(l.lost, van, tot)) continue;
     const r = normalizeLossReason(l.lostReason);
     m.set(r, (m.get(r) || 0) + 1);
   }
@@ -562,7 +608,7 @@ export function openNu(d: Dataset): { open: number; metOfferte: number; zonderOf
   let open = 0, metOfferte = 0, oudste: number | null = null;
   const nu = Date.now();
   for (const l of d.leads) {
-    if (l.status !== "open") continue;
+    if (l.campagne || l.status !== "open") continue;
     open++;
     if (l.offerte) metOfferte++;
     const t = Date.parse(l.add.replace(" ", "T") + "Z");
@@ -590,9 +636,124 @@ export function uniekeTotalen(sets: Dataset[], van: string, tot: string): { aanv
   const a = new Set<string>(), w = new Set<string>(), l = new Set<string>();
   for (const d of sets)
     for (const x of d.leads) {
-      if (binnen(x.add, van, tot)) a.add(x.uid);
+      if (!x.campagne && binnen(x.add, van, tot)) a.add(x.uid);
       if (x.status === "won" && binnen(x.won, van, tot)) w.add(x.uid);
-      if (x.status === "lost" && binnen(x.lost, van, tot)) l.add(x.uid);
+      if (!x.campagne && x.status === "lost" && binnen(x.lost, van, tot)) l.add(x.uid);
     }
   return { aanvragen: a.size, gewonnen: w.size, verloren: l.size };
+}
+
+// ---------- campagne (koude prospectie) ----------
+
+export type CampagneStand = {
+  bronnen: string[];
+  inLijst: number;
+  open: number;
+  inGesprek: { fase: string; aantal: number }[];
+  inGesprekTotaal: number;
+  slapend: number; // open, maar sinds 90 dagen geen fasewissel
+  gewonnen: number; // in de periode
+  laatsteNieuw: string | null;
+};
+
+/** Stand van de campagnelijsten: wat staat er, wat leeft er nog, wat is echt in gesprek. */
+export function campagneStand(d: Dataset, van: string, tot: string): CampagneStand | null {
+  const c = d.leads.filter((l) => l.campagne);
+  if (!c.length) return null;
+  const fases = new Map<string, number>();
+  let open = 0, slapend = 0, gewonnen = 0;
+  let laatste: string | null = null;
+  const grens = Date.now() - 90 * 86400000;
+  for (const l of c) {
+    if (!laatste || l.add > laatste) laatste = l.add;
+    if (l.status === "won" && binnen(l.won, van, tot)) gewonnen++;
+    if (l.status !== "open") continue;
+    open++;
+    if (l.inGesprek) fases.set(l.stage || "?", (fases.get(l.stage || "?") || 0) + 1);
+    const t = Date.parse(String(l.stageChange || l.add).replace(" ", "T") + "Z");
+    if (!l.inGesprek && (isNaN(t) || t < grens)) slapend++;
+  }
+  const inGesprek = [...fases.entries()].map(([fase, aantal]) => ({ fase: fase.trim(), aantal })).sort((a, b) => b.aantal - a.aantal);
+  return {
+    bronnen: [...new Set(c.map((l) => l.bronLabel))],
+    inLijst: c.length,
+    open,
+    inGesprek,
+    inGesprekTotaal: inGesprek.reduce((s, f) => s + f.aantal, 0),
+    slapend,
+    gewonnen,
+    laatsteNieuw: laatste ? laatste.slice(0, 10) : null,
+  };
+}
+
+// ---------- lijst gewonnen / verloren (doorklik op de kerncijfers) ----------
+
+export type DealRij = {
+  uid: string;
+  titel: string;
+  klant: string;
+  url: string;
+  firma: string;
+  bronLabel: string;
+  aanvraag: string;
+  afgerond: string | null; // datum gewonnen of verloren
+  doorlooptijd: number | null; // dagen van aanvraag tot afgerond
+  offerte: boolean;
+  offerteOp: string | null;
+  fase: string | null; // fase waarin de deal staat (bij verloren: waarin hij verloren ging)
+  pipeline: string | null;
+  verliesreden: string | null;
+  verliesredenRuw: string | null;
+  productwaarde: number; // enkel de producten van deze dienst (of de deal value waar de firma niet bundelt)
+  producten: string[];
+};
+
+export function dealLijst(d: Dataset, status: "won" | "lost", van: string, tot: string): DealRij[] {
+  const perDeal = new Map<string, { bedrag: number; producten: Set<string> }>();
+  for (const o of d.omzet) {
+    const k = o.bron + o.dealId;
+    const e = perDeal.get(k) || { bedrag: 0, producten: new Set<string>() };
+    e.bedrag += o.bedrag;
+    e.producten.add(o.dienst);
+    perDeal.set(k, e);
+  }
+  const dag = (x: string | null) => (x ? x.slice(0, 10) : null);
+  return d.leads
+    .filter((l) => l.status === status && binnen(status === "won" ? l.won : l.lost, van, tot) && !(status === "lost" && l.campagne))
+    .map((l) => {
+      const afgerond = status === "won" ? l.won : l.lost;
+      const p = perDeal.get(l.bron + l.id);
+      const t0 = Date.parse(l.add.replace(" ", "T") + "Z");
+      const t1 = afgerond ? Date.parse(afgerond.replace(" ", "T") + "Z") : NaN;
+      return {
+        uid: l.uid,
+        titel: l.titel,
+        klant: l.klant,
+        url: l.url,
+        firma: l.firma,
+        bronLabel: l.bronLabel,
+        aanvraag: dag(l.add) || "",
+        afgerond: dag(afgerond),
+        doorlooptijd: !isNaN(t0) && !isNaN(t1) ? Math.max(0, Math.round((t1 - t0) / 86400000)) : null,
+        offerte: l.offerte,
+        offerteOp: dag(l.offerteOp),
+        fase: l.stage,
+        pipeline: l.pipeline,
+        verliesreden: status === "lost" ? normalizeLossReason(l.lostReason) : null,
+        verliesredenRuw: status === "lost" ? l.lostReason : null,
+        productwaarde: Math.round(p?.bedrag || 0),
+        producten: p ? [...p.producten] : [],
+      };
+    })
+    .sort((a, b) => (b.afgerond || "").localeCompare(a.afgerond || ""));
+}
+
+/** Per maand en per bron (voor de gestapelde grafiek): omzet, gewonnen en aanvragen. */
+export function perMaandPerBron(a: Afdeling, d: Dataset, jaar: number) {
+  return a.bronnen
+    .map((b) => {
+      const sub: Dataset = { leads: d.leads.filter((l) => l.bron === b.sleutel), omzet: d.omzet.filter((o) => o.bron === b.sleutel) };
+      return { sleutel: b.sleutel, label: b.label, reeks: perMaand(sub, jaar) };
+    })
+    .filter((x) => x.reeks.some((r) => r.omzet || r.gewonnen || r.aanvragen));
 }

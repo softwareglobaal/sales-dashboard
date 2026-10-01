@@ -28,6 +28,11 @@ export type Gat = {
   verschil: number;
   projectnr: string | null;
   dagen_sinds_verkoop: number | null;
+  // Sinds oktober 2026 (facturatiecontrole koppeling-kanaal); oudere antwoorden missen ze.
+  verkocht_via?: string | null; // Pipedrive-account van de deal (UNABO, TKN-Buro, ...)
+  kanaal?: string | null;
+  gefactureerd_door?: string[];
+  deal_titel?: string | null;
 };
 export type Samenvatting = {
   ververst: string | null;

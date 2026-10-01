@@ -16,6 +16,7 @@ import { postcodeToProvince } from "./regio";
 import { isOfferteStage } from "./engineeringConfig";
 import { syncGoogleAds } from "./adsSync";
 import { syncMonday } from "./mondaySync";
+import { syncAgenda } from "./agenda";
 
 // haal een BE-postcode uit een adres-string (voor accounts zonder los postcode-veld)
 function postcodeFromAddress(addr: string | null): string | null {
@@ -64,10 +65,10 @@ async function syncPersons(account: Account): Promise<number> {
   const laatste = (db.prepare("SELECT last_sync FROM sync_meta WHERE account_key = ?").get(metaKey) as any)?.last_sync;
   if (laatste && Date.now() - Date.parse(laatste) < PERSONEN_NA_MS) return 0;
   const rows = await fetchPersonGenders(account);
-  const insert = db.prepare("INSERT OR REPLACE INTO persons (account_key, id, gender) VALUES (?, ?, ?)");
+  const insert = db.prepare("INSERT OR REPLACE INTO persons (account_key, id, gender, naam, emails) VALUES (?, ?, ?, ?, ?)");
   const tx = db.transaction(() => {
     db.prepare("DELETE FROM persons WHERE account_key = ?").run(account.key);
-    for (const r of rows) insert.run(account.key, r.id, r.gender);
+    for (const r of rows) insert.run(account.key, r.id, r.gender, r.naam, r.emails);
   });
   tx();
   db.prepare("INSERT OR REPLACE INTO sync_meta (account_key, last_sync, deal_count, status, message) VALUES (?, ?, ?, 'ok', ?)")
@@ -241,8 +242,10 @@ export async function syncAccount(account: Account) {
       // organisatie-sync mag de deal-sync niet blokkeren
     }
 
-    // geslacht van de contactpersonen — enkel accounts met een Analyse-tab
-    if (account.analyse) {
+    // contactpersonen (geslacht, naam, e-mail) — alle accounts, één keer per dag.
+    // Naam en e-mail zijn nodig voor de agenda-koppeling van élke dienst; per account
+    // kost dat één oproep per 500 personen.
+    {
       try {
         await syncPersons(account);
       } catch {
@@ -296,6 +299,12 @@ export async function syncAll() {
   // De status staat in sync_meta onder monday:<bord>.
   try {
     await syncMonday();
+  } catch {
+    // negeren
+  }
+  // Agenda (meetings per deal): na de personen, want de koppeling gebruikt hun e-mail.
+  try {
+    await syncAgenda();
   } catch {
     // negeren
   }

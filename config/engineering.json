@@ -1,7 +1,16 @@
 {
   "_uitleg": "Configuratie voor de Engineering-tab. Pas dit bestand aan zonder code te wijzigen. labelToChannel: vertaal een Pipedrive-deal-label naar een kanaal (meerdere labels mogen naar 1 kanaal wijzen). Sleutels zijn niet hoofdletter-gevoelig. Labels in ignoreLabels worden genegeerd. Pipelines in ignorePipelines tellen niet mee.",
-  "ignorePipelines": ["B2B: UNABO", "Setup", "B2B: EPB Campaigne [NEW]"],
-  "ignoreLabels": ["test", "setup", "test deal"],
+  "ignorePipelines": [
+    "B2B: UNABO",
+    "Setup",
+    "B2B: EPB Campaigne [NEW]"
+  ],
+  "ignoreLabels": [
+    "test",
+    "setup",
+    "test deal",
+    "DNCM"
+  ],
   "noLabelChannel": "Geen label",
   "_uitleg_offerteStages": "Fasen (stage-namen) die betekenen dat een offerte verstuurd is. Niet hoofdletter-gevoelig, gedeeltelijke match. Voor UNABO Openoproep worden aanvragen na info naar H-Architects doorgestuurd voor offerte-opmaak -> 'doorgestuurd naar h-a' telt mee. 'off. gestuurd' is de afgekorte naam die UNABO sinds juli 2026 in Engineering, Energy en Bundel gebruikt.",
   "offerteStages": [
@@ -45,20 +54,55 @@
   },
   "_uitleg_channelGroups": "Tweelaags kanaalmodel: een (genormaliseerd) label -> hoofdkanaal (main) en optioneel subkanaal (sub). Labels die met 'arc-' beginnen worden automatisch hoofdkanaal 'Architect (ARC)'. Toekomstig labelformaat 'Categorie, Naam' wordt ook automatisch als hoofd/sub gelezen. Onbekende labels worden hun eigen hoofdkanaal.",
   "channelGroups": {
-    "website": { "main": "Website" },
-    "via-h-architects": { "main": "H-Architects" },
-    "via h-architects": { "main": "H-Architects" },
-    "via tkn-buro": { "main": "TKN-Buro" },
-    "via energie efficient": { "main": "Energie Efficiënt" },
-    "studiebureau bouwerij": { "main": "Studiebureau", "sub": "Bouwerij" },
-    "enpro": { "main": "Studiebureau", "sub": "Enpro" },
-    "via dmco": { "main": "Studiebureau", "sub": "DMCO" },
-    "via m-gineers": { "main": "Studiebureau", "sub": "M-gineers" },
-    "via qoppa": { "main": "Qoppa" },
-    "oude klant qoppa": { "main": "Qoppa" },
-    "via tom": { "main": "Via Tom" },
-    "via via": { "main": "Via via" },
-    "open oproep: stad antwerpen": { "main": "Open oproep Antwerpen" },
-    "via luc hufkens": { "main": "Architect (ARC)", "sub": "Luc Hufkens" }
+    "website": {
+      "main": "Website"
+    },
+    "via-h-architects": {
+      "main": "H-Architects"
+    },
+    "via h-architects": {
+      "main": "H-Architects"
+    },
+    "via tkn-buro": {
+      "main": "TKN-Buro"
+    },
+    "via energie efficient": {
+      "main": "Energie Efficiënt"
+    },
+    "studiebureau bouwerij": {
+      "main": "Studiebureau",
+      "sub": "Bouwerij"
+    },
+    "enpro": {
+      "main": "Studiebureau",
+      "sub": "Enpro"
+    },
+    "via dmco": {
+      "main": "Studiebureau",
+      "sub": "DMCO"
+    },
+    "via m-gineers": {
+      "main": "Studiebureau",
+      "sub": "M-gineers"
+    },
+    "via qoppa": {
+      "main": "Qoppa"
+    },
+    "oude klant qoppa": {
+      "main": "Qoppa"
+    },
+    "via tom": {
+      "main": "Via Tom"
+    },
+    "via via": {
+      "main": "Via via"
+    },
+    "open oproep: stad antwerpen": {
+      "main": "Open oproep Antwerpen"
+    },
+    "via luc hufkens": {
+      "main": "Architect (ARC)",
+      "sub": "Luc Hufkens"
+    }
   }
 }

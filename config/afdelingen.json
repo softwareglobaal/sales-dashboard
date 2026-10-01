@@ -80,7 +80,6 @@
         ]
       },
       "concurrentie": "/engineering/concurrentie",
-      "analyse": "/engineering/analyse",
       "facturatie": [
         "Engineering",
         "Tekenwerk"
@@ -119,9 +118,19 @@
           "sleutel": "ee",
           "firma": "ee",
           "soort": "pipedrive",
-          "label": "EE salesteam (B2B-prospectie)",
+          "label": "EE campagne EPB-verslaggevers",
           "alleDeals": true,
-          "omzet": "dealwaarde"
+          "omzet": "dealwaarde",
+          "campagne": true,
+          "inGesprekFases": [
+            "offerte",
+            "off aanvr",
+            "off. aanvr",
+            "reactie",
+            "afspraak",
+            "terugbellen",
+            "doorgestuurd"
+          ]
         },
         {
           "sleutel": "ee-direct",
@@ -131,7 +140,19 @@
           "bord": "7326219382",
           "uitsluitenKlantOa": [
             "unabo"
-          ]
+          ],
+          "uitsluitenNamen": [
+            "%test%"
+          ],
+          "soortNamen": {
+            "EPB-OA": "EPB (onderaanneming)",
+            "VENT-OA": "Ventilatie (onderaanneming)",
+            "WVB-OA": "Warmteverliesberekening (onderaanneming)",
+            "SketchUP-OA": "SketchUp-tekenwerk (onderaanneming)",
+            "EPB": "EPB (eigen klant EE)",
+            "VENT": "Ventilatie (eigen klant EE)",
+            "WVB": "Warmteverliesberekening (eigen klant EE)"
+          }
         }
       ],
       "kanalen": {
@@ -159,7 +180,6 @@
         ]
       },
       "concurrentie": "/energy/concurrentie",
-      "analyse": "/energy/analyse",
       "extra": [
         {
           "href": "/energy/register",

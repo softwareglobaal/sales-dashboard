@@ -45,7 +45,7 @@ export function DienstKop({
     { key: "kanalen", label: "Kanalen", href: dienstHref(basis + "/kanalen", sp) },
     { key: "concurrentie", label: "Concurrentie", href: a.concurrentie || basis + "/concurrentie" },
   ];
-  if (a.analyse) tabs.push({ key: "analyse", label: "Analyse", href: dienstHref(a.analyse, { periode: sp.periode }) });
+  tabs.push({ key: "analyse", label: "Analyse", href: dienstHref(basis + "/analyse", sp) });
   for (const e of a.extra || []) tabs.push({ key: e.href, label: e.label, href: e.href });
 
   const firmas = firmasVan(a);
@@ -129,7 +129,7 @@ export function DienstTabs({ pad, tab }: { pad: string; tab: Tab | string }) {
     { key: "kanalen", label: "Kanalen", href: basis + "/kanalen" },
     { key: "concurrentie", label: "Concurrentie", href: a.concurrentie || basis + "/concurrentie" },
   ];
-  if (a.analyse) tabs.push({ key: "analyse", label: "Analyse", href: a.analyse });
+  tabs.push({ key: "analyse", label: "Analyse", href: basis + "/analyse" });
   for (const e of a.extra || []) tabs.push({ key: e.href, label: e.label, href: e.href });
   return (
     <nav className="flex flex-wrap items-center gap-1 pt-4 text-[12.5px]" aria-label={`Onderdelen van ${a.naam}`}>

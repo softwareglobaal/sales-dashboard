@@ -367,6 +367,10 @@ function initSchema(db: Database.Database) {
   if (!cols.includes("custom_json")) {
     db.exec("ALTER TABLE deals ADD COLUMN custom_json TEXT");
   }
+  // personen: naam en e-mail voor de agenda-koppeling (spec §17)
+  const pCols = (db.prepare("PRAGMA table_info(persons)").all() as any[]).map((c) => c.name);
+  if (!pCols.includes("naam")) db.exec("ALTER TABLE persons ADD COLUMN naam TEXT");
+  if (!pCols.includes("emails")) db.exec("ALTER TABLE persons ADD COLUMN emails TEXT");
 
   // idem voor de concurrentiemonitor: kolommen die later zijn toegevoegd
   const urlCols = (db.prepare("PRAGMA table_info(site_urls)").all() as any[]).map((c) => c.name);

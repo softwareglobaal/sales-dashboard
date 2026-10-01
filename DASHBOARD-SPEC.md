@@ -611,3 +611,43 @@ gaten één signaal op het board (AppPortal, `siyanagents-runner/sales_wacht.py`
 incentivemodel (`config/commissie.json`), `{"maand": 12000}` zet een eigen maanddoel,
 `0` = geen doel. Algemeen toont per dienst de lopende maand en de stand sinds januari.
 Energy telt nu ook Energie Efficiënt mee, zoals het incentivemodel voorschrijft.
+
+### 17b. Tweede ronde (1 oktober 2026)
+
+- **Campagnes zijn geen aanvragen.** Een bron met `"campagne": true` (nu: het EE-account met
+  de koude prospectie bij EPB-verslaggevers) telt niet mee in aanvragen, open, verloren of
+  winratio; een gewonnen klant telt wel als verkoop. De dienstpagina toont een eigen blok:
+  hoeveel contacten er in de lijst staan, hoeveel nog open, hoeveel slapend (90 dagen geen
+  fasewissel) en hoeveel **echt in gesprek** (fases met de woorden uit `inGesprekFases`).
+- **Monday-namen**: `soortNamen` maakt van de Project Type een leesbare naam ("EPB
+  (onderaanneming)", "EPB (eigen klant EE)"); `uitsluitenNamen` haalt testkaarten weg.
+- **Label DNCM** (do-not-call-lijst van de campagnes) is geen kanaal: in `ignoreLabels`.
+- **Doorklik Gewonnen / Verloren** (`/<dienst>/deals?status=won|lost`): per deal
+  aanvraagdatum, offerte ja/nee met datum (deal-flow, enkel UNABO/TKN), datum gewonnen of
+  verloren, doorlooptijd, fase waarin hij verloren ging, verliesreden (genormaliseerd én de
+  originele) en de **productwaarde van enkel deze dienst**. Verliesredenen zijn filterbaar.
+- **Facturatiegaten** tonen langs welke firma verkocht is (Pipedrive-account), wie uitvoert en
+  welke dossiers factureerden (facturatiecontrole, tak `koppeling-kanaal`). Het firmafilter
+  gebruikt de verkopende firma.
+- **Per maand** is gestapeld per bron (UNABO / EE-campagne / EE onderaanneming), met vorig
+  jaar als gestippelde totaallijn en de getallen per bron in de tooltip.
+- **Doelhistoriek**: onder de lopende maand een staafje per voorbije maand van dit jaar.
+- **Analyse** is één generieke subtab voor elke dienst (`lib/analyse.ts`): teamdoel en
+  AI-advies (Engineering, Energy), meetings, per pipeline, trechter, regio-kaart, dag en
+  uur, bundel tegenover los, project en motivatie, geslacht. De oude pagina's
+  `/engineering/analyse` en `/energy/analyse` (originele look) zijn weg.
+- **Meetings** (`lib/agenda.ts`, `config/agenda.json`): de sync leest de agenda's van
+  Mehdi, zoomafspraken en H-Architects (token `GOOGLE_AGENDA_*`) en koppelt een afspraak
+  aan een deal via het e-mailadres van de genodigde (contactpersoon in Pipedrive), anders
+  via een unieke naam in de titel. De firma volgt uit de code `[UNABO-PO]`; interne
+  afspraken (`-IN`) tellen niet. Elke koppeling bewaart de redenering. Daarnaast telt het
+  Pipedrive-veld "Meeting gehad" (UNABO en TKN, sinds 1 okt 2026 ook "Datum meeting").
+  Daarvoor synct de dagelijkse personenronde nu naam en e-mail van alle vier de accounts.
+- **Proactieve content** (`lib/content.ts`, `/content` "Wacht op jou"): het dashboard zet
+  kansen klaar (`GET /api/v1/contentkansen`: herschrijfkansen en nieuwe blogs van echte
+  concurrenten over ons vak, laatste 21 dagen). Een geplande taak op de Mac
+  (`seo-contentkansen`, werkdagen 08:00) laat de SEO-agents twee kansen per dag toetsen,
+  onderzoeken, schrijven en controleren, en meldt het resultaat via `POST /api/v1/content`.
+  **Eén goedkeuringsmoment**: Siyan keurt op `/content` goed of af (naam uit de login).
+  Het menu toont een teller. Publiceren blijft een aparte stap van de website-keten.
+- De zijbalk zegt "Alleen lezen" (het dashboard leest meer dan Pipedrive).
