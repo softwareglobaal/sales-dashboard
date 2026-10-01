@@ -10,6 +10,11 @@ export type Account = {
   // zijn. Eén oproep per deal: bij H-Architects (6.000+ deals) zou alles ophalen het
   // Pipedrive-dagbudget opblazen, en het dashboard toont toch enkel dit en vorig jaar.
   productenVanaf?: string;
+  // Deal-flow (aanvraag -> offerte-tijd) en geslacht van contactpersonen: één of meer
+  // oproepen per deal, enkel nodig voor de Analyse-tabs van Engineering en Energy.
+  // Stond vroeger aan zodra syncProducts aan stond; toen H-Architects producten kreeg
+  // (30/09/2026) haalde de sync daardoor de fase-historiek van alle 6.000+ H-A-deals op.
+  analyse?: boolean;
 };
 
 export const ACCOUNTS: Account[] = [
@@ -31,6 +36,7 @@ export const ACCOUNTS: Account[] = [
     token: process.env.PIPEDRIVE_TOKEN_UNABO || "",
     color: "#16a34a", // groen
     syncProducts: true,
+    analyse: true,
   },
   {
     key: "tknburo",
@@ -39,6 +45,7 @@ export const ACCOUNTS: Account[] = [
     token: process.env.PIPEDRIVE_TOKEN_TKNBURO || "",
     color: "#ea580c", // oranje
     syncProducts: true,
+    analyse: true,
   },
   {
     key: "energieefficient",
