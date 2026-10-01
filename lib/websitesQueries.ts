@@ -12,24 +12,43 @@ export const PERIODES = [
 export type Periode = (typeof PERIODES)[number]["key"];
 export const isPeriode = (p?: string): p is Periode => PERIODES.some((x) => x.key === p);
 
-export type Bereik = { van: string; tot: string; vorigVan: string; vorigTot: string; dagen: string[]; label: string };
+/**
+ * Dienstscope (spec §17): per site de woorden in het paginapad die bij één dienst
+ * horen. unabo.be bedient zes diensten; zonder dit toont de doorklik vanaf 3D-Scanning
+ * ook alle EPB-bezoekers. Een site zonder woorden telt volledig mee.
+ */
+export type Scope = Record<string, string[]>;
+export type Bereik = { van: string; tot: string; vorigVan: string; vorigTot: string; dagen: string[]; label: string; scope: Scope };
 
-export function bereik(p: Periode): Bereik {
+export function bereik(p: Periode, scope: Scope = {}): Bereik {
   const n = PERIODES.find((x) => x.key === p)!.dagen;
   const nu = Date.now();
   const dag = (terug: number) => belgischeTijd(nu - terug * 86400000).dag;
   const dagen: string[] = [];
   for (let i = n - 1; i >= 0; i--) dagen.push(dag(i));
-  return { van: dag(n - 1), tot: dag(0), vorigVan: dag(2 * n - 1), vorigTot: dag(n), dagen, label: PERIODES.find((x) => x.key === p)!.label };
+  return { van: dag(n - 1), tot: dag(0), vorigVan: dag(2 * n - 1), vorigTot: dag(n), dagen, label: PERIODES.find((x) => x.key === p)!.label, scope };
 }
 
 type Filter = { sql: string; args: unknown[] };
-function filter(sites: string[], van: string, tot: string, alias = ""): Filter {
+type Tabel = "sessies" | "weergaven" | "klikken" | "secties";
+function filter(sites: string[], van: string, tot: string, alias = "", scope: Scope = {}, tabel: Tabel = "sessies"): Filter {
   const a = alias ? alias + "." : "";
-  return {
-    sql: `${a}site IN (${sites.map(() => "?").join(",")}) AND ${a}dag BETWEEN ? AND ?`,
-    args: [...sites, van, tot],
-  };
+  let sql = `${a}site IN (${sites.map(() => "?").join(",")}) AND ${a}dag BETWEEN ? AND ?`;
+  const args: unknown[] = [...sites, van, tot];
+  for (const [site, woorden] of Object.entries(scope)) {
+    if (!woorden.length || !sites.includes(site)) continue;
+    const like = woorden.map(() => "lower(pad) LIKE ?").join(" OR ");
+    const pats = woorden.map((w) => `%${w.toLowerCase()}%`);
+    if (tabel === "sessies") {
+      // Een sessie hoort bij de dienst als ze minstens één pagina van de dienst bekeek.
+      sql += ` AND (${a}site != ? OR ${a}id IN (SELECT sessie FROM weergaven WHERE site = ? AND dag BETWEEN ? AND ? AND (${like})))`;
+      args.push(site, site, van, tot, ...pats);
+    } else {
+      sql += ` AND (${a}site != ? OR (${like.replace(/lower\(pad\)/g, `lower(${a}pad)`)}))`;
+      args.push(site, ...pats);
+    }
+  }
+  return { sql, args };
 }
 const alle = <T>(sql: string, args: unknown[]) => meetDb().prepare(sql).all(...args) as T[];
 const een = <T>(sql: string, args: unknown[]) => meetDb().prepare(sql).get(...args) as T;
@@ -59,15 +78,16 @@ export type Kern = {
   gemScroll: number;
 };
 
-function kernVoor(sites: string[], van: string, tot: string): Kern {
-  const f = filter(sites, van, tot);
+function kernVoor(sites: string[], van: string, tot: string, scope: Scope = {}): Kern {
+  const f = filter(sites, van, tot, "", scope);
+  const fw = filter(sites, van, tot, "", scope, "weergaven");
   const s = een<{ b: number; s: number; d: number; betr: number; p: number; c: number; cs: number; t: number }>(
     `SELECT COUNT(DISTINCT site || bezoeker) b, COUNT(*) s, COALESCE(AVG(actief_ms), 0) d,
        SUM(CASE WHEN actief_ms >= 10000 OR paginas >= 2 OR conversies > 0 THEN 1 ELSE 0 END) betr,
        COALESCE(SUM(paginas), 0) p, COALESCE(SUM(conversies), 0) c,
        SUM(CASE WHEN conversies > 0 THEN 1 ELSE 0 END) cs, SUM(terugkerend) t
      FROM sessies WHERE ${f.sql}`, f.args);
-  const w = een<{ n: number; sc: number }>(`SELECT COUNT(*) n, COALESCE(AVG(scroll), 0) sc FROM weergaven WHERE ${f.sql}`, f.args);
+  const w = een<{ n: number; sc: number }>(`SELECT COUNT(*) n, COALESCE(AVG(scroll), 0) sc FROM weergaven WHERE ${fw.sql}`, fw.args);
   return {
     bezoekers: s.b || 0,
     sessies: s.s || 0,
@@ -83,14 +103,14 @@ function kernVoor(sites: string[], van: string, tot: string): Kern {
 }
 
 export function kern(sites: string[], b: Bereik) {
-  return { nu: kernVoor(sites, b.van, b.tot), vorig: kernVoor(sites, b.vorigVan, b.vorigTot) };
+  return { nu: kernVoor(sites, b.van, b.tot, b.scope), vorig: kernVoor(sites, b.vorigVan, b.vorigTot, b.scope) };
 }
 
 export function perSite(sites: string[], b: Bereik) {
   return sites.map((s) => {
-    const k = kernVoor([s], b.van, b.tot);
-    const v = kernVoor([s], b.vorigVan, b.vorigTot);
-    const f = filter([s], b.van, b.tot);
+    const k = kernVoor([s], b.van, b.tot, b.scope);
+    const v = kernVoor([s], b.vorigVan, b.vorigTot, b.scope);
+    const f = filter([s], b.van, b.tot, "", b.scope);
     const kanaal = een<{ kanaal: string; n: number } | undefined>(
       `SELECT kanaal, COUNT(*) n FROM sessies WHERE ${f.sql} GROUP BY kanaal ORDER BY n DESC LIMIT 1`, f.args);
     const be = een<{ n: number }>(`SELECT COUNT(*) n FROM sessies WHERE ${f.sql} AND land = 'BE'`, f.args);
@@ -116,7 +136,7 @@ export function nuOnline(sites: string[]): number {
 
 /** Bezoekers per dag per site (voor de vergelijking) of per maand bij 12 maanden. */
 export function reeksPerSite(sites: string[], b: Bereik, perMaand: boolean) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   const sleutel = perMaand ? "substr(dag, 1, 7)" : "dag";
   const rijen = alle<{ d: string; site: string; n: number }>(
     `SELECT ${sleutel} d, site, COUNT(DISTINCT bezoeker) n FROM sessies WHERE ${f.sql} GROUP BY d, site`, f.args);
@@ -129,11 +149,12 @@ export function reeksPerSite(sites: string[], b: Bereik, perMaand: boolean) {
 }
 
 export function reeksKern(sites: string[], b: Bereik, perMaand: boolean) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope);
+  const fw = filter(sites, b.van, b.tot, "", b.scope, "weergaven");
   const sleutel = perMaand ? "substr(dag, 1, 7)" : "dag";
   const s = alle<{ d: string; b: number; s: number }>(
     `SELECT ${sleutel} d, COUNT(DISTINCT site || bezoeker) b, COUNT(*) s FROM sessies WHERE ${f.sql} GROUP BY d`, f.args);
-  const w = alle<{ d: string; n: number }>(`SELECT ${sleutel} d, COUNT(*) n FROM weergaven WHERE ${f.sql} GROUP BY d`, f.args);
+  const w = alle<{ d: string; n: number }>(`SELECT ${sleutel} d, COUNT(*) n FROM weergaven WHERE ${fw.sql} GROUP BY d`, fw.args);
   const assen = perMaand ? [...new Set(b.dagen.map((d) => d.slice(0, 7)))] : b.dagen;
   return assen.map((d) => ({
     d,
@@ -145,7 +166,7 @@ export function reeksKern(sites: string[], b: Bereik, perMaand: boolean) {
 
 /** Sessies per weekdag x uur (Belgische tijd). */
 export function uurRaster(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ weekdag: number; uur: number; n: number }>(
     `SELECT weekdag, uur, COUNT(*) n FROM sessies WHERE ${f.sql} GROUP BY weekdag, uur`, f.args);
 }
@@ -153,7 +174,7 @@ export function uurRaster(sites: string[], b: Bereik) {
 // ---------- herkomst ----------
 
 export function kanalen(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ kanaal: string; sessies: number; bezoekers: number; betrokken: number; conversies: number; gemDuurS: number }>(
     `SELECT kanaal, COUNT(*) sessies, COUNT(DISTINCT site || bezoeker) bezoekers,
        SUM(CASE WHEN actief_ms >= 10000 OR paginas >= 2 OR conversies > 0 THEN 1 ELSE 0 END) betrokken,
@@ -163,13 +184,13 @@ export function kanalen(sites: string[], b: Bereik) {
 }
 
 export function kanaalPerSite(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ site: string; kanaal: string; n: number }>(
     `SELECT site, kanaal, COUNT(*) n FROM sessies WHERE ${f.sql} GROUP BY site, kanaal`, f.args);
 }
 
 export function bronnen(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ kanaal: string; bron: string; campagne: string | null; sessies: number; conversies: number }>(
     `SELECT kanaal, bron, campagne, COUNT(*) sessies, SUM(CASE WHEN conversies > 0 THEN 1 ELSE 0 END) conversies
      FROM sessies WHERE ${f.sql} AND kanaal != 'Direct' GROUP BY kanaal, bron, campagne ORDER BY sessies DESC LIMIT 25`, f.args);
@@ -178,7 +199,7 @@ export function bronnen(sites: string[], b: Bereik) {
 // ---------- pagina's ----------
 
 export function instappaginas(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ site: string; pad: string; sessies: number; bounce: number; gemDuurS: number; paginas: number; conversies: number }>(
     `SELECT site, instap pad, COUNT(*) sessies,
        AVG(CASE WHEN actief_ms < 10000 AND paginas < 2 AND conversies = 0 THEN 1.0 ELSE 0 END) bounce,
@@ -188,13 +209,13 @@ export function instappaginas(sites: string[], b: Bereik) {
 }
 
 export function uitstappaginas(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ site: string; pad: string; n: number }>(
     `SELECT site, uitstap pad, COUNT(*) n FROM sessies WHERE ${f.sql} GROUP BY site, uitstap ORDER BY n DESC LIMIT 15`, f.args);
 }
 
 export function paginas(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot, "w");
+  const f = filter(sites, b.van, b.tot, "w", b.scope, "weergaven");
   return alle<{ site: string; pad: string; titel: string; weergaven: number; bezoekers: number; gemActiefS: number; gemScroll: number; klikken: number }>(
     `SELECT w.site, w.pad, MAX(w.titel) titel, COUNT(*) weergaven, COUNT(DISTINCT w.sessie) bezoekers,
        CAST(AVG(NULLIF(w.actief_ms, 0)) / 1000 AS INTEGER) gemActiefS, CAST(AVG(w.scroll) AS INTEGER) gemScroll,
@@ -204,14 +225,14 @@ export function paginas(sites: string[], b: Bereik) {
 
 /** Meest gevolgde stappen tussen pagina's (van -> naar). */
 export function paden(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "weergaven");
   return alle<{ site: string; van: string; naar: string; n: number }>(
     `SELECT site, vorig van, pad naar, COUNT(*) n FROM weergaven WHERE ${f.sql} AND vorig IS NOT NULL AND vorig != pad
      GROUP BY site, vorig, pad ORDER BY n DESC LIMIT 20`, f.args);
 }
 
 export function paginaKeuze(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "weergaven");
   return alle<{ site: string; pad: string; n: number }>(
     `SELECT site, pad, COUNT(*) n FROM weergaven WHERE ${f.sql} GROUP BY site, pad ORDER BY n DESC LIMIT 60`, f.args);
 }
@@ -219,21 +240,21 @@ export function paginaKeuze(sites: string[], b: Bereik) {
 // ---------- locatie ----------
 
 export function landen(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ land: string | null; sessies: number; bezoekers: number }>(
     `SELECT land, COUNT(*) sessies, COUNT(DISTINCT site || bezoeker) bezoekers FROM sessies WHERE ${f.sql}
      GROUP BY land ORDER BY sessies DESC LIMIT 20`, f.args);
 }
 
 export function regios(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ land: string | null; regio: string | null; provincie: string | null; sessies: number }>(
     `SELECT land, regio, provincie, COUNT(*) sessies FROM sessies WHERE ${f.sql}
      GROUP BY land, regio, provincie ORDER BY sessies DESC LIMIT 25`, f.args);
 }
 
 export function steden(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   return alle<{ land: string | null; provincie: string | null; stad: string | null; lat: number | null; lon: number | null; sessies: number; conversies: number }>(
     `SELECT land, MAX(provincie) provincie, stad, AVG(lat) lat, AVG(lon) lon, COUNT(*) sessies,
        SUM(CASE WHEN conversies > 0 THEN 1 ELSE 0 END) conversies
@@ -243,12 +264,12 @@ export function steden(sites: string[], b: Bereik) {
 // ---------- gedrag ----------
 
 export function kliksoorten(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "klikken");
   return alle<{ soort: string; n: number }>(`SELECT soort, COUNT(*) n FROM klikken WHERE ${f.sql} GROUP BY soort ORDER BY n DESC`, f.args);
 }
 
 export function topKlikken(sites: string[], b: Bereik, pad?: string) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "klikken");
   const extra = pad ? " AND pad = ?" : "";
   return alle<{ site: string; soort: string; tekst: string | null; doel: string | null; n: number; paginas: number }>(
     `SELECT site, soort, tekst, doel, COUNT(*) n, COUNT(DISTINCT pad) paginas FROM klikken WHERE ${f.sql}${extra}
@@ -257,7 +278,7 @@ export function topKlikken(sites: string[], b: Bereik, pad?: string) {
 
 /** Klikposities op één pagina, genormaliseerd: x en y in promille van breedte/hoogte. */
 export function klikkaart(site: string, pad: string, b: Bereik, apparaat: "desktop" | "mobiel") {
-  const f = filter([site], b.van, b.tot);
+  const f = filter([site], b.van, b.tot, "", b.scope, "klikken");
   const breed = apparaat === "desktop" ? "vw >= 900" : "vw < 900";
   return alle<{ x: number; y: number; soort: string; tekst: string | null }>(
     `SELECT x, CAST(y * 1000.0 / doc_h AS INTEGER) y, soort, tekst FROM klikken
@@ -267,7 +288,7 @@ export function klikkaart(site: string, pad: string, b: Bereik, apparaat: "deskt
 
 /** Aandacht per sectie: hoeveel van de bezoekers ze zagen en hoe lang, met de positie op de pagina. */
 export function sectieAandacht(site: string, pad: string, b: Bereik, apparaat: "desktop" | "mobiel") {
-  const f = filter([site], b.van, b.tot, "s");
+  const f = filter([site], b.van, b.tot, "s", b.scope, "secties");
   const breed = apparaat === "desktop" ? "w.vw >= 900" : "w.vw < 900";
   const totaal = een<{ n: number }>(
     `SELECT COUNT(*) n FROM weergaven w WHERE w.site = ? AND w.dag BETWEEN ? AND ? AND w.pad = ? AND ${breed}`,
@@ -283,7 +304,7 @@ export function sectieAandacht(site: string, pad: string, b: Bereik, apparaat: "
 
 /** Hoeveel procent van de weergaven haalde 25/50/75/100% van de pagina. */
 export function scrolldiepte(sites: string[], b: Bereik, pad?: string) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "weergaven");
   const extra = pad ? " AND pad = ?" : "";
   const r = een<{ n: number; p25: number; p50: number; p75: number; p100: number }>(
     `SELECT COUNT(*) n, SUM(scroll >= 25) p25, SUM(scroll >= 50) p50, SUM(scroll >= 75) p75, SUM(scroll >= 95) p100
@@ -295,7 +316,7 @@ export function scrolldiepte(sites: string[], b: Bereik, pad?: string) {
 // ---------- techniek ----------
 
 export function verdeling(sites: string[], b: Bereik, kolom: "apparaat" | "browser" | "os" | "taal") {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "sessies");
   const expr = kolom === "taal" ? "lower(substr(taal, 1, 2))" : kolom;
   return alle<{ waarde: string | null; n: number }>(
     `SELECT ${expr} waarde, COUNT(*) n FROM sessies WHERE ${f.sql} GROUP BY waarde ORDER BY n DESC LIMIT 10`, f.args);
@@ -303,7 +324,7 @@ export function verdeling(sites: string[], b: Bereik, kolom: "apparaat" | "brows
 
 /** 75e percentiel van de laadsnelheid, zoals Google het meet. */
 export function snelheid(sites: string[], b: Bereik) {
-  const f = filter(sites, b.van, b.tot);
+  const f = filter(sites, b.van, b.tot, "", b.scope, "weergaven");
   const p75 = (kolom: string) => {
     const w = alle<{ v: number }>(`SELECT ${kolom} v FROM weergaven WHERE ${f.sql} AND ${kolom} IS NOT NULL ORDER BY ${kolom}`, f.args);
     return w.length ? w[Math.min(w.length - 1, Math.floor(w.length * 0.75))].v : null;

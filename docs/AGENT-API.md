@@ -81,6 +81,18 @@ per klik en kost per conversie, plus een `versheid`-blok.
 Voor beoordeling van een campagne is de kost per *aanvraag* de eerlijkste
 maatstaf.
 
+### `GET /api/v1/facturatie`
+
+Verkocht tegenover gefactureerd per dienst (spec §17), uit de koppeling met het
+facturatiecontroleplatform. Parameter `jaar` (dit of vorig jaar, standaard dit jaar).
+Per dienst: `verkocht`, `gefactureerd`, `nogTeFactureren` en `gaten`. Een gat is
+verkocht maar niet gefactureerd (pas na `wachttijdDagen`), meer gefactureerd dan
+verkocht, of gefactureerd zonder verkoop in Pipedrive. Antwoordt 503 als de
+koppeling niet ingesteld is of het platform niet antwoordt.
+
+De dagelijkse sales-wacht zet elk gat als signaal op het board, zodat het
+proactief gemeld wordt en niet enkel op het scherm staat.
+
 ## Voorbeeld
 
 ```sh
