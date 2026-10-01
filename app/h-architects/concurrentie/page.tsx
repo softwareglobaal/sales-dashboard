@@ -22,18 +22,26 @@ import {
   getArchitectRegisterStatus,
   telNietGevolgdeArchitecten,
   type RegioFilter,
+  getEigenSites,
+  getEigenPosities,
+  getEigenGsc,
+  PROEF_SITES,
 } from "@/lib/concurrentieQueries";
+import { OMVANG, plekActief, plekGoogle, plekOpOmvang, plekRanglijst, zoekSamenvatting, type PlekRegel } from "@/lib/onzePlek";
+import { OnzePlek } from "@/components/concurrentie/OnzePlek";
+import { EigenSitesKaartjes, EigenSitesTabel } from "@/components/concurrentie/EigenSites";
+import { Blok, extra } from "@/components/concurrentie/Blok";
+import { Ingekort } from "@/components/concurrentie/Ingekort";
 import { serpBron } from "@/lib/zoekwoorden";
 import { gscBeschikbaar } from "@/lib/searchConsole";
 import { num } from "@/lib/format";
-import { Kpi, Card } from "@/components/ui";
+import { Kpi } from "@/components/ui";
 import { SubNav } from "@/components/SubNav";
 import { Beoordeling } from "@/components/Beoordeling";
 
 export const dynamic = "force-dynamic";
 
 const MARKT = "architectuur" as const;
-const ONS_DOMEIN = "h-architects.be";
 const PAD = "/h-architects/concurrentie";
 
 const TABS = [
@@ -132,13 +140,19 @@ export default async function ArchitectuurConcurrentiePage({
   const gemeenten = getArchitectenPerGemeente(provincie, 20);
   const perGemeente = gemeenten.rijen;
   const nietGevolgd = telNietGevolgdeArchitecten(regio);
-  const sterkste = getSterksteOnline(15, MARKT, regio);
-  const actiefste = getActiefstePubliceerders(10, MARKT, regio);
+  // De ranglijsten volledig ophalen: de pagina toont de top, "Onze plek" rekent
+  // de plaats van elke eigen site uit over de hele lijst.
+  const alleSterkste = getSterksteOnline(100000, MARKT, regio);
+  const sterkste = alleSterkste.slice(0, 15);
+  const alleActief = getActiefstePubliceerders(100000, MARKT, regio);
+  const actiefste = alleActief.slice(0, 10);
   const diensten = getDienstenDekking(MARKT, regio);
   const concurrenten = getConcurrentenInMarkt(MARKT, "concurrent", regio);
   const rest = getConcurrentenInMarkt(MARKT, "rest", regio);
   const signalen = getSignalen(40, MARKT);
-  const wij = getConcurrentenInMarkt(MARKT, "eigen").find((c) => c.domein === ONS_DOMEIN);
+  const eigen = getEigenSites(MARKT);
+  const eigenPos = getEigenPosities(MARKT);
+  const eigenGsc = getEigenGsc(MARKT);
   const zoekwoorden = getZoekwoorden(MARKT);
   const zwStatus = getZoekwoordStatus(MARKT);
   const adverteerders = getAdverteerders(15, MARKT);
@@ -153,6 +167,27 @@ export default async function ArchitectuurConcurrentiePage({
     return acc;
   }, {});
   const bron = serpBron();
+
+  // "Onze plek": per eigen site de plaats in elke ranglijst van deze pagina.
+  const plekOmvang = Object.fromEntries(eigen.map((e) => [e.domein, plekOpOmvang(concurrenten, e)]));
+  const plekken: Record<string, PlekRegel[]> = Object.fromEntries(eigen.map((e) => [e.domein, [
+    plekGoogle({
+      lijst: "Wie leidt er online (Google-top 5)",
+      leaderboard: heeftRegio ? [] : leaderboard, posities: eigenPos.rijen, domein: e.domein, diepte: 5,
+      proef: PROEF_SITES.includes(e.domein),
+    }),
+    plekRanglijst({
+      lijst: `Grootst online en concurrentenlijst (ontwerppagina's${heeftRegio ? ` in ${gebied}` : ""})`,
+      rijen: concurrenten, eigen: e, sleutels: OMVANG, getoond: sterkste.length,
+      waarde: (r) => `${num(r.omvang || 0)} ontwerppag.`,
+    }),
+    plekActief("Wie er nog beweegt (artikels per maand)", alleActief, e),
+  ].filter((r): r is PlekRegel => !!r)]));
+  const zoek = Object.fromEntries(eigen.map((e) => [e.domein, zoekSamenvatting(eigenPos.rijen, eigenPos.termen, e.domein)]));
+  const termen = Object.keys(perTerm);
+  // De proefomgeving is een kopie van de live site: niet optellen.
+  const eigenLive = eigen.filter((e) => !PROEF_SITES.includes(e.domein));
+  const somOmvang = eigenLive.reduce((t, e) => t + (e.omvang || 0), 0);
 
   const bronnen = [
     {
@@ -212,6 +247,17 @@ export default async function ArchitectuurConcurrentiePage({
 
       {/* ------------------------------------------------------------------ */}
       <section id="leaders" className="scroll-mt-36 pt-8">
+        <OnzePlek
+          markt={MARKT}
+          sites={eigen}
+          regels={plekken}
+          zoek={zoek}
+          positieDatum={eigenPos.datum}
+          gsc={eigenGsc}
+          gscOpgehaald={gscCijfers.metingen > 0}
+          proef={PROEF_SITES}
+        />
+
         <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {bronnen.map((b) => (
             <div key={b.naam} className="flex items-start gap-2 rounded-lg border border-zinc-200 bg-white p-3">
@@ -269,8 +315,11 @@ export default async function ArchitectuurConcurrentiePage({
           </p>
         </form>
 
-        <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
-          <div className="font-medium text-zinc-800">Hoe deze lijst tot stand komt</div>
+        <details className="opklap mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
+          <summary className="flex items-center justify-between gap-2 font-medium text-zinc-800">
+            Hoe deze lijst tot stand komt
+            <svg className="pijl" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" /></svg>
+          </summary>
           <p className="mt-1">
             Anders dan bij stabiliteit bestaat hier wél een register: elke architect in België moet
             ingeschreven zijn bij de Orde van Architecten, en de Orde publiceert dat register.{" "}
@@ -286,9 +335,9 @@ export default async function ArchitectuurConcurrentiePage({
             website op; {num(reg.zonder_domein)} hebben geen enkel eigen domein en zijn online dus
             onvindbaar.
           </p>
-        </div>
+        </details>
 
-        <Card title={`Wie leidt er online${heeftRegio ? ` in ${gebied}` : ""}`}>
+        <Blok titel={`Wie leidt er online${heeftRegio ? ` in ${gebied}` : ""}`}>
           {leaderboard.length > 0 && !heeftRegio ? (
             <>
               <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-xs">
@@ -302,9 +351,10 @@ export default async function ArchitectuurConcurrentiePage({
                   {toonAlles ? "Verberg overheid en portalen" : "Toon ook overheid en portalen"}
                 </a>
               </div>
+              <Ingekort totaal={termen.length} start={4} wat="zoektermen">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {Object.entries(perTerm).map(([term, rijen]) => (
-                  <div key={term} className="rounded-lg border border-zinc-200 p-3">
+                {Object.entries(perTerm).map(([term, rijen], i) => (
+                  <div key={term} {...extra(i, 4)} className="rounded-lg border border-zinc-200 p-3">
                     <div className="truncate text-sm font-medium text-zinc-800" title={term}>{term}</div>
                     <div className="mb-2 text-[11px] text-zinc-400">
                       {rijen[0].volume ? `${num(rijen[0].volume)} zoekopdrachten/maand` : rijen[0].thema}
@@ -327,6 +377,7 @@ export default async function ArchitectuurConcurrentiePage({
                   </div>
                 ))}
               </div>
+              </Ingekort>
             </>
           ) : (
             <>
@@ -400,10 +451,12 @@ export default async function ArchitectuurConcurrentiePage({
                 Onze eigen posities volgens Google — Search Console,{" "}
                 {gscCijfers.datum?.split("-").reverse().join("/")}
               </div>
+              <Ingekort totaal={onzePosities.length} start={5} wat="termen">
+              <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <tbody>
-                  {onzePosities.map((r) => (
-                    <tr key={r.site + r.term} className="border-b border-zinc-100 last:border-0">
+                  {onzePosities.map((r, i) => (
+                    <tr key={r.site + r.term} {...extra(i, 5)} className="border-b border-zinc-100 last:border-0">
                       <td className="py-1 pr-4">
                         <a href={r.url} target="_blank" rel="noreferrer noopener"
                            className="text-zinc-700 hover:text-blue-700 hover:underline">{r.term}</a>
@@ -424,26 +477,24 @@ export default async function ArchitectuurConcurrentiePage({
                   ))}
                 </tbody>
               </table>
+              </div>
+              </Ingekort>
             </div>
           )}
 
-          <div className="mt-3 flex items-baseline gap-2 rounded-lg bg-zinc-50 p-3 text-xs text-zinc-600">
-            <span className="font-medium text-zinc-700">Wij:</span>
-            <span>
-              {wij
-                ? `${num(wij.omvang || 0)} ${wij.omvang === 1 ? "ontwerppagina" : "ontwerppagina's"}, ` +
-                  `${num(wij.blog_artikels || 0)} ${wij.blog_artikels === 1 ? "artikel" : "artikels"}`
-                : "nog niet gemeten"}{" "}
-              op {ONS_DOMEIN}
-            </span>
-          </div>
-        </Card>
+          <EigenSitesKaartjes
+            markt={MARKT}
+            sites={eigen}
+            plek={plekOmvang}
+            maat={(n) => (n === 1 ? "ontwerppagina" : "ontwerppagina's")}
+          />
+        </Blok>
       </section>
 
       {/* ------------------------------------------------------------------ */}
       <section id="regio" className="scroll-mt-36 pt-8">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card title="Het register per provincie">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Blok titel="Het register per provincie">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -478,9 +529,10 @@ export default async function ArchitectuurConcurrentiePage({
               vennoten en een BV staat er vier keer in. Wie de markt in bureaus wil tellen, kijkt
               naar het aantal domeinen — dat is ook wat wij crawlen.
             </p>
-          </Card>
+          </Blok>
 
-          <Card title={`Drukste gemeenten${provincie ? ` in ${provincie}` : ""}`}>
+          <Blok titel={`Drukste gemeenten${provincie ? ` in ${provincie}` : ""}`} aantal={`${perGemeente.length} gemeenten`}>
+            <Ingekort totaal={perGemeente.length} start={10} wat="gemeenten">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -491,8 +543,8 @@ export default async function ArchitectuurConcurrentiePage({
                   </tr>
                 </thead>
                 <tbody>
-                  {perGemeente.map((g) => (
-                    <tr key={g.gemeente} className="border-b border-zinc-100 last:border-0">
+                  {perGemeente.map((g, i) => (
+                    <tr key={g.gemeente} {...extra(i, 10)} className="border-b border-zinc-100 last:border-0">
                       <td className="py-1.5 pr-3">
                         {provincie ? (
                           <a href={link({ gemeente: g.gemeente })}
@@ -510,6 +562,7 @@ export default async function ArchitectuurConcurrentiePage({
                 </tbody>
               </table>
             </div>
+            </Ingekort>
             <p className="mt-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
               {provincie
                 ? "Klik een gemeente om de hele pagina daarop te zetten."
@@ -524,7 +577,7 @@ export default async function ArchitectuurConcurrentiePage({
               loondienst, zonder eigen bureau. Van de domeinen die wij volgen heeft 97 % wél een
               gemeente.
             </p>
-          </Card>
+          </Blok>
         </div>
       </section>
 
@@ -548,9 +601,9 @@ export default async function ArchitectuurConcurrentiePage({
             sub={k.gemeten ? `van ${num(k.gemeten)} sites — laatste 90 dagen` : undefined}
           />
           <Kpi
-            label="Onze omvang"
-            value={num(wij?.omvang || 0)}
-            sub={`ontwerppagina's op ${ONS_DOMEIN}`}
+            label="Onze omvang, samen"
+            value={num(somOmvang)}
+            sub={eigenLive.map((e) => `${e.domein} ${num(e.omvang || 0)}`).join(" · ")}
           />
         </div>
 
@@ -569,8 +622,9 @@ export default async function ArchitectuurConcurrentiePage({
           </div>
         )}
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <Card title={`Grootst online in ontwerpwerk${heeftRegio ? ` — ${gebied}` : ""}`}>
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Blok titel={`Grootst online in ontwerpwerk${heeftRegio ? ` — ${gebied}` : ""}`} aantal={`top ${sterkste.length}`}>
+            <Ingekort totaal={sterkste.length} start={10} wat="bureaus">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -583,8 +637,8 @@ export default async function ArchitectuurConcurrentiePage({
                   </tr>
                 </thead>
                 <tbody>
-                  {sterkste.map((b) => (
-                    <tr key={b.domein} className="border-b border-zinc-100 last:border-0">
+                  {sterkste.map((b, i) => (
+                    <tr key={b.domein} {...extra(i, 10)} className="border-b border-zinc-100 last:border-0">
                       <td className="py-1.5 pr-3">
                         <a href={`https://${b.domein}`} target="_blank" rel="noreferrer noopener"
                            className="text-zinc-800 hover:text-blue-700 hover:underline">{b.naam || b.domein}</a>
@@ -601,14 +655,15 @@ export default async function ArchitectuurConcurrentiePage({
                 </tbody>
               </table>
             </div>
+            </Ingekort>
             <p className="mt-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
               Gerangschikt op pagina&rsquo;s over ontwerpwerk, niet op het totale aantal
               pagina&rsquo;s. Een architectensite bestaat vaak grotendeels uit projectfoto&rsquo;s;
               die tellen hier niet mee.
             </p>
-          </Card>
+          </Blok>
 
-          <Card title="Wie er nog beweegt">
+          <Blok titel="Wie er nog beweegt" aantal={actiefste.length ? `top ${actiefste.length}` : undefined}>
             {actiefste.length === 0 ? (
               <p className="text-sm text-zinc-500">
                 Geen enkel bureau in dit gebied publiceerde het afgelopen jaar. Bij architecten is
@@ -650,40 +705,33 @@ export default async function ArchitectuurConcurrentiePage({
                 </p>
               </>
             )}
-          </Card>
+          </Blok>
         </div>
 
         <div className="mt-4">
-          <Card title="Onze eigen site">
-            {wij ? (
-              <dl className="grid gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
-                <div className="flex justify-between"><dt className="text-zinc-500">Pagina&rsquo;s</dt>
-                  <dd className="font-medium"><Paginas n={wij.paginas} sitemap={wij.heeft_sitemap} /></dd></div>
-                <div className="flex justify-between"><dt className="text-zinc-500">Waarvan over ontwerpwerk</dt>
-                  <dd className="font-medium">{num(wij.omvang || 0)}</dd></div>
-                <div className="flex justify-between"><dt className="text-zinc-500">Blogartikels</dt>
-                  <dd className="font-medium">{num(wij.blog_artikels || 0)}</dd></div>
-                <div className="flex justify-between"><dt className="text-zinc-500">Laatste publicatie</dt>
-                  <dd className="font-medium"><Datum d={wij.laatste_blog} href={wij.laatste_blog_url} /></dd></div>
-                <div className="flex justify-between"><dt className="text-zinc-500">Laadtijd</dt>
-                  <dd className="font-medium">{wij.ttfb_ms ? `${num(wij.ttfb_ms)} ms` : "—"}</dd></div>
-                <div className="flex justify-between"><dt className="text-zinc-500">CMS</dt>
-                  <dd className="font-medium">{wij.cms || "—"}</dd></div>
-              </dl>
-            ) : (
-              <p className="text-sm text-zinc-500">{ONS_DOMEIN} is nog niet gemeten.</p>
-            )}
+          <Blok titel="Onze sites tegenover de markt" aantal={`${eigen.length} sites`}>
+            <EigenSitesTabel
+              markt={MARKT}
+              sites={eigen}
+              maatKort="Ontwerppag."
+              plek={plekOmvang}
+              top={sterkste[0]}
+              gemiddelde={k.gem_omvang}
+              proef={PROEF_SITES}
+            />
             <p className="mt-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
-              De proefomgeving h-architects.globaal.be wordt apart meegemeten. Het verschil tussen
-              die twee is wat er nog te publiceren valt.
+              De proefomgeving h-architects.globaal.be wordt apart meegemeten maar niet opgeteld. Het
+              verschil tussen die twee is wat er nog te publiceren valt. De nummer één van de markt
+              {heeftRegio ? ` in ${gebied}` : ""} en het gemiddelde staan eronder als maatstok.
             </p>
-          </Card>
+          </Blok>
         </div>
       </section>
 
       {/* ------------------------------------------------------------------ */}
       <section id="concurrenten" className="scroll-mt-36 pt-8">
-        <Card title={`Concurrenten — ${num(concurrenten.length)} bureaus in ${gebied}`}>
+        <Blok titel={`Concurrenten in ${gebied}`} aantal={`${num(concurrenten.length)} bureaus`}>
+          <Ingekort totaal={concurrenten.length} start={10} wat="bureaus">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -700,8 +748,8 @@ export default async function ArchitectuurConcurrentiePage({
                 </tr>
               </thead>
               <tbody>
-                {concurrenten.map((c) => (
-                  <tr key={c.domein} className="border-b border-zinc-100 last:border-0 align-top">
+                {concurrenten.map((c, i) => (
+                  <tr key={c.domein} {...extra(i, 10)} className="border-b border-zinc-100 last:border-0 align-top">
                     <td className="py-2 pr-4 last:pr-0">
                       <div className="font-medium text-zinc-800">{c.naam}</div>
                       <a href={`https://${c.domein}`} target="_blank" rel="noreferrer noopener"
@@ -738,6 +786,7 @@ export default async function ArchitectuurConcurrentiePage({
               </tbody>
             </table>
           </div>
+          </Ingekort>
           <p className="mt-3 text-xs text-zinc-500">
             Hier staat de architect niet als klant maar als concurrent — dat is het spiegelbeeld van
             de Engineering-pagina, waar een architect juist een lead voor onderaanneming is.
@@ -748,18 +797,19 @@ export default async function ArchitectuurConcurrentiePage({
             indeling niet, zet ze dan recht met de knopjes rechts; dat oordeel gaat vóór op de
             automatiek en blijft staan.
           </p>
-        </Card>
+        </Blok>
       </section>
 
       {/* ------------------------------------------------------------------ */}
       <section id="nakijken" className="scroll-mt-36 pt-8">
-        <Card title={`Nakijken — ${num(rest.length)} sites die de automatiek buiten de markt hield`}>
+        <Blok titel="Nakijken — sites die de automatiek buiten de markt hield" aantal={`${num(rest.length)} sites`} open={false}>
           <p className="mb-4 text-sm text-zinc-600">
             Deze sites komen in onze zoekresultaten voor, maar tellen niet mee als concurrent. De
             indeling komt uit de domeinnaam en uit wat de site over zichzelf zegt in zijn titel.
             Zit er een echt bureau tussen, zet het dan hier recht; het verschuift meteen naar de
             lijst hierboven, en dat oordeel blijft staan.
           </p>
+          <Ingekort totaal={rest.length} start={15} wat="sites">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -772,8 +822,8 @@ export default async function ArchitectuurConcurrentiePage({
                 </tr>
               </thead>
               <tbody>
-                {rest.map((c) => (
-                  <tr key={c.domein} className="border-b border-zinc-100 last:border-0">
+                {rest.map((c, i) => (
+                  <tr key={c.domein} {...extra(i, 15)} className="border-b border-zinc-100 last:border-0">
                     <td className="py-2 pr-4 last:pr-0">
                       <div className="font-medium text-zinc-800">{c.naam}</div>
                       <a href={`https://${c.domein}`} target="_blank" rel="noreferrer noopener"
@@ -806,16 +856,18 @@ export default async function ArchitectuurConcurrentiePage({
               </tbody>
             </table>
           </div>
-        </Card>
+          </Ingekort>
+        </Blok>
       </section>
 
       {/* ------------------------------------------------------------------ */}
       <section id="diensten" className="scroll-mt-36 pt-8">
-        <Card title="Dienstendekking — wat biedt de markt aan, en waar zit het gat">
+        <Blok titel="Dienstendekking — wat biedt de markt aan en waar zit het gat" aantal={`${diensten.length} diensten`}>
+          <Ingekort totaal={diensten.length} start={10} wat="diensten">
           <div className="space-y-2.5">
-            {diensten.map((d) => (
-              <div key={d.dienst} className="flex items-center gap-3">
-                <div className="w-52 shrink-0 text-sm text-zinc-700">{d.dienst}</div>
+            {diensten.map((d, i) => (
+              <div key={d.dienst} {...extra(i, 10)} className="flex items-center gap-3">
+                <div className="w-32 shrink-0 text-sm text-zinc-700 sm:w-52">{d.dienst}</div>
                 <div className="h-2 flex-1 rounded bg-zinc-100">
                   <div className="h-2 rounded bg-emerald-600" style={{ width: `${d.aandeel * 100}%` }} />
                 </div>
@@ -825,22 +877,25 @@ export default async function ArchitectuurConcurrentiePage({
               </div>
             ))}
           </div>
+          </Ingekort>
           <p className="mt-4 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
             Herkend op basis van de homepage en de URL-structuur van de sites in dit gebied.
             Regularisatie en aankoopbegeleiding zijn de twee diensten om hier goed naar te kijken:
             noemt bijna niemand ze, dan is dat onze opening — en niet een teken dat er geen vraag is.
           </p>
-        </Card>
+        </Blok>
 
         {herschrijf.length > 0 && (
           <div className="mt-4">
-            <Card title="Herschrijfkansen — overheid en portalen die onze zoektermen bezetten">
+            <Blok titel="Herschrijfkansen — overheid en portalen die onze zoektermen bezetten" aantal={`${herschrijf.length} pagina's`}>
               <p className="mb-3 text-sm text-zinc-600">
                 Geen concurrenten, maar wel de pagina&rsquo;s waarvan Google vindt dat ze bij deze
                 zoektermen horen. Op vergunningstermen is dat bijna altijd een overheidspagina in
                 ambtelijke taal — precies waar een architect een duidelijker antwoord tegenover kan
                 zetten.
               </p>
+              <Ingekort totaal={herschrijf.length} start={5} wat="pagina's">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-400">
@@ -852,7 +907,7 @@ export default async function ArchitectuurConcurrentiePage({
                 </thead>
                 <tbody>
                   {herschrijf.map((h, i) => (
-                    <tr key={h.term + i} className="border-b border-zinc-100 last:border-0">
+                    <tr key={h.term + i} {...extra(i, 5)} className="border-b border-zinc-100 last:border-0">
                       <td className="py-2 pr-4 text-zinc-800">{h.term}</td>
                       <td className="py-2 pr-4 whitespace-nowrap text-right tabular-nums text-zinc-600">
                         {h.volume ? num(h.volume) : <span className="text-zinc-300">—</span>}
@@ -870,14 +925,16 @@ export default async function ArchitectuurConcurrentiePage({
                   ))}
                 </tbody>
               </table>
-            </Card>
+              </div>
+              </Ingekort>
+            </Blok>
           </div>
         )}
       </section>
 
       {/* ------------------------------------------------------------------ */}
       <section id="zoekwoorden" className="scroll-mt-36 pt-8">
-        <Card title={`Zoekwoorden — ${num(zwStatus.termen)} termen die deze markt afbakenen`}>
+        <Blok titel="Zoekwoorden — de termen die deze markt afbakenen" aantal={`${num(zwStatus.termen)} termen`}>
           {!bron.klaar && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               <div className="font-medium">Nog geen positiemeting — leaderboard blijft leeg</div>
@@ -912,6 +969,7 @@ export default async function ArchitectuurConcurrentiePage({
             </div>
           )}
 
+          <Ingekort totaal={zoekwoorden.length} start={10} wat="termen">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -926,8 +984,8 @@ export default async function ArchitectuurConcurrentiePage({
                 </tr>
               </thead>
               <tbody>
-                {zoekwoorden.map((z) => (
-                  <tr key={z.term} className="border-b border-zinc-100 last:border-0">
+                {zoekwoorden.map((z, i) => (
+                  <tr key={z.term} {...extra(i, 10)} className="border-b border-zinc-100 last:border-0">
                     <td className="py-2 pr-4 last:pr-0 text-zinc-800">{z.term}</td>
                     <td className="py-2 pr-4 last:pr-0 text-zinc-500">{z.thema}</td>
                     <td className="py-2 pr-4 last:pr-0">
@@ -959,21 +1017,24 @@ export default async function ArchitectuurConcurrentiePage({
               </tbody>
             </table>
           </div>
+          </Ingekort>
 
           <p className="mt-3 text-xs text-zinc-500">
             De lijst staat in <code>config/zoekwoorden-architectuur.json</code> — termen bijzetten
             kan zonder code. Het kale woord &ldquo;architect&rdquo; staat er bewust niet in: die
             zoekopdracht is half informatief en half vacature, en zegt niets over een dossier.
           </p>
-        </Card>
+        </Blok>
 
         {adverteerders.length > 0 && (
           <div className="mt-4">
-            <Card title="Wie adverteert er op onze termen">
+            <Blok titel="Wie adverteert er op onze termen" aantal={`${adverteerders.length} adverteerders`}>
+              <Ingekort totaal={adverteerders.length} start={5} wat="adverteerders">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <tbody>
-                  {adverteerders.map((a) => (
-                    <tr key={a.domein} className="border-b border-zinc-100 last:border-0">
+                  {adverteerders.map((a, i) => (
+                    <tr key={a.domein} {...extra(i, 5)} className="border-b border-zinc-100 last:border-0">
                       <td className="py-1.5 pr-4 last:pr-0 text-zinc-800">{a.naam}</td>
                       <td className="py-1.5 pr-4 last:pr-0 text-xs text-blue-600">{a.domein}</td>
                       <td className="py-1.5 pr-4 last:pr-0 whitespace-nowrap text-right text-zinc-600">{num(a.termen)} termen</td>
@@ -981,18 +1042,20 @@ export default async function ArchitectuurConcurrentiePage({
                   ))}
                 </tbody>
               </table>
+              </div>
+              </Ingekort>
               <p className="mt-3 text-xs text-zinc-500">
                 Dit toont wie er adverteert, niet wat zij uitgeven. Geschatte budgetten horen niet
                 als feit in een dashboard.
               </p>
-            </Card>
+            </Blok>
           </div>
         )}
       </section>
 
       {/* ------------------------------------------------------------------ */}
       <section id="signalen" className="scroll-mt-36 pb-12 pt-8">
-        <Card title="Signalen — wat er veranderd is sinds de vorige controle">
+        <Blok titel="Signalen — wat er veranderd is sinds de vorige controle" aantal={`${signalen.length} signalen`}>
           {signalen.length === 0 ? (
             <p className="text-sm text-zinc-500">
               Nog geen signalen voor deze markt. De eerste meting van een site legt alleen de
@@ -1000,9 +1063,10 @@ export default async function ArchitectuurConcurrentiePage({
               nieuwe pagina&rsquo;s.
             </p>
           ) : (
+            <Ingekort totaal={signalen.length} start={10} wat="signalen">
             <ul className="divide-y divide-zinc-100">
-              {signalen.map((s) => (
-                <li key={s.id} className="flex items-start gap-3 py-2.5">
+              {signalen.map((s, i) => (
+                <li key={s.id} {...extra(i, 10)} className="flex items-start gap-3 py-2.5">
                   <span className={
                     "mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium " +
                     (s.soort === "nieuwe-blog" ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-600")
@@ -1018,8 +1082,9 @@ export default async function ArchitectuurConcurrentiePage({
                 </li>
               ))}
             </ul>
+            </Ingekort>
           )}
-        </Card>
+        </Blok>
       </section>
     </main>
   );

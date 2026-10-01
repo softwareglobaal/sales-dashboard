@@ -522,12 +522,19 @@ export async function crawlDomeinen(domeinen: string[]) {
 /** Onze eigen sites. Staan niet in het register, maar moeten wél meegemeten worden. */
 export const EIGEN_DOMEINEN = [
   { domein: "energie-efficient.be", naam: "Energie-Efficient (wij)", markten: ["energie"] },
+  // De tweede EPB-site, voor particulieren die met een boete zitten (live sinds 9
+  // september 2026). Stond tot oktober als gewone SERP-vondst in de lijst en telde
+  // daardoor als concurrent op de Energie-pagina.
+  { domein: "epb-boete.be", naam: "EPB-boete.be (wij)", markten: ["energie"] },
   // unabo.be draagt beide afdelingen: EPB én de stabiliteitsstudies. Sinds september
   // 2026 ook regularisatie: UNABO is de uitgever van regulariseren.be, adverteert als
   // enige van de groep op de kerntermen en krijgt de SEA-landingspagina. De crawl
   // vond er al vier regularisatiepagina's; expliciet opnemen houdt het domein in de
   // markt ook als dat aantal onder de crawldrempel zakt.
   { domein: "unabo.be", naam: "Unabo (wij)", markten: ["energie", "engineering", "regularisatie"] },
+  // TKN-Buro valt onder Engineering (stabiliteit en meetstaten). Kwam via de
+  // zoekresultaten binnen en stond daardoor als "concurrent" in de stabiliteitsmarkt.
+  { domein: "tkn-buro.be", naam: "TKN-Buro (wij)", markten: ["engineering"] },
   // h-architects.be draagt ook regularisatie: acht pagina's over bouwovertredingen,
   // en daarmee de sterkste interne concurrent van regulariseren.be.
   { domein: "h-architects.be", naam: "H-Architects (wij)", markten: ["architectuur", "regularisatie"] },

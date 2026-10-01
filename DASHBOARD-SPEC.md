@@ -316,8 +316,8 @@ Vierde markt op dezelfde motor, onder `/regularisatie/concurrentie`. Onderwerp:
 bewust zonder link naar elkaar (doorway-beleid, zie de contentstrategie regularisatie):
 `regulariseren.be` (de specialist, uitgever UNABO, uitvoerder H-Architects),
 `mijnregularisatie.be` (de zelfcheck) en `h-architects.be` (het moederbureau, met acht
-eigen regularisatiepagina's). regulariseren.be is de maat op de pagina; in het leaderboard
-telt de hele groep als "wij" — twee eigen sites in één top 5 is geen dubbele winst maar een
+eigen regularisatiepagina's). Elke eigen site krijgt een eigen vergelijking (zie §14b); in het
+leaderboard telt de hele groep als "wij" — twee eigen sites in één top 5 is geen dubbele winst maar een
 teken dat ze elkaar beconcurreren.
 
 **Geen register, wel een startlijst.** Iedere architect mag regulariseren en niet alleen
@@ -396,6 +396,55 @@ plaats van "regularisatie geweigerd" zonder volume). De stads- en prijstermen zo
 blijven staan om te zien wie er rankt, maar komen door de volgorde op volume nooit in de
 meting. Nu 57 termen; het SERP-quotum verandert niet, want de limiet van 15 per meting
 bepaalt het verbruik, niet de lengte van de lijst.
+
+## 14b. Concurrentie: onze plek en opklapbare blokken (oktober 2026)
+
+Feedback van Siyan op de vier concurrentiepagina's (Energie, Engineering, Architectuur,
+Regularisatie): één "wij"-regel zegt te weinig als er drie eigen sites in een markt spelen,
+en de pagina's waren eindeloos scrollen.
+
+**Wie "wij" is.** `ONZE_SITES` in `lib/concurrentieQueries.ts` bepaalt per markt welke
+sites "wij" zijn, in de volgorde van de pagina; `EIGEN_DOMEINEN` in `lib/concurrentie.ts`
+zet de categorie `eigen` in de databank. Beide lijsten blijven gelijk. Erbij gekomen:
+`epb-boete.be` (Energie) en `tkn-buro.be` (Engineering). Die twee kwamen eerder via de
+zoekresultaten binnen en stonden daardoor als concurrent in de lijsten. Een eigen site wordt
+nu op domein én op categorie uit elke concurrentenlijst geweerd (`nietEigen()`), zodat dat
+ook klopt vóór de volgende registerimport de categorie zet; `herclassificeerSerpDomeinen()`
+blijft van eigen domeinen af. Energie: energie-efficient.be, unabo.be, epb-boete.be.
+Engineering: unabo.be, tkn-buro.be. Architectuur: h-architects.be plus de proefomgeving
+(meegemeten, nooit opgeteld, niet in Google). Regularisatie: regulariseren.be,
+mijnregularisatie.be, h-architects.be, unabo.be.
+
+**Onze plek.** Bovenaan elke concurrentiepagina staat een klein paneel met één kaartje per
+eigen site: de plaats in elke ranglijst van die pagina, plus de zoekposities. De ranglijsten
+tonen alleen concurrenten, dus een eigen site staat er nooit in; het paneel zegt dat
+expliciet ("niet in de lijst") en geeft de plek die de site zou hebben als je hem meetelt,
+met exact dezelfde sorteersleutel als de lijst (Sterkst/Grootst online: omvang in de markt,
+dan artikels; Energie-concurrenten: omvang, dan verslaggevers; Meeste mensen in dienst:
+verslaggevers; Wie er nog beweegt: artikels per maand, alleen wie het afgelopen jaar
+publiceerde). Rangschikking zoals in een klassement: 1 + het aantal sites dat strikt beter
+scoort, gelijke stand deelt de plek. In het Google-leaderboard (top 5 per term) staat een
+eigen site wél zodra hij hoog genoeg rankt; staat hij er niet in, dan toont het paneel zijn
+beste echte positie buiten die top 5 (de meting gaat tot #10). Zoekposities per site: hoeveel
+gemeten termen in de top 3 en de top 10 staan plus de beste term, uit dezelfde SERP-meting als het
+leaderboard; daaronder hetzelfde uit Search Console (28 dagen, beste term = laagste
+gemiddelde positie bij minstens tien vertoningen). De rekenregels staan in `lib/onzePlek.ts`;
+de pagina haalt de volledige ranglijst op en toont er de top van.
+
+**Vergelijking per site.** De "Wij"-regel onder het leaderboard werd een rij kaartjes, één per
+eigen site, met dezelfde cijfers als de top 5 erboven. "Onze eigen site" werd de tabel
+"Onze sites tegenover de markt": één rij per eigen site met de nummer één van de markt en het
+gemiddelde eronder als maatstok. De KPI "Onze omvang" is de som over de live sites, met elke
+site in de onderregel.
+
+**Opklapbare blokken.** Elk paneel klapt open en dicht met zijn kop (native `<details>`,
+component `Blok`), met het aantal als chip in de kop. Lange lijsten tonen standaard een korte
+versie met een knop "Toon alle …" (client-component `Ingekort`; rijen voorbij de grens dragen
+`data-extra`): leaderboard 4 termen, ranglijsten en tabellen 10, eigen Search Console-termen,
+herschrijfkansen en adverteerders 5, Nakijken 15. Nakijken en "Hoe deze lijst tot stand
+komt" staan standaard dicht. Open- en dichtklappen raakt geen URL-parameter, dus `toon`,
+`provincie` en `gemeente` blijven werken zoals voorheen. Op een gsm van 375 px scrollt de
+pagina niet horizontaal; brede tabellen scrollen binnen hun eigen kader.
 
 ## 15. Projectenlijst H-Architects (vervallen 30 september 2026)
 
