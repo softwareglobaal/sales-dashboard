@@ -63,7 +63,11 @@ async function syncPersons(account: Account): Promise<number> {
   const db = getDb();
   const metaKey = `personen:${account.key}`;
   const laatste = (db.prepare("SELECT last_sync FROM sync_meta WHERE account_key = ?").get(metaKey) as any)?.last_sync;
-  if (laatste && Date.now() - Date.parse(laatste) < PERSONEN_NA_MS) return 0;
+  // Toch meteen ophalen als de tabel voor dit account leeg is of nog geen e-mailadressen
+  // heeft (personen van vóór de agenda-koppeling): anders wacht de koppeling een dag.
+  const stand = db.prepare("SELECT COUNT(*) n, SUM(CASE WHEN emails IS NULL THEN 1 ELSE 0 END) leeg FROM persons WHERE account_key = ?").get(account.key) as any;
+  const volledig = (stand?.n || 0) > 0 && (stand?.leeg || 0) === 0;
+  if (laatste && Date.now() - Date.parse(laatste) < PERSONEN_NA_MS && volledig) return 0;
   const rows = await fetchPersonGenders(account);
   const insert = db.prepare("INSERT OR REPLACE INTO persons (account_key, id, gender, naam, emails) VALUES (?, ?, ?, ?, ?)");
   const tx = db.transaction(() => {
