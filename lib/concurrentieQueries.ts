@@ -178,12 +178,16 @@ function echteConcurrent(markt: Markt, alias = "c"): string {
 }
 
 /**
- * Onze eigen sites per markt. unabo.be draagt beide afdelingen; het is dus geen
- * fout dat dat domein twee keer voorkomt.
+ * Onze eigen sites per markt. unabo.be draagt meerdere afdelingen; het is dus geen
+ * fout dat dat domein meer dan één keer voorkomt. Houd deze lijst gelijk met
+ * `EIGEN_DOMEINEN` in lib/concurrentie.ts: die zet de categorie "eigen" in de
+ * databank, deze lijst bepaalt wie op de pagina "wij" is. De volgorde is de
+ * volgorde op de pagina (hoofdsite eerst).
  */
-const ONZE_SITES: Record<Markt, string[]> = {
-  energie: ["energie-efficient.be", "unabo.be"],
-  engineering: ["unabo.be"],
+export const ONZE_SITES: Record<Markt, string[]> = {
+  energie: ["energie-efficient.be", "unabo.be", "epb-boete.be"],
+  // TKN-Buro valt onder Engineering: stabiliteit en meetstaten.
+  engineering: ["unabo.be", "tkn-buro.be"],
   // h-architects.globaal.be is de proefomgeving. Die meten we mee, maar hij mag
   // nooit als "onze positie" in Google gelden -- daar staat hij niet in.
   architectuur: ["h-architects.be", "h-architects.globaal.be"],
@@ -194,6 +198,22 @@ const ONZE_SITES: Record<Markt, string[]> = {
   // is dat een positie van de groep.
   regularisatie: ["regulariseren.be", "mijnregularisatie.be", "h-architects.be", "unabo.be"],
 };
+
+/** Eigen sites die niet in Google horen te staan (proefomgevingen). */
+export const PROEF_SITES = ["h-architects.globaal.be"];
+
+/**
+ * Alle eigen domeinen, over de markten heen. Een eigen site is nooit een
+ * concurrent, ook niet in een markt waar hij niet als "wij" meetelt (tkn-buro.be
+ * rankt ook op EPB-termen). We sluiten ze uit op domein én op categorie: de
+ * categorie "eigen" wordt pas bij de volgende registerimport gezet; een site die
+ * eerst via de zoekresultaten binnenkwam staat tot dan als "concurrent".
+ */
+const ALLE_EIGEN = [...new Set([...Object.values(ONZE_SITES).flat(), ...PROEF_SITES])];
+
+function nietEigen(alias = "c"): string {
+  return `(${alias}.categorie <> 'eigen' AND ${alias}.domein NOT IN (${ALLE_EIGEN.map((d) => `'${d}'`).join(",")}))`;
+}
 
 export function concurrentieHeeftData(markt: Markt = "energie"): boolean {
   const db = getDb();
@@ -236,10 +256,10 @@ export function getMarktKpis(markt: Markt = "energie", regio: RegioFilter = {}) 
     SELECT
       ${registerSql}
       (SELECT COUNT(*) FROM concurrenten c ${OORDEEL_JOIN}
-        WHERE c.categorie<>'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql})       AS bedrijven,
+        WHERE ${nietEigen()} AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql})       AS bedrijven,
       (SELECT COUNT(*) FROM concurrenten c ${OORDEEL_JOIN}
-        WHERE c.categorie<>'eigen' AND ${inMarkt(markt)} AND NOT (${echteConcurrent(markt)}) ${r.sql}) AS geen_concurrent,
-      (SELECT COUNT(*) FROM concurrenten c WHERE categorie='concurrent' AND ${inMarkt(markt)} ${r.sql}) AS concurrenten,
+        WHERE ${nietEigen()} AND ${inMarkt(markt)} AND NOT (${echteConcurrent(markt)}) ${r.sql}) AS geen_concurrent,
+      (SELECT COUNT(*) FROM concurrenten c WHERE categorie='concurrent' AND ${nietEigen()} AND ${inMarkt(markt)} ${r.sql}) AS concurrenten,
       (SELECT COUNT(*) FROM concurrenten c WHERE categorie='prospect' AND ${inMarkt(markt)} ${r.sql})   AS prospects
   `).get(
     // Drie subquery's over het register (alleen als er een register is), daarna
@@ -268,7 +288,9 @@ export function getMarktKpis(markt: Markt = "energie", regio: RegioFilter = {}) 
 export function getConcurrenten(categorie?: string, markt: Markt = "energie"): ConcurrentRij[] {
   const db = getDb();
   const omvang = omvangKolom(markt);
-  const waar = categorie ? "WHERE c.categorie = ?" : "";
+  // Met een categorie gevraagd is het een lijst van anderen: eigen sites eruit,
+  // ook als hun categorie in de databank nog niet op "eigen" staat.
+  const waar = categorie ? `WHERE c.categorie = ? AND ${nietEigen()}` : "";
   const sql = `
     SELECT c.domein, c.naam, c.categorie, c.verslaggevers, c.architecten,
            c.provincie, c.gemeente, c.laatste_check,
@@ -305,8 +327,8 @@ export function getConcurrentenInMarkt(
     soort === "eigen"
       ? "AND c.categorie = 'eigen'"
       : soort === "rest"
-        ? `AND c.categorie <> 'eigen' AND NOT (${echteConcurrent(markt)})`
-        : `AND c.categorie <> 'eigen' AND ${echteConcurrent(markt)}`;
+        ? `AND ${nietEigen()} AND NOT (${echteConcurrent(markt)})`
+        : `AND ${nietEigen()} AND ${echteConcurrent(markt)}`;
   return db.prepare(`
     SELECT c.domein, c.naam, ${categorieExpr()} AS categorie, c.verslaggevers, c.architecten,
            c.provincie, c.gemeente, c.laatste_check,
@@ -329,6 +351,7 @@ export type BureauRij = {
   naam: string; domein: string; verslaggevers: number; architecten: number;
   provincie: string; gemeente: string;
   paginas: number | null; epb_paginas: number | null; omvang: number | null; blog_artikels: number | null;
+  blog_per_maand: number | null;
   laatste_blog: string | null; laatste_blog_url: string | null;
   bereikbaar: number | null; heeft_sitemap: number | null; spam_verdacht: number | null;
 };
@@ -336,7 +359,7 @@ export type BureauRij = {
 const bureauKolommen = (markt: Markt) => `
   c.naam, c.domein, c.verslaggevers, c.architecten, c.provincie, c.gemeente,
   s.paginas, s.epb_paginas, s.${omvangKolom(markt)} AS omvang,
-  s.blog_artikels, s.laatste_blog, s.laatste_blog_url,
+  s.blog_artikels, s.blog_per_maand, s.laatste_blog, s.laatste_blog_url,
   s.bereikbaar, s.heeft_sitemap, s.spam_verdacht
 `;
 
@@ -353,7 +376,7 @@ export function getSterksteOnline(limiet = 15, markt: Markt = "energie", regio: 
     FROM concurrenten c
     ${OORDEEL_JOIN}
     JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
-    WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql}
+    WHERE ${nietEigen()} AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql}
     ORDER BY COALESCE(s.${omvangKolom(markt)},0) DESC, COALESCE(s.blog_artikels,0) DESC
     LIMIT ?
   `).all(...r.params, limiet) as BureauRij[];
@@ -366,7 +389,7 @@ export function getGrootsteBureaus(limiet = 10): BureauRij[] {
     SELECT ${bureauKolommen("energie")}
     FROM concurrenten c
     LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
-    WHERE c.categorie <> 'eigen'
+    WHERE ${nietEigen()}
     ORDER BY c.verslaggevers DESC, COALESCE(s.epb_paginas,0) DESC
     LIMIT ?
   `).all(limiet) as BureauRij[];
@@ -479,7 +502,7 @@ export function getActiefstePubliceerders(limiet = 10, markt: Markt = "energie",
     FROM concurrenten c
     ${OORDEEL_JOIN}
     JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = c.domein
-    WHERE c.categorie <> 'eigen' AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql}
+    WHERE ${nietEigen()} AND ${inMarkt(markt)} AND ${echteConcurrent(markt)} ${r.sql}
       AND COALESCE(s.spam_verdacht,0) < 3
       AND s.laatste_blog >= date('now','-365 days')
     ORDER BY COALESCE(s.blog_per_maand,0) DESC, COALESCE(s.blog_artikels,0) DESC
@@ -771,6 +794,98 @@ export function gscStatus(markt: Markt = "energie") {
     metingen: number; datum: string | null; sites: number;
     vertoningen: number | null; klikken: number | null;
   };
+}
+
+// ---------------------------------------------------------------------------
+// Onze eigen sites: de bouwstenen voor "Onze plek" en de vergelijking per site
+// ---------------------------------------------------------------------------
+
+/**
+ * Onze eigen sites in deze markt, in de volgorde van ONZE_SITES, met de laatste
+ * meting. Bewust op domein en niet op categorie of marktkoppeling: een eigen site
+ * die nog niet als "eigen" geregistreerd is, hoort hier toch te staan. Een site
+ * die nog nooit gemeten werd, komt terug met lege meetvelden.
+ */
+export function getEigenSites(markt: Markt): ConcurrentRij[] {
+  const db = getDb();
+  const onze = ONZE_SITES[markt];
+  const omvang = omvangKolom(markt);
+  const rijen = db.prepare(`
+    SELECT d.domein, COALESCE(c.naam, d.domein) AS naam, COALESCE(c.categorie,'eigen') AS categorie,
+           COALESCE(c.verslaggevers,0) AS verslaggevers, COALESCE(c.architecten,0) AS architecten,
+           COALESCE(c.provincie,'') AS provincie, COALESCE(c.gemeente,'') AS gemeente, c.laatste_check,
+           s.bereikbaar, s.paginas, s.blog_paginas, s.laatste_blog, s.blog_per_maand,
+           s.diensten, s.cms, s.titel, s.ttfb_ms, s.heeft_localbiz, s.heeft_sitemap,
+           s.blog_artikels, s.laatste_blog_url, s.epb_paginas, s.eng_paginas, s.arch_paginas, s.reg_paginas,
+           s.${omvang} AS omvang, s.spam_verdacht, s.fout
+    FROM (${onze.map(() => "SELECT ? AS domein").join(" UNION ALL ")}) d
+    LEFT JOIN concurrenten c ON c.domein = d.domein
+    LEFT JOIN (${LAATSTE_SNAPSHOT}) s ON s.domein = d.domein
+  `).all(...onze) as ConcurrentRij[];
+  return onze.map((d) => rijen.find((r) => r.domein === d)!).filter(Boolean);
+}
+
+export type EigenPositie = { term: string; domein: string; positie: number; volume: number | null };
+
+/**
+ * Alle Google-posities van onze eigen sites op de laatste meting van deze markt,
+ * plus hoeveel termen er die dag gemeten werden. Dezelfde meting als het
+ * leaderboard, zodat "Onze plek" en het leaderboard nooit iets anders zeggen.
+ */
+export function getEigenPosities(markt: Markt): { datum: string | null; termen: number; rijen: EigenPositie[] } {
+  const db = getDb();
+  const laatste = laatstePositieDatum(markt);
+  if (!laatste) return { datum: null, termen: 0, rijen: [] };
+  const onze = ONZE_SITES[markt];
+  const termen = (db.prepare(`
+    SELECT COUNT(DISTINCT p.term) n FROM posities p JOIN zoekwoorden z ON z.term = p.term
+    WHERE p.datum = ? AND p.soort = 'organisch' AND ${termInMarkt(markt)}
+  `).get(laatste) as { n: number }).n;
+  const rijen = db.prepare(`
+    SELECT p.term, p.domein, MIN(p.positie) AS positie, z.volume
+    FROM posities p JOIN zoekwoorden z ON z.term = p.term
+    WHERE p.datum = ? AND p.soort = 'organisch' AND ${termInMarkt(markt)}
+      AND p.domein IN (${onze.map(() => "?").join(",")})
+    GROUP BY p.term, p.domein
+    ORDER BY positie, COALESCE(z.volume,-1) DESC
+  `).all(laatste, ...onze) as EigenPositie[];
+  return { datum: laatste, termen, rijen };
+}
+
+export type EigenGsc = {
+  domein: string; termen: number; top3: number; top10: number;
+  beste: { term: string; positie: number; vertoningen: number } | null;
+};
+
+/**
+ * Wat Search Console per eigen site zegt, met hetzelfde marktfilter als de tabel
+ * "Onze eigen posities". De beste term is de laagste gemiddelde positie onder de
+ * termen met minstens tien vertoningen: een term die één keer op #1 verscheen,
+ * zegt niets. Is er geen enkele term met tien vertoningen, dan telt alles.
+ */
+export function getEigenGsc(markt: Markt): EigenGsc[] {
+  const db = getDb();
+  const rijen = db.prepare(`
+    ${gscEigen(markt)}
+    SELECT e.domein, e.term, e.positie, e.vertoningen
+    FROM eigen e
+    WHERE e.datum = (SELECT MAX(datum) FROM eigen) AND ${termFilter(markt)}
+  `).all() as { domein: string; term: string; positie: number; vertoningen: number }[];
+  return ONZE_SITES[markt]
+    .filter((d) => rijen.some((r) => r.domein === d))
+    .map((d) => {
+      const eigen = rijen.filter((r) => r.domein === d);
+      const zichtbaar = eigen.filter((r) => (r.vertoningen || 0) >= 10);
+      const pool = zichtbaar.length ? zichtbaar : eigen;
+      const beste = [...pool].sort((a, b) => a.positie - b.positie || b.vertoningen - a.vertoningen)[0];
+      return {
+        domein: d,
+        termen: eigen.length,
+        top3: eigen.filter((r) => r.positie <= 3).length,
+        top10: eigen.filter((r) => r.positie <= 10).length,
+        beste: beste ? { term: beste.term, positie: beste.positie, vertoningen: beste.vertoningen } : null,
+      };
+    });
 }
 
 // ---------------------------------------------------------------------------

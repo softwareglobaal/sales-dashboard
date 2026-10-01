@@ -19,7 +19,7 @@ import fs from "fs";
 import path from "path";
 import { getDb } from "./db";
 import { ADS_ACCOUNTS } from "./googleAdsConfig";
-import { markeerMarkt, MARKTEN, type Markt } from "./concurrentie";
+import { markeerMarkt, MARKTEN, EIGEN_DOMEINEN, type Markt } from "./concurrentie";
 
 export type ZoekwoordBron = {
   locatie: { land: string; taal: string; geoTargetConstant: string };
@@ -417,8 +417,12 @@ export function herclassificeerSerpDomeinen() {
     { domein: string; categorie: string }[];
   const upd = db.prepare("UPDATE concurrenten SET categorie = ? WHERE domein = ?");
   const telling: Record<string, number> = {};
+  // Onze eigen sites kwamen soms eerst via de zoekresultaten binnen (tkn-buro.be,
+  // epb-boete.be). Hun categorie "eigen" mag een herindeling nooit overschrijven.
+  const eigen = new Set(EIGEN_DOMEINEN.map((e) => e.domein));
   db.transaction(() => {
     for (const r of rijen) {
+      if (eigen.has(r.domein)) continue;
       const nieuw = categoriseerSerpDomein(r.domein);
       // Alleen bijwerken als de domeinnaam iets zegt. "onbekend" terugzetten zou de
       // indeling wissen die `categoriseerUitSite()` uit de sitetitel afleidde --

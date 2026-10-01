@@ -450,3 +450,34 @@ main a.rounded-lg {
   }
 }
 
+
+/* Concurrentiepagina's: opklapbare blokken (DASHBOARD-SPEC §14b).
+   .opklap is een native <details> met de paneelkop als <summary>; .ingekort
+   verbergt rijen met data-extra tot iemand "Toon alle" kiest. */
+.opklap > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.opklap > summary::-webkit-details-marker {
+  display: none;
+}
+.opklap > summary .pijl {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--inkt-vaag);
+  transition: transform 0.18s;
+}
+.opklap[open] > summary .pijl {
+  transform: rotate(90deg);
+}
+.paneel .opklap:not([open]) > summary.kop {
+  margin-bottom: 0;
+}
+.ingekort:not(.open) [data-extra] {
+  display: none;
+}
