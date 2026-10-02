@@ -721,3 +721,13 @@ Energy telt nu ook Energie Efficiënt mee, zoals het incentivemodel voorschrijft
   **Eén goedkeuringsmoment**: Siyan keurt op `/content` goed of af (naam uit de login).
   Het menu toont een teller. Publiceren blijft een aparte stap van de website-keten.
 - De zijbalk zegt "Alleen lezen" (het dashboard leest meer dan Pipedrive).
+
+### 17c. Salesrapport in Zoom (oktober 2026)
+
+Elke maandag 10:00 UTC (07:00 Suriname) het rapport van de vorige week, elke 1e van de maand
+dat van de vorige maand, in Zoom-kanaal "Sales Rapport". De tekst maakt het dashboard
+(`lib/rapport.ts`, `GET /api/v1/rapport?soort=week|maand`): per hoofddienst aanvragen (met
+verschil), gewonnen, omzet, het maanddoel en wat open staat zonder offerte; de overige diensten op
+één regel; daarna de facturatiegaten en de teksten die op goedkeuring wachten. Het
+verzendscript `deploy/salesrapport.py` (cron op de server, `deploy/salesrapport-cron.sh`) haalt
+enkel op en verstuurt via de Zoom-app van de andere meldingen. `--droog` toont zonder te sturen.
