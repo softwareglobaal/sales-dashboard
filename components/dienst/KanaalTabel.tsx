@@ -50,7 +50,7 @@ export function KanaalTabel({ kanalen, totaal }: { kanalen: KanaalRij[]; totaal:
                 </tr>
                 {isOpen &&
                   k.subs.map((s) => (
-                    <tr key={k.kanaal + s.sub} style={{ background: "rgba(255,255,255,.35)" }}>
+                    <tr key={k.kanaal + s.sub} style={{ background: "var(--vlak)" }}>
                       <td style={{ paddingLeft: 34 }}>
                         <div className="flex items-center gap-3">
                           <span className="min-w-0 flex-1 truncate text-[12.5px]">{s.sub}</span>

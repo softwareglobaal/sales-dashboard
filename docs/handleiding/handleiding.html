@@ -1,0 +1,231 @@
+<!doctype html>
+<!--
+  Bron van public/handleiding.pdf. Omzetten: bash docs/handleiding/maak-pdf.sh
+  Schermafbeeldingen: docs/handleiding/beeld/ (lokale versie, lichte modus).
+  Huisregel: nooit ", en" in een zin.
+-->
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Handleiding salesdashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 18mm 17mm 18mm 17mm; }
+  :root { --inkt:#16150f; --zacht:#5f5a52; --vaag:#8f8a82; --lijn:rgba(22,21,15,.12); --vlak:#f3f1ee; --accent:#8c5e3c; --goed:#2f7a4e; --let:#b07a12; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 10.5pt/1.55 "Instrument Sans", system-ui, sans-serif; color: var(--inkt); }
+  h1, h2, h3 { font-family: "Newsreader", Georgia, serif; font-weight: 500; letter-spacing: -.01em; }
+  h1 { font-size: 34pt; line-height: 1.05; margin: 0 0 10pt; }
+  h2 { font-size: 19pt; margin: 22pt 0 6pt; break-after: avoid; }
+  h3 { font-size: 13pt; margin: 14pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 15pt; }
+  li { margin: 0 0 3pt; }
+  b { font-weight: 600; }
+  .label { font-size: 8pt; letter-spacing: .1em; text-transform: uppercase; color: var(--vaag); font-weight: 500; }
+  .voorblad { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; break-after: page;
+    background: radial-gradient(circle at 85% 12%, #fbfbfb 0, #e3e1e2 30%, transparent 55%), radial-gradient(circle at 10% 92%, #f1ece6 0, #dcd4cb 25%, transparent 45%), #ebe9ea;
+    border-radius: 14pt; padding: 26mm 18mm; }
+  .voorblad .lede { font-size: 13pt; color: var(--zacht); max-width: 120mm; }
+  .voorblad .voet { font-size: 9pt; color: var(--zacht); }
+  .inhoud { break-after: page; }
+  .inhoud ol { columns: 2; column-gap: 12mm; }
+  figure { margin: 8pt 0 12pt; break-inside: avoid; }
+  figure img { display: block; max-width: 100%; max-height: 100mm; width: auto; margin: 0 auto; border-radius: 8pt; border: 1px solid var(--lijn); }
+  figcaption { text-align: center; }
+  figcaption { font-size: 8.5pt; color: var(--vaag); margin-top: 4pt; }
+  .kader { background: var(--vlak); border-radius: 9pt; padding: 9pt 12pt; margin: 8pt 0 10pt; break-inside: avoid; }
+  .kader.tip { border-left: 3pt solid var(--goed); }
+  .kader.let { border-left: 3pt solid var(--let); }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9.5pt; break-inside: auto; }
+  th { text-align: left; font-size: 7.5pt; letter-spacing: .08em; text-transform: uppercase; color: var(--vaag); font-weight: 500; padding: 5pt 6pt; border-bottom: 1px solid var(--lijn); }
+  td { padding: 5pt 6pt; border-bottom: 1px solid var(--lijn); vertical-align: top; }
+  tr { break-inside: avoid; }
+  .nieuw { break-before: page; }
+  .twee { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; }
+  .klein { font-size: 9pt; color: var(--zacht); }
+</style>
+</head>
+<body>
+
+<section class="voorblad">
+  <div>
+    <div class="label">Salesdashboard · sales.globaal.be</div>
+  </div>
+  <div>
+    <h1>Handleiding<br>salesdashboard</h1>
+    <p class="lede">Wat het dashboard toont, hoe je het leest en wat je doet als een cijfer niet klopt. Voor iedereen die met de verkoop van de groep werkt.</p>
+  </div>
+  <div class="voet">Versie oktober 2026 · vragen over toegang of cijfers: Siyan</div>
+</section>
+
+<section class="inhoud">
+  <h2 style="margin-top:0">Inhoud</h2>
+  <ol>
+    <li>Wat is het salesdashboard?</li>
+    <li>Inloggen en toegang</li>
+    <li>Het menu</li>
+    <li>Periode en firma kiezen</li>
+    <li>Algemeen: de hele organisatie</li>
+    <li>Een dienst: het Overzicht</li>
+    <li>De lijst met gewonnen en verloren deals</li>
+    <li>Kanalen</li>
+    <li>Concurrentie</li>
+    <li>Analyse en meetings</li>
+    <li>Wacht op jou</li>
+    <li>Websites en SEO / SEA</li>
+    <li>Het weekrapport in Zoom</li>
+    <li>Begrippen</li>
+    <li>Wanneer zijn de cijfers bijgewerkt?</li>
+    <li>Klopt een cijfer niet?</li>
+  </ol>
+  <div class="kader tip" style="margin-top:14pt">
+    <b>In één zin:</b> het dashboard verzamelt de verkoop van UNABO, TKN-Buro, Energie Efficiënt en H-Architects per dienst. Het toont wat er binnenkomt, wat er verkocht wordt, hoe het zich verhoudt tot vorig jaar en tot het doel. Het verandert zelf nooit iets in Pipedrive of in een ander systeem.
+  </div>
+</section>
+
+<h2>1. Wat is het salesdashboard?</h2>
+<p>Het salesdashboard is de plek waar je de verkoop van de groep per <b>dienst</b> volgt: Engineering, Energy, Architectuur, Regularisatie, 3D-Scanning, Plaatsbeschrijving, Safety, Meetstaten en Permits. Per dienst zie je welke firma verkoopt, wie uitvoert en wie factureert.</p>
+<p>De cijfers komen uit de systemen waarin jullie al werken:</p>
+<table>
+  <tr><th>Bron</th><th>Wat het dashboard eruit haalt</th></tr>
+  <tr><td>Pipedrive (4 accounts)</td><td>Aanvragen, offertes, gewonnen en verloren deals, producten, kanalen (labels), verliesredenen</td></tr>
+  <tr><td>Monday, bord Projects-EE</td><td>Projecten die Energie Efficiënt rechtstreeks in onderaanneming uitvoert</td></tr>
+  <tr><td>Facturatiecontrole</td><td>Wat er gefactureerd is, wat nog gefactureerd moet worden en waar verkoop en factuur niet overeenkomen</td></tr>
+  <tr><td>Google Ads en Search Console</td><td>Advertentiekosten, klikken, conversies en zoekposities</td></tr>
+  <tr><td>Eigen websitemeting</td><td>Bezoekers, herkomst en contactacties op onze websites (zonder cookies)</td></tr>
+  <tr><td>Agenda's</td><td>Afspraken met klanten, gekoppeld aan hun deal</td></tr>
+</table>
+<p>Het dashboard <b>leest alleen</b>. Wil je iets aanpassen, dan doe je dat in Pipedrive (of het andere bronsysteem). Bij de volgende synchronisatie staat het dan ook in het dashboard.</p>
+
+<h2>2. Inloggen en toegang</h2>
+<p>Je logt in met je gewone account van de groep (dezelfde login als de andere platformen). Wat je ziet, hangt af van je afdeling: een dienst waarvoor je geen toegang hebt, staat in het menu met een <b>slotje</b>. Zo weet je dat hij bestaat. Heb je toegang nodig tot een andere dienst, vraag het aan Siyan.</p>
+<p>Bij je eerste bezoek vraagt het dashboard of je deze handleiding wil lezen. Kies je "Nee, misschien later", dan vind je ze altijd terug in het menu onder <b>Handleiding</b>.</p>
+<figure><img src="beeld/01-introvraag.png" alt=""><figcaption>De vraag bij de eerste keer inloggen.</figcaption></figure>
+
+<h2>3. Het menu</h2>
+<div class="twee">
+  <div>
+    <h3>Overzicht</h3>
+    <ul>
+      <li><b>Algemeen</b>: de hele organisatie op één pagina.</li>
+      <li><b>Wacht op jou</b>: teksten van de SEO-agents die op goedkeuring wachten. Het getal geeft aan hoeveel.</li>
+      <li><b>Handleiding</b>: dit document.</li>
+      <li><b>Kaart (alles)</b>: alle projecten op een kaart.</li>
+    </ul>
+    <h3>Diensten</h3>
+    <p>Eén tab per dienst. Elke dienst heeft dezelfde onderdelen: Overzicht, Kanalen, Concurrentie en Analyse.</p>
+  </div>
+  <div>
+    <h3>Marketing</h3>
+    <ul>
+      <li><b>SEO / SEA</b>: advertentiekosten per campagne en per dienst.</li>
+      <li><b>Websites</b>: bezoekers en gedrag op onze sites.</li>
+    </ul>
+    <h3>Onderaan</h3>
+    <ul>
+      <li><b>Data verversen</b>: haalt meteen de nieuwste cijfers op (niet voor elke gebruiker beschikbaar).</li>
+      <li><b>Zon of maan</b>: wisselt tussen de lichte en de donkere weergave. Je keuze wordt onthouden.</li>
+      <li><b>Pijltje</b>: klapt het menu in.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>4. Periode en firma kiezen</h2>
+<p>Bovenaan elke pagina kies je de periode: <b>Dit jaar</b>, <b>Vorig jaar</b> of één <b>maand</b> uit de keuzelijst. Het dashboard toont bewust enkel dit en vorig jaar: genoeg om groei te zien.</p>
+<p>Bij "Dit jaar" vergelijkt elk cijfer met <b>dezelfde periode vorig jaar</b>. Een groen pijltje betekent meer dan toen, een rood pijltje minder.</p>
+<p>Verkopen meerdere firma's dezelfde dienst, dan kies je met de firmaknoppen <b>Alle firma's</b> of één firma. Op Algemeen toont de firmaknop wat die firma over alle diensten heen verkocht heeft.</p>
+
+<h2>5. Algemeen: de hele organisatie</h2>
+<figure><img src="beeld/02-algemeen.png" alt=""><figcaption>Algemeen: kerncijfers, de tabel per dienst en de salestargets.</figcaption></figure>
+<ul>
+  <li><b>Kerncijfers</b>: aanvragen, gewonnen, omzet en winratio van de hele groep. Een deal die meerdere diensten bevat (een bundel), telt hier één keer.</li>
+  <li><b>Cash</b>: wat nog gefactureerd moet worden en wat gefactureerd maar nog niet betaald is. Klik voor de details in facturatiecontrole.</li>
+  <li><b>Per dienst</b>: één rij per dienst met aanvragen, gewonnen, omzet, groei, de stand van het maanddoel, het aantal facturatiegaten en of er advertenties lopen. Klik op een dienst om ze te openen.</li>
+  <li><b>Per maand</b>: de omzet (of aanvragen, of gewonnen) per maand van dit jaar, met vorig jaar als stippellijn.</li>
+  <li><b>Salestargets</b>: per dienst met een doel de lopende maand, het totaal sinds januari en een staafje per voorbije maand.</li>
+</ul>
+
+<h2>6. Een dienst: het Overzicht</h2>
+<p>Bovenaan staat wie verkoopt, wie uitvoert en wie factureert. Bij Safety is dat bijvoorbeeld: verkoop UNABO, uitvoering en factuur Corenbo.</p>
+<figure><img src="beeld/03-dienst-overzicht.png" alt=""><figcaption>Het Overzicht van Engineering.</figcaption></figure>
+<table>
+  <tr><th>Blok</th><th>Wat je ziet</th></tr>
+  <tr><td>Kerncijfers</td><td>Aanvragen, offertes, gewonnen, omzet en winratio met de groei. <b>Klik op Gewonnen of Winratio</b> voor de lijst met alle deals.</td></tr>
+  <tr><td>Doel</td><td>De omzet van de lopende maand tegenover het maanddoel, het totaal sinds januari en de voorbije maanden.</td></tr>
+  <tr><td>Facturatie</td><td>Verkocht tegenover gefactureerd, wat nog te factureren is en de <b>facturatiegaten</b>: per dossier langs welke firma het verkocht is en wie factureerde. Klik op een gat om het dossier in facturatiecontrole te openen.</td></tr>
+  <tr><td>Kanalen</td><td>De websites van de dienst (laatst aangepast, SEO-score, bezoekers) en of er een advertentie actief is.</td></tr>
+  <tr><td>Campagne</td><td>Enkel bij Energy: de koude prospectie bij EPB-verslaggevers. Die telt niet als aanvraag. Je ziet hoeveel contacten er in de lijst staan en wie echt in gesprek is.</td></tr>
+  <tr><td>Per maand</td><td>Gestapeld per bron, bijvoorbeeld UNABO en TKN-Buro. Beweeg erover voor de getallen per bron.</td></tr>
+  <tr><td>Per firma, wat is er verkocht</td><td>De verdeling over de firma's en de omzet per product.</td></tr>
+  <tr><td>Staat nu open, waarom verloren, laatst gewonnen</td><td>Wat nog loopt (en hoeveel zonder offerte), de verliesredenen (klik voor de deals) en de laatste verkopen.</td></tr>
+</table>
+
+<h2>7. De lijst met gewonnen en verloren deals</h2>
+<figure><img src="beeld/04-deallijst.png" alt=""><figcaption>Verloren deals, met de fase waarin ze verloren gingen en de reden.</figcaption></figure>
+<p>Per deal zie je: de aanvraagdatum, of er een offerte gestuurd is (met de datum waar die gekend is), de datum gewonnen of verloren, het aantal dagen ertussen, bij verloren deals de <b>fase</b> waarin ze verloren gingen en de <b>reden</b>. De laatste kolom is de <b>productwaarde van enkel deze dienst</b>: bij een bundel telt alleen het deel van deze dienst.</p>
+<p>Bij verloren deals filter je bovenaan op een reden. De naam van een deal opent hem in Pipedrive.</p>
+
+<h2>8. Kanalen</h2>
+<figure><img src="beeld/05-kanalen.png" alt=""><figcaption>Kanalen van Energy, met de onderaanneming uitgeklapt per bureau.</figcaption></figure>
+<p>De tabel toont langs welk kanaal de aanvragen binnenkomen (het label in Pipedrive) en hoeveel daarvan gewonnen zijn. Een kanaal met subkanalen klik je open. Daaronder staan de websites van de dienst met hun laatste aanpassing en een korte SEO-controle. Onderaan staan de Google Ads-campagnes met hun kosten.</p>
+
+<h2>9. Concurrentie</h2>
+<figure><img src="beeld/06-concurrentie.png" alt=""><figcaption>Concurrentie bij Energy: bovenaan de plek van elk van onze sites.</figcaption></figure>
+<p>Hier staat het marktonderzoek van de dienst: wie de markt bezet, wie op Google bovenaan staat, wat concurrenten publiceren en welke zoektermen nog niemand goed bedient. Het vak <b>Onze plek</b> toont per eigen site waar die staat in elke ranglijst, ook als hij er (nog) niet in voorkomt. Lange lijsten zijn ingeklapt: klik op de titel of op "Toon alle".</p>
+<p>Voor 3D-Scanning, Plaatsbeschrijving, Safety, Meetstaten en Permits is er nog geen marktmonitor.</p>
+
+<h2>10. Analyse en meetings</h2>
+<figure><img src="beeld/07-analyse.png" alt=""><figcaption>Analyse van Engineering: teamdoel, AI-advies en meetings.</figcaption></figure>
+<p>De Analyse gaat dieper: het teamdoel, een AI-analyse met advies (Engineering en Energy), de <b>meetings</b>, de resultaten per pipeline, de trechter per fase, een kaart per provincie, op welke dag en welk uur aanvragen binnenkomen, bundel tegenover los, gebouwtype en type aanvraag, verliesmotivatie en het geslacht van de contactpersoon.</p>
+<div class="kader tip"><b>Meetings.</b> Het dashboard koppelt afspraken uit de agenda (Calendly, Zoom, de H-Architects-agenda) aan de deal van die klant. Dat gebeurt via het e-mailadres van de genodigde, of via de naam als er geen e-mailadres is. Bij elke koppeling staat waarom. Daarnaast telt het veld <b>Meeting gehad</b> in Pipedrive. Zo zie je de winratio met en zonder meeting.</div>
+
+<h2>11. Wacht op jou</h2>
+<figure><img src="beeld/08-wacht-op-jou.png" alt=""><figcaption>Teksten die de SEO-agents zelf maakten en die op goedkeuring wachten.</figcaption></figure>
+<p>De SEO-agents werken elke werkdag zelf contentkansen uit: zoektermen die nu door een portaal of de overheid bezet worden, of nieuwe artikels van concurrenten. Ze toetsen of het onderwerp bij ons past, doen het onderzoek, schrijven de tekst en laten een kwaliteitscontrole lopen. Het resultaat komt hier. Je leest de tekst en het controleverslag, daarna keur je goed of af. Publiceren gebeurt pas daarna, apart. Enkel beheerders kunnen goedkeuren.</p>
+
+<h2>12. Websites en SEO / SEA</h2>
+<p><b>Websites</b> toont per eigen site de bezoekers, waar ze vandaan komen, welke pagina's ze bekijken, waar ze klikken en hoe snel de site laadt. Kom je er vanuit een dienst, dan telt van een gedeelde site (zoals unabo.be) enkel het deel over die dienst. Dat staat dan bovenaan vermeld.</p>
+<p><b>SEO / SEA</b> toont de advertentiekosten per campagne en per dienst, met de kost per klik, per conversie en per aanvraag.</p>
+
+<h2>13. Het weekrapport in Zoom</h2>
+<p>Elke maandagochtend verschijnt in het Zoom-kanaal <b>Sales Rapport</b> een samenvatting van de vorige week. Elke eerste dag van de maand komt er een rapport over de vorige maand. Je ziet er per dienst de aanvragen, gewonnen deals, omzet, de stand van het doel en de aandachtspunten. De cijfers zijn dezelfde als op het dashboard.</p>
+
+<h2>14. Begrippen</h2>
+<table>
+  <tr><th style="width:28%">Begrip</th><th>Betekenis</th></tr>
+  <tr><td>Aanvraag</td><td>Elke nieuwe deal in Pipedrive (ook "plannen op aanvraag"), geteld op de dag dat de deal aangemaakt werd.</td></tr>
+  <tr><td>Offerte</td><td>Een deal die in een offertefase staat of er voorbij is. <b>Indicatief</b>: afgeleid uit de fase.</td></tr>
+  <tr><td>Gewonnen / verloren</td><td>De status in Pipedrive, geteld op de dag van winst of verlies.</td></tr>
+  <tr><td>Omzet</td><td>Bij UNABO en TKN-Buro de som van de producten van die dienst op de deal. Bij de andere firma's de waarde van de deal. Een bundel telt dus bij elke dienst enkel voor zijn eigen deel.</td></tr>
+  <tr><td>Winratio</td><td>Gewonnen gedeeld door (gewonnen + verloren) in de periode. Campagnecontacten tellen niet mee.</td></tr>
+  <tr><td>Campagne</td><td>Koude prospectie (bv. EPB-verslaggevers bellen). Geen aanvraag, wel verkoop als het lukt.</td></tr>
+  <tr><td>Kanaal</td><td>Het label op de deal in Pipedrive (Website, Via-H-Architects, Studiebureau, ...).</td></tr>
+  <tr><td>Facturatiegat</td><td>Verkocht maar na 30 dagen nog niet gefactureerd, meer gefactureerd dan verkocht, of gefactureerd zonder verkoop in Pipedrive.</td></tr>
+  <tr><td>Doel</td><td>Gewonnen omzet per maand. Het incentivemodel rekent op geïnde omzet; het dashboard toont de gewonnen omzet als voorlopige stand.</td></tr>
+</table>
+
+<h2>15. Wanneer zijn de cijfers bijgewerkt?</h2>
+<p>Op werkdagen haalt het dashboard <b>elk uur</b> de nieuwste gegevens op (van 08:45 tot 22:15 Belgische tijd, 03:45 tot 17:15 in Suriname). Rechtsboven op elke dienstpagina staat wanneer de laatste synchronisatie was. Een deal die net gewonnen is, staat er dus ten laatste een uur later in.</p>
+
+<h2>16. Klopt een cijfer niet?</h2>
+<ol>
+  <li><b>Kijk wanneer de cijfers bijgewerkt zijn.</b> Is de wijziging in Pipedrive van na de laatste synchronisatie, wacht dan tot het volgende uur.</li>
+  <li><b>Kijk of de deal goed ingevuld is in Pipedrive.</b> Het dashboard kan enkel tonen wat daar staat:
+    <ul>
+      <li>de juiste <b>producten</b> op de deal (die bepalen de dienst en de omzet);</li>
+      <li>het <b>label</b> voor het kanaal;</li>
+      <li>de <b>verliesreden</b> bij een verloren deal;</li>
+      <li><b>Meeting gehad</b> en <b>Datum meeting</b> na een gesprek dat niet in de agenda stond;</li>
+      <li><b>Gebouwtype</b> en <b>Type aanvraag</b>.</li>
+    </ul>
+  </li>
+  <li><b>Staat de verkoop niet in Pipedrive</b> (bv. rechtstreeks afgesproken), dan telt hij niet als verkoop. Facturatiecontrole toont hem wel als "gefactureerd zonder verkoop".</li>
+  <li><b>Lukt het niet, meld het aan Siyan</b> met de naam van de deal en wat je verwachtte te zien.</li>
+</ol>
+<div class="kader let">Het dashboard verandert nooit zelf iets in Pipedrive, Monday of de boekhouding. Alle correcties gebeuren in het bronsysteem.</div>
+
+</body>
+</html>

@@ -14,7 +14,10 @@
  *   red / rose                     -> kritiek
  *   amber / yellow / orange        -> let op
  */
-@theme inline {
+/* Bewust GEEN "inline": de utilities lezen zo de variabele (var(--color-zinc-500)) in
+ * plaats van een vaste waarde. Daardoor schakelen alle pagina's mee naar de donkere
+ * modus door enkel de variabelen om te draaien (onderaan dit bestand). */
+@theme {
   --font-sans: var(--sans);
   --font-mono: var(--sans);
 
@@ -481,3 +484,237 @@ main a.rounded-lg {
 .ingekort:not(.open) [data-extra] {
   display: none;
 }
+
+/* ================= Donkere modus (oktober 2026, op vraag van Siyan) =================
+ * Zelfde tokens als het takendashboard (uitzondering op de Glas-standaard, zie
+ * ~/Claude/platform-huisstijl/HUISSTIJL.md). De zon/maan-knop onderaan de zijbalk
+ * wisselt; zonder keuze volgt het dashboard het toestel. Het script in layout.tsx zet
+ * data-thema al vóór de eerste weergave, zodat er niets wit oplicht. */
+:root[data-thema="donker"] {
+  color-scheme: dark;
+  --grond: #121211;
+  --glas: rgba(34, 33, 30, .62);
+  --glas-sterk: rgba(40, 39, 36, .88);
+  --glas-rand: rgba(255, 255, 255, .07);
+  --wit: #1d1c1a;
+  --inkt: #f1efea;
+  --inkt-zacht: #c2bdb3;
+  --inkt-vaag: #8d887f;
+  --lijn: rgba(255, 255, 255, .10);
+  --vlak: rgba(255, 255, 255, .07);
+  --accent: #c99468;
+  --accent-licht: rgba(201, 148, 104, .18);
+  --donker: #2b2925;
+  --donker-tekst: #f3f1ed;
+  --goed: #5cb683;   --goed-licht: rgba(92, 182, 131, .16);
+  --let: #d9a441;    --let-licht: rgba(217, 164, 65, .16);
+  --kritiek: #e06b6b; --kritiek-licht: rgba(224, 107, 107, .16);
+  --info: #9aa3b5;   --info-licht: rgba(154, 163, 181, .14);
+  --schaduw: 0 24px 60px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .04);
+  --schaduw-kaart: 0 4px 14px rgba(0, 0, 0, .25);
+  --schaduw-zweef: 0 10px 24px rgba(0, 0, 0, .35);
+  /* Tailwind: wit en zwart wisselen om, zodat bg-white een donker vlak wordt en
+     bg-black/5 een licht waas; de grijs- en kleurschalen lopen omgekeerd. */
+  --color-white: #1d1c1a;
+  --color-black: #ffffff;
+  --color-zinc-50: #1f1e1b;
+  --color-zinc-100: #262522;
+  --color-zinc-200: #34322e;
+  --color-zinc-300: #4a4741;
+  --color-zinc-400: #8d887f;
+  --color-zinc-500: #a8a39a;
+  --color-zinc-600: #bdb8ae;
+  --color-zinc-700: #d2cdc4;
+  --color-zinc-800: #e6e2db;
+  --color-zinc-900: #f1efea;
+  --color-zinc-950: #f7f5f1;
+  --color-slate-50: #1f1e1b;
+  --color-slate-100: #262522;
+  --color-slate-200: #34322e;
+  --color-slate-300: #4a4741;
+  --color-slate-400: #8d887f;
+  --color-slate-500: #a8a39a;
+  --color-slate-600: #bdb8ae;
+  --color-slate-700: #d2cdc4;
+  --color-slate-800: #e6e2db;
+  --color-slate-900: #f1efea;
+  --color-slate-950: #f7f5f1;
+  --color-gray-50: #1f1e1b;
+  --color-gray-100: #262522;
+  --color-gray-200: #34322e;
+  --color-gray-300: #4a4741;
+  --color-gray-400: #8d887f;
+  --color-gray-500: #a8a39a;
+  --color-gray-600: #bdb8ae;
+  --color-gray-700: #d2cdc4;
+  --color-gray-800: #e6e2db;
+  --color-gray-900: #f1efea;
+  --color-gray-950: #f7f5f1;
+  --color-stone-50: #1f1e1b;
+  --color-stone-100: #262522;
+  --color-stone-200: #34322e;
+  --color-stone-300: #4a4741;
+  --color-stone-400: #8d887f;
+  --color-stone-500: #a8a39a;
+  --color-stone-600: #bdb8ae;
+  --color-stone-700: #d2cdc4;
+  --color-stone-800: #e6e2db;
+  --color-stone-900: #f1efea;
+  --color-stone-950: #f7f5f1;
+  --color-neutral-50: #1f1e1b;
+  --color-neutral-100: #262522;
+  --color-neutral-200: #34322e;
+  --color-neutral-300: #4a4741;
+  --color-neutral-400: #8d887f;
+  --color-neutral-500: #a8a39a;
+  --color-neutral-600: #bdb8ae;
+  --color-neutral-700: #d2cdc4;
+  --color-neutral-800: #e6e2db;
+  --color-neutral-900: #f1efea;
+  --color-neutral-950: #f7f5f1;
+  --color-blue-50: #2a2219;
+  --color-blue-100: #33291e;
+  --color-blue-200: #4a3a2a;
+  --color-blue-300: #7a5c42;
+  --color-blue-400: #b08460;
+  --color-blue-500: #c99468;
+  --color-blue-600: #c99468;
+  --color-blue-700: #dbb08c;
+  --color-blue-800: #e8c9ad;
+  --color-blue-900: #f2dfcd;
+  --color-blue-950: #f8eee4;
+  --color-indigo-50: #2a2219;
+  --color-indigo-100: #33291e;
+  --color-indigo-200: #4a3a2a;
+  --color-indigo-300: #7a5c42;
+  --color-indigo-400: #b08460;
+  --color-indigo-500: #c99468;
+  --color-indigo-600: #c99468;
+  --color-indigo-700: #dbb08c;
+  --color-indigo-800: #e8c9ad;
+  --color-indigo-900: #f2dfcd;
+  --color-indigo-950: #f8eee4;
+  --color-violet-50: #2a2219;
+  --color-violet-100: #33291e;
+  --color-violet-200: #4a3a2a;
+  --color-violet-300: #7a5c42;
+  --color-violet-400: #b08460;
+  --color-violet-500: #c99468;
+  --color-violet-600: #c99468;
+  --color-violet-700: #dbb08c;
+  --color-violet-800: #e8c9ad;
+  --color-violet-900: #f2dfcd;
+  --color-violet-950: #f8eee4;
+  --color-sky-50: #2a2219;
+  --color-sky-100: #33291e;
+  --color-sky-200: #4a3a2a;
+  --color-sky-300: #7a5c42;
+  --color-sky-400: #b08460;
+  --color-sky-500: #c99468;
+  --color-sky-600: #c99468;
+  --color-sky-700: #dbb08c;
+  --color-sky-800: #e8c9ad;
+  --color-sky-900: #f2dfcd;
+  --color-sky-950: #f8eee4;
+  --color-cyan-50: #2a2219;
+  --color-cyan-100: #33291e;
+  --color-cyan-200: #4a3a2a;
+  --color-cyan-300: #7a5c42;
+  --color-cyan-400: #b08460;
+  --color-cyan-500: #c99468;
+  --color-cyan-600: #c99468;
+  --color-cyan-700: #dbb08c;
+  --color-cyan-800: #e8c9ad;
+  --color-cyan-900: #f2dfcd;
+  --color-cyan-950: #f8eee4;
+  --color-emerald-50: #1a2620;
+  --color-emerald-100: #1f2f26;
+  --color-emerald-200: #2b4535;
+  --color-emerald-300: #3f6a50;
+  --color-emerald-400: #4f9a6c;
+  --color-emerald-500: #5cb683;
+  --color-emerald-600: #5cb683;
+  --color-emerald-700: #86cba2;
+  --color-emerald-800: #b0dec2;
+  --color-emerald-900: #d6efe0;
+  --color-green-50: #1a2620;
+  --color-green-100: #1f2f26;
+  --color-green-200: #2b4535;
+  --color-green-300: #3f6a50;
+  --color-green-400: #4f9a6c;
+  --color-green-500: #5cb683;
+  --color-green-600: #5cb683;
+  --color-green-700: #86cba2;
+  --color-green-800: #b0dec2;
+  --color-green-900: #d6efe0;
+  --color-red-50: #2b1d1d;
+  --color-red-100: #352222;
+  --color-red-200: #4e2e2e;
+  --color-red-300: #7d4545;
+  --color-red-400: #c25d5d;
+  --color-red-500: #e06b6b;
+  --color-red-600: #e06b6b;
+  --color-red-700: #ec9595;
+  --color-red-800: #f3bcbc;
+  --color-red-900: #f9e0e0;
+  --color-rose-50: #2b1d1d;
+  --color-rose-100: #352222;
+  --color-rose-200: #4e2e2e;
+  --color-rose-300: #7d4545;
+  --color-rose-400: #c25d5d;
+  --color-rose-500: #e06b6b;
+  --color-rose-600: #e06b6b;
+  --color-rose-700: #ec9595;
+  --color-rose-800: #f3bcbc;
+  --color-rose-900: #f9e0e0;
+  --color-amber-50: #2b2416;
+  --color-amber-100: #352c1a;
+  --color-amber-200: #4d3f22;
+  --color-amber-300: #7a6230;
+  --color-amber-400: #b88a38;
+  --color-amber-500: #d9a441;
+  --color-amber-600: #d9a441;
+  --color-amber-700: #e6be72;
+  --color-amber-800: #f0d5a1;
+  --color-amber-900: #f8ead0;
+  --color-yellow-50: #2b2416;
+  --color-yellow-100: #352c1a;
+  --color-yellow-200: #4d3f22;
+  --color-yellow-300: #7a6230;
+  --color-yellow-400: #b88a38;
+  --color-yellow-500: #d9a441;
+  --color-yellow-600: #d9a441;
+  --color-yellow-700: #e6be72;
+  --color-yellow-800: #f0d5a1;
+  --color-yellow-900: #f8ead0;
+  --color-orange-50: #2b2416;
+  --color-orange-100: #352c1a;
+  --color-orange-200: #4d3f22;
+  --color-orange-300: #7a6230;
+  --color-orange-400: #b88a38;
+  --color-orange-500: #d9a441;
+  --color-orange-600: #d9a441;
+  --color-orange-700: #e6be72;
+  --color-orange-800: #f0d5a1;
+  --color-orange-900: #f8ead0;
+}
+:root[data-thema="donker"] .scene i { opacity: .10; }
+:root[data-thema="donker"] .rail nav a:hover { background: rgba(255, 255, 255, .06); }
+:root[data-thema="donker"] .rail nav .actief,
+:root[data-thema="donker"] .rail nav .actief:hover { background: var(--inkt); color: var(--grond); }
+:root[data-thema="donker"] .paneel.donker { border-color: rgba(255, 255, 255, .10); box-shadow: 0 28px 60px rgba(0, 0, 0, .45); }
+:root[data-thema="donker"] .lijst .item { background: rgba(255, 255, 255, .04); border-color: rgba(255, 255, 255, .06); }
+:root[data-thema="donker"] .seg button.actief { background: #34322d; color: var(--inkt); }
+:root[data-thema="donker"] .subtabs a.actief { background: var(--inkt) !important; color: var(--grond) !important; }
+:root[data-thema="donker"] .staaf { background: rgba(255, 255, 255, .10); }
+:root[data-thema="donker"] .staaf i:not(.accent) { background: var(--inkt); }
+:root[data-thema="donker"] .chip.donker { background: var(--inkt); color: var(--grond); }
+:root[data-thema="donker"] .kaart { background: #1d1c1a; border-color: rgba(255, 255, 255, .08); }
+:root[data-thema="donker"] .knop-klein,
+:root[data-thema="donker"] .knop-licht { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .10); color: var(--inkt); }
+:root[data-thema="donker"] .knop-donker { background: var(--inkt); color: var(--grond); }
+:root[data-thema="donker"] .kopbalk { background: rgba(18, 18, 17, .78); }
+:root[data-thema="donker"] select, :root[data-thema="donker"] input, :root[data-thema="donker"] textarea { background: #1d1c1a; color: var(--inkt); border-color: rgba(255, 255, 255, .12); }
+:root[data-thema="donker"] ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .14); }
+:root[data-thema="donker"] .recharts-cartesian-grid line { stroke: rgba(255, 255, 255, .08); }
+:root[data-thema="donker"] .recharts-default-tooltip { background: #24231f !important; border-color: rgba(255, 255, 255, .12) !important; }
