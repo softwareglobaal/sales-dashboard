@@ -1,0 +1,33 @@
+{
+  "_uitleg": "Vertaaltabel productnamen (voorstel A3, docs/VOORSTEL-NAMEN-EN-GROEPEN.md). Enkel de weergave in het dashboard: Pipedrive blijft ongemoeid. 'namen' = exacte Pipedrive-naam, 'patronen' = reguliere expressie op de Pipedrive-naam. Niet vermeld = Pipedrive-naam zonder afdelingsprefix.",
+  "namen": {
+    "ENGINEERING: Schetsmatige studie": "Schetsmatige stabiliteitsstudie",
+    "Schetsmatige studie": "Schetsmatige stabiliteitsstudie",
+    "ENGINEERING: Uitgebreide stabiliteitsstudie": "Uitgebreide stabiliteitsstudie",
+    "Uitgebreide studie": "Uitgebreide stabiliteitsstudie",
+    "Berekening: nieuwe stalen/betonnen elementen": "Berekening nieuwe stalen/betonnen elementen",
+    "ENGINEERING: Plaatsbezoek": "Structureel plaatsbezoek",
+    "Basis-Structureel plaatsbezoek": "Structureel plaatsbezoek",
+    "ENGINEERING: Structurele verslag": "Structureel verslag",
+    "Beknopt structureel verslag": "Structureel verslag",
+    "ENERGY: EPB verslaggeving: Nieuwbouw": "EPB-verslaggeving: Nieuwbouw",
+    "Meetstaten": "Meetstaat",
+    "Landmeetkunde": "Opmeting",
+    "3D-SCANNING: Opmeting en uitekenen": "Opmeting en uittekenen",
+    "Plaatsbeschrijving: Linker buurwoning(volledige woning)": "Plaatsbeschrijving: Buurwoning (volledige woning)",
+    "Plaatsbeschrijving: Rechter buurwoning(volledige woning)": "Plaatsbeschrijving: Buurwoning (volledige woning)",
+    "Plaatsbeschrijving: Rechter buurwoning(enkel de gemeenschappelijke muur)": "Plaatsbeschrijving: Buurwoning (enkel gemene muur)",
+    "Plaatsbeschrijving: Volledige eigenwoning": "Plaatsbeschrijving: Volledige eigen woning",
+    "Aanbouw light-versie 4500": "LIGHT: Aanbouw",
+    "LIGHT: Aanbouw": "LIGHT: Aanbouw",
+    "nieuwbouw light 6000": "LIGHT: Nieuwbouw",
+    "LIGHT: Nieuwbouw": "LIGHT: Nieuwbouw"
+  },
+  "patronen": [
+    { "patroon": "^ENGINEERING: Berekening van \\d+ nieuwe stalen/betonnen element", "naam": "Berekening nieuwe stalen/betonnen elementen" },
+    { "patroon": "^Tekenwerk\\b", "naam": "Tekenwerk (per uur)" },
+    { "patroon": "^STANDAARD: Verbouwing\\b", "naam": "STANDAARD: Verbouwing" },
+    { "patroon": "^LIGHT: Aanbouw\\b", "naam": "LIGHT: Aanbouw" },
+    { "patroon": "^Poutrel\\b", "naam": "Poutrel" }
+  ]
+}

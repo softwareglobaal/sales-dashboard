@@ -173,7 +173,7 @@ function UurRaster({ cellen }: { cellen: { weekdag: number; uur: number; n: numb
             <span className="text-[11px] leading-[18px] text-zinc-500">{d}</span>
             {Array.from({ length: 24 }, (_, u) => {
               const n = cellen.find((c) => c.weekdag === i + 1 && c.uur === u)?.n || 0;
-              const kleur = n ? stappen[Math.min(stappen.length - 1, Math.floor((n / max) * (stappen.length - 1) + 0.0001))] : "rgba(22,21,15,.05)";
+              const kleur = n ? stappen[Math.min(stappen.length - 1, Math.floor((n / max) * (stappen.length - 1) + 0.0001))] : "var(--vlak)";
               return <span key={u} title={`${d} ${u}u–${u + 1}u: ${num(n)} sessies`} style={{ height: 18, borderRadius: 4, background: kleur }} />;
             })}
           </div>
@@ -183,6 +183,9 @@ function UurRaster({ cellen }: { cellen: { weekdag: number; uur: number; n: numb
     </div>
   );
 }
+
+/** "/" is de startpagina van een site: zo leesbaar in de tabellen in plaats van een los teken. */
+const padNaam = (p: string | null | undefined) => (!p || p === "/" ? "Startpagina (/)" : p);
 
 /** Belgiëkaart met een bol per gemeente; grootte = sessies. */
 function KaartBelgie({ punten }: { punten: { stad: string | null; lat: number | null; lon: number | null; sessies: number; conversies: number }[] }) {
@@ -196,7 +199,7 @@ function KaartBelgie({ punten }: { punten: { stad: string | null; lat: number | 
   return (
     <svg viewBox={BE_VIEWBOX} className="h-auto w-full" role="img" aria-label="Bezoekers per gemeente in België">
       {BE_PROVINCES.map((p) => (
-        <path key={p.name} d={p.d} fill="rgba(22,21,15,.05)" stroke="rgba(22,21,15,.18)" strokeWidth={1}>
+        <path key={p.name} d={p.d} fill="var(--vlak)" stroke="var(--inkt-vaag)" strokeOpacity={0.45} strokeWidth={1}>
           <title>{p.name}</title>
         </path>
       ))}
@@ -204,7 +207,7 @@ function KaartBelgie({ punten }: { punten: { stad: string | null; lat: number | 
         const [x, y] = projectLatLng(p.lat!, p.lon!);
         const r = 4 + Math.sqrt(p.sessies / max) * 22;
         return (
-          <circle key={i} cx={x} cy={y} r={r} fill="#2a78d6" fillOpacity={0.55} stroke="#fff" strokeWidth={2}>
+          <circle key={i} cx={x} cy={y} r={r} fill="#2a78d6" fillOpacity={0.55} stroke="var(--wit)" strokeWidth={2}>
             <title>{`${p.stad}: ${num(p.sessies)} sessies${p.conversies ? `, ${num(p.conversies)} met contactactie` : ""}`}</title>
           </circle>
         );
@@ -230,13 +233,13 @@ function Klikkaart({ klikken, secties, totaal, maat }: {
   const conversie = new Set(["tel", "mail", "whatsapp", "formulier"]);
   return (
     <svg viewBox={`0 0 ${B + 70} ${H}`} className="w-full" style={{ maxHeight: 1100 }} role="img" aria-label="Klikkaart van de pagina">
-      <rect x={0} y={0} width={B} height={H} rx={10} fill="#fff" stroke="rgba(22,21,15,.12)" />
+      <rect x={0} y={0} width={B} height={H} rx={10} fill="var(--wit)" stroke="var(--lijn)" />
       {secties.filter((s) => s.y != null && s.h).map((s, i) => {
         const y = (s.y / 1000) * H, h = Math.max(14, (s.h / 1000) * H);
         return (
           <g key={s.naam}>
-            <rect x={1} y={y} width={B - 2} height={h} fill={i % 2 ? "rgba(22,21,15,.035)" : "rgba(42,120,214,.04)"} />
-            <text x={8} y={y + 14} fontSize={10} fill="#5f5a52">
+            <rect x={1} y={y} width={B - 2} height={h} fill={i % 2 ? "var(--vlak)" : "rgba(42,120,214,.06)"} />
+            <text x={8} y={y + 14} fontSize={10} fill="var(--inkt-zacht)">
               {s.naam.length > 42 ? s.naam.slice(0, 41) + "…" : s.naam}
             </text>
             <title>{`${s.naam}: gezien door ${totaal ? Math.round((s.gezien / totaal) * 100) : 0}% · gemiddeld ${duur(Math.round((s.gemMs || 0) / 1000))} in beeld`}</title>
@@ -255,7 +258,7 @@ function Klikkaart({ klikken, secties, totaal, maat }: {
         return (
           <g key={d}>
             <rect x={B + 10} y={(i / 10) * H} width={14} height={H / 10 - 2} rx={3} fill="#1c5cab" fillOpacity={0.1 + a * 0.8} />
-            <text x={B + 28} y={(i / 10) * H + 12} fontSize={10} fill="#5f5a52">{Math.round(a * 100)}%</text>
+            <text x={B + 28} y={(i / 10) * H + 12} fontSize={10} fill="var(--inkt-zacht)">{Math.round(a * 100)}%</text>
             <title>{`${Math.round(a * 100)}% van de bezoekers scrolde tot ${d}% van de pagina`}</title>
           </g>
         );
@@ -529,7 +532,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
               max={8}
               rijen={instap.map((r) => [
                 ...(!gekozen ? [<SiteLabel key="s" sleutel={r.site} sites={kleurSites} />] : []),
-                <code key="p" className="text-[12px]">{r.pad}</code>, num(r.sessies), pct(r.bounce), duur(r.gemDuurS),
+                <code key="p" className="text-[12px]">{padNaam(r.pad)}</code>, num(r.sessies), pct(r.bounce), duur(r.gemDuurS),
                 r.paginas.toFixed(1).replace(".", ","), r.conversies ? num(r.conversies) : "–",
               ])}
             />
@@ -541,7 +544,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
               max={10}
               rijen={paginaRijen.map((r) => [
                 ...(!gekozen ? [<SiteLabel key="s" sleutel={r.site} sites={kleurSites} />] : []),
-                <span key="p" className="block max-w-[420px]"><code className="text-[12px]">{r.pad}</code>{r.titel && <span className="block truncate text-[11.5px] text-zinc-400">{r.titel}</span>}</span>,
+                <span key="p" className="block max-w-[420px]"><code className="text-[12px]">{padNaam(r.pad)}</code>{r.titel && <span className="block truncate text-[11.5px] text-zinc-400">{r.titel}</span>}</span>,
                 num(r.weergaven), num(r.bezoekers), duur(r.gemActiefS || 0), `${r.gemScroll}%`, num(r.klikken),
               ])}
             />
@@ -549,13 +552,13 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
           <div className="grid gap-4 lg:grid-cols-2">
             <Paneel titel="Looproutes" uitleg="De vaakst gevolgde stap van de ene pagina naar de volgende.">
               <Staven rijen={stappen.map((r) => ({
-                label: <span className="text-[12.5px]"><code>{r.van}</code> <span className="text-zinc-400">→</span> <code>{r.naar}</code></span>,
+                label: <span className="text-[12.5px]"><code>{padNaam(r.van)}</code> <span className="text-zinc-400">→</span> <code>{padNaam(r.naar)}</code></span>,
                 waarde: r.n, kleur: kleurSites.find((s) => s.sleutel === r.site)?.kleur, titel: kleurSites.find((s) => s.sleutel === r.site)?.naam,
               }))} />
             </Paneel>
             <Paneel titel="Uitstappagina's" uitleg="De laatste pagina voor iemand vertrok.">
               <Staven rijen={uitstap.map((r) => ({
-                label: <code className="text-[12.5px]">{r.pad}</code>, waarde: r.n,
+                label: <code className="text-[12.5px]">{padNaam(r.pad)}</code>, waarde: r.n,
                 kleur: kleurSites.find((s) => s.sleutel === r.site)?.kleur, titel: kleurSites.find((s) => s.sleutel === r.site)?.naam,
               }))} eenheid="keer" />
             </Paneel>
@@ -622,7 +625,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
             ) : (
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <ParamKeuze naam="pagina" label="Pagina" waarde={pagina} opties={keuze.map((p) => ({ waarde: p.pad, label: `${p.pad} (${p.n})` }))} />
+                  <ParamKeuze naam="pagina" label="Pagina" waarde={pagina} opties={keuze.map((p) => ({ waarde: p.pad, label: `${padNaam(p.pad)} (${p.n})` }))} />
                   <ParamKeuze naam="apparaat" label="Scherm" waarde={apparaat} opties={[{ waarde: "desktop", label: "Computer" }, { waarde: "mobiel", label: "Gsm / tablet" }]} />
                   <span className="text-[12px] text-zinc-400">{num(kaart.maat.n)} weergaven · {num(kaart.klikken.length)} klikken met positie</span>
                 </div>
@@ -697,7 +700,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
                   rechts={!gekozen ? [2, 3, 4] : [1, 2, 3]}
                   rijen={snel.traagste.map((r) => [
                     ...(!gekozen ? [<SiteLabel key="s" sleutel={r.site} sites={kleurSites} />] : []),
-                    <code key="p" className="text-[12px]">{r.pad}</code>, num(r.n),
+                    <code key="p" className="text-[12px]">{padNaam(r.pad)}</code>, num(r.n),
                     r.lcp ? `${(r.lcp / 1000).toFixed(1).replace(".", ",")} s` : "–", r.laad ? `${(r.laad / 1000).toFixed(1).replace(".", ",")} s` : "–",
                   ])}
                 />
@@ -715,7 +718,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
                 new Date(r.ts).toLocaleTimeString("nl-BE", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit" }) +
                   (Date.now() - r.ts > 86400000 ? ` · ${new Date(r.ts).toLocaleDateString("nl-BE", { timeZone: "Europe/Brussels", day: "numeric", month: "short" })}` : ""),
                 ...(!gekozen ? [<SiteLabel key="s" sleutel={r.site} sites={kleurSites} />] : []),
-                <code key="p" className="text-[12px]">{r.pad}</code>,
+                <code key="p" className="text-[12px]">{padNaam(r.pad)}</code>,
                 [r.stad, r.land && r.land !== "BE" ? landNaam(r.land) : null].filter(Boolean).join(", ") || "–",
                 r.kanaal || "–", r.apparaat === "mobiel" ? "Gsm" : r.apparaat === "tablet" ? "Tablet" : "Computer",
               ])}

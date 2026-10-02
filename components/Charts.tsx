@@ -30,7 +30,7 @@ export function LeadsByMonthChart({
   return (
     <ResponsiveContainer width="100%" height={320}>
       <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--lijn)" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} />
         <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={40} />
         <Tooltip formatter={(v: any) => `${num(Number(v))} leads`} />
@@ -61,7 +61,7 @@ export function ValueByAccountChart({
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--lijn)" />
         <XAxis dataKey="name" tick={{ fontSize: 11 }} />
         <YAxis tickFormatter={(v) => euroShort(Number(v))} tick={{ fontSize: 11 }} width={60} />
         <Tooltip formatter={(v: any) => euro(Number(v))} />
@@ -85,7 +85,7 @@ export function DepartmentChart({
   return (
     <ResponsiveContainer width="100%" height={Math.max(180, data.length * 38)}>
       <BarChart data={data} layout="vertical" margin={{ top: 6, right: 60, left: 8, bottom: 6 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--lijn)" horizontal={false} />
         <XAxis type="number" tickFormatter={(v) => euroShort(Number(v))} tick={{ fontSize: 11 }} />
         <YAxis type="category" dataKey="department" width={150} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v: any) => euro(Number(v))} />
@@ -111,7 +111,7 @@ export function EngineeringTrendChart({
   return (
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--lijn)" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} />
         <YAxis yAxisId="left" allowDecimals={false} tick={{ fontSize: 11 }} width={40} />
         <YAxis
@@ -169,10 +169,10 @@ function InsightBars({
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={data} margin={{ top: 16, right: 12, left: 0, bottom: 0 }} barCategoryGap="18%">
           <CartesianGrid strokeDasharray="0" vertical={false} stroke="#eef0f3" />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6b7280" }} tickLine={false} axisLine={{ stroke: "#e5e7eb" }} />
+          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--inkt-vaag)" }} tickLine={false} axisLine={{ stroke: "var(--lijn)" }} />
           <YAxis
             allowDecimals={false}
-            tick={{ fontSize: 11, fill: "#6b7280" }}
+            tick={{ fontSize: 11, fill: "var(--inkt-vaag)" }}
             tickLine={false}
             axisLine={false}
             width={euroFmt ? 52 : 36}
@@ -295,7 +295,7 @@ export function ChannelChart({
   return (
     <ResponsiveContainer width="100%" height={Math.max(200, data.length * 38)}>
       <BarChart data={data} layout="vertical" margin={{ top: 6, right: 20, left: 8, bottom: 6 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--lijn)" horizontal={false} />
         <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
         <YAxis type="category" dataKey="channel" width={150} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v: any, n: any) => [`${num(Number(v))}`, n]} />
@@ -320,7 +320,7 @@ export function FunnelChart({
   return (
     <ResponsiveContainer width="100%" height={Math.max(180, data.length * 42)}>
       <BarChart data={data} layout="vertical" margin={{ top: 6, right: 24, left: 8, bottom: 6 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--lijn)" horizontal={false} />
         <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
         <YAxis type="category" dataKey="stage" width={150} tick={{ fontSize: 11 }} />
         <Tooltip
