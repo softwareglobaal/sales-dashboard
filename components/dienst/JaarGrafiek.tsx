@@ -17,7 +17,7 @@ export type GrafiekRij = { maand: string; nu: Record<string, Maten> | null; vori
 export type GrafiekBron = { key: string; label: string };
 
 const KLEUREN = ["#2a78d6", "#eb6834", "#1baf7a"];
-const VORIG = "#52514e";
+const VORIG = "var(--inkt-zacht)"; // neutrale referentielijn, leesbaar in licht en donker
 const MATEN = [
   { key: "omzet", label: "Omzet" },
   { key: "aanvragen", label: "Aanvragen" },
@@ -45,7 +45,7 @@ export function JaarGrafiek({ rijen, jaar, bronnen }: { rijen: GrafiekRij[]; jaa
       </div>
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
-          <CartesianGrid vertical={false} stroke="rgba(22,21,15,.08)" />
+          <CartesianGrid vertical={false} stroke="var(--lijn)" />
           <XAxis dataKey="maand" tick={{ fontSize: 11, fill: "#8f8a82" }} axisLine={false} tickLine={false} />
           <YAxis
             tick={{ fontSize: 11, fill: "#8f8a82" }}
@@ -56,14 +56,14 @@ export function JaarGrafiek({ rijen, jaar, bronnen }: { rijen: GrafiekRij[]; jaa
             tickFormatter={(v) => (maat === "omzet" ? euroShort(Number(v)) : num(Number(v)))}
           />
           <Tooltip
-            cursor={{ fill: "rgba(22,21,15,.05)" }}
+            cursor={{ fill: "var(--vlak)" }}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const nu = payload.filter((p) => p.dataKey !== "vorig" && p.value != null);
               const som = nu.reduce((s, p) => s + Number(p.value || 0), 0);
               const vorig = payload.find((p) => p.dataKey === "vorig")?.value;
               return (
-                <div style={{ background: "#fff", border: "1px solid rgba(22,21,15,.1)", borderRadius: 12, padding: "8px 12px", fontSize: 12 }}>
+                <div style={{ background: "var(--wit)", color: "var(--inkt)", border: "1px solid var(--lijn)", borderRadius: 12, padding: "8px 12px", fontSize: 12 }}>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
                   {nu.map((p) => (
                     <div key={String(p.dataKey)} style={{ display: "flex", gap: 12, justifyContent: "space-between" }}>
@@ -81,7 +81,7 @@ export function JaarGrafiek({ rijen, jaar, bronnen }: { rijen: GrafiekRij[]; jaa
                     </div>
                   )}
                   {vorig != null && (
-                    <div style={{ display: "flex", justifyContent: "space-between", color: "#52514e", marginTop: 2 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "var(--inkt-zacht)", marginTop: 2 }}>
                       <span>Totaal {jaar - 1}</span>
                       <span>{fmt(Number(vorig))}</span>
                     </div>
@@ -98,7 +98,7 @@ export function JaarGrafiek({ rijen, jaar, bronnen }: { rijen: GrafiekRij[]; jaa
               name={b.label}
               stackId="nu"
               fill={KLEUREN[i]}
-              stroke="#fcfcfb"
+              stroke="var(--grond)"
               strokeWidth={zichtbaar.length > 1 ? 2 : 0}
               radius={i === zichtbaar.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
               isAnimationActive={false}

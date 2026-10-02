@@ -48,6 +48,10 @@ export function middleware(req: NextRequest) {
   if (pad.startsWith("/api/v1/")) {
     return NextResponse.next();
   }
+  // Het antwoord op de introductievraag mag iedereen geven (bewaart enkel dat ze gezien is).
+  if (pad === "/api/intro") {
+    return NextResponse.next();
+  }
   const wie = (req.headers.get("x-authentik-username") || "").toLowerCase();
   if (!EDITORS.includes(wie)) {
     return NextResponse.json(

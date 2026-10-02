@@ -731,3 +731,16 @@ verschil), gewonnen, omzet, het maanddoel en wat open staat zonder offerte; de o
 één regel; daarna de facturatiegaten en de teksten die op goedkeuring wachten. Het
 verzendscript `deploy/salesrapport.py` (cron op de server, `deploy/salesrapport-cron.sh`) haalt
 enkel op en verstuurt via de Zoom-app van de andere meldingen. `--droog` toont zonder te sturen.
+
+### 17d. Handleiding, introductievraag en donkere modus (oktober 2026)
+
+- **Handleiding**: `public/handleiding.pdf` (13 pagina's), bron `docs/handleiding/handleiding.html` met
+  schermafbeeldingen in `docs/handleiding/beeld/`. Opnieuw maken: `bash docs/handleiding/maak-pdf.sh`
+  (Chrome zonder scherm). In het menu onder Overzicht ("Handleiding", opent in een nieuw tabblad).
+- **Introductievraag**: bij het eerste bezoek van een gebruiker (per Authentik-gebruiker op de
+  server bijgehouden, tabel `intro_gezien`) vraagt een venster of hij de handleiding wil lezen.
+  "Ja" opent de PDF in een nieuw tabblad; beide antwoorden worden bewaard (`POST /api/intro`,
+  voor iedereen toegelaten in middleware.ts).
+- **Donkere modus**: zon/maan onderaan de zijbalk; zonder keuze volgt het dashboard het toestel.
+  De Tailwind-kleuren lezen variabelen (`@theme` zonder inline), zodat de donkere modus enkel de
+  variabelen omdraait (onderaan `app/globals.css`, zelfde tokens als het takendashboard).

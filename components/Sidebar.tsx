@@ -10,12 +10,14 @@ import afdelingenCfg from "@/config/afdelingen.json";
 // glazen zijbalk met pilvormige menu-items, actief = zwarte pil. De logica
 // (welke afdeling open staat, slot-rijen, inklappen) is ongewijzigd.
 
-type Item = { href: string; label: string; icon?: string; soon?: boolean };
+type Item = { href: string; label: string; icon?: string; soon?: boolean; nieuwTab?: boolean };
 type Afdeling = Item & { pad: string };
 
 const OVERZICHT: Item[] = [
   { href: "/", label: "Algemeen", icon: "overzicht" },
   { href: "/content", label: "Wacht op jou", icon: "inbox" },
+  // De handleiding (PDF in public/) opent in een nieuw tabblad; bron in docs/handleiding/.
+  { href: "/handleiding.pdf", label: "Handleiding", icon: "boek2", nieuwTab: true },
   { href: "/kaart", label: "Kaart (alles)", icon: "kaart" },
 ];
 
@@ -60,6 +62,9 @@ const ICONEN: Record<string, string> = {
   team: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5A5 5 0 0 1 22 19"/>',
   boek: '<path d="M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z"/>',
   apps: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
+  zon: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  maan: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  boek2: '<path d="M6 3h11a2 2 0 0 1 2 2v16H8a2 2 0 0 1-2-2z"/><path d="M6 19a2 2 0 0 1 2-2h11"/><path d="M10 8h6M10 11h4"/>',
   inbox: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M5 5h14l1 8v6H4v-6z"/>',
   slot: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   links: '<path d="M15 5l-7 7 7 7"/>',
@@ -86,6 +91,18 @@ export function Sidebar({ afdelingen, wachtend = 0 }: { afdelingen: string[]; wa
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("sb-collapsed") === "1") setCollapsed(true);
   }, []);
+  // Donkere modus: de keuze staat in localStorage, het opstartscript in layout.tsx zet ze.
+  const [donker, setDonker] = useState(false);
+  useEffect(() => setDonker(document.documentElement.dataset.thema === "donker"), []);
+  const wisselThema = () => {
+    const nieuw = !donker;
+    setDonker(nieuw);
+    document.documentElement.dataset.thema = nieuw ? "donker" : "licht";
+    try {
+      localStorage.setItem("thema", nieuw ? "donker" : "licht");
+    } catch {}
+  };
+
   const toggle = () =>
     setCollapsed((c) => {
       const n = !c;
@@ -97,6 +114,14 @@ export function Sidebar({ afdelingen, wachtend = 0 }: { afdelingen: string[]; wa
 
   // Een dienst blijft actief op zijn subtabs (/energy/kanalen, /energy/analyse, ...).
   const row = (it: Item, metOnderdelen = false) => {
+    if (it.nieuwTab) {
+      return (
+        <a key={it.href} href={it.href} target="_blank" rel="noopener" title={it.label}>
+          <Icoon naam={it.icon || "overzicht"} />
+          <span className="lbl">{it.label}</span>
+        </a>
+      );
+    }
     const active = pathname === it.href || (metOnderdelen && pathname.startsWith(it.href + "/"));
     return (
       <Link
@@ -172,6 +197,9 @@ export function Sidebar({ afdelingen, wachtend = 0 }: { afdelingen: string[]; wa
             </div>
           </>
         )}
+        <button onClick={wisselThema} className="klap" title={donker ? "Lichte modus" : "Donkere modus"} aria-label={donker ? "Lichte modus" : "Donkere modus"} type="button">
+          <Icoon naam={donker ? "zon" : "maan"} />
+        </button>
         <button onClick={toggle} className="klap" title={collapsed ? "Menu uitklappen" : "Menu inklappen"} type="button">
           <Icoon naam={collapsed ? "rechts" : "links"} />
         </button>
