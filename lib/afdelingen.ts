@@ -67,6 +67,7 @@ export type Afdeling = {
   extra?: { href: string; label: string }[];
   facturatie: string[];
   facturatieNoot?: string;
+  facturatieTab?: string; // tabblad in facturatiecontrole (#...), voor de doorklik
   doel: { bron?: string; maand?: number };
 };
 

@@ -86,7 +86,8 @@
       ],
       "doel": {
         "bron": "commissie.engineering"
-      }
+      },
+      "facturatieTab": "engineering"
     },
     {
       "pad": "energy",
@@ -191,7 +192,8 @@
       ],
       "doel": {
         "bron": "commissie.energy"
-      }
+      },
+      "facturatieTab": "energy"
     },
     {
       "pad": "h-architects",
@@ -240,7 +242,8 @@
       ],
       "doel": {
         "maand": 0
-      }
+      },
+      "facturatieTab": "h-architects"
     },
     {
       "pad": "regularisatie",
@@ -316,7 +319,8 @@
       "facturatieNoot": "Het facturatieplatform telt regularisatie mee onder Architectuur.",
       "doel": {
         "maand": 0
-      }
+      },
+      "facturatieTab": "h-architects"
     },
     {
       "pad": "3d-scanning",
@@ -366,7 +370,8 @@
       ],
       "doel": {
         "maand": 0
-      }
+      },
+      "facturatieTab": "scanning"
     },
     {
       "pad": "plaatsbeschrijving",
@@ -413,7 +418,8 @@
       ],
       "doel": {
         "maand": 0
-      }
+      },
+      "facturatieTab": "plaatsbeschrijving"
     },
     {
       "pad": "safety",
@@ -507,7 +513,8 @@
       ],
       "doel": {
         "maand": 0
-      }
+      },
+      "facturatieTab": "meetstaten"
     },
     {
       "pad": "permits",
@@ -566,7 +573,8 @@
       ],
       "doel": {
         "maand": 0
-      }
+      },
+      "facturatieTab": "permits"
     }
   ]
 }

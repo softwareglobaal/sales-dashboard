@@ -90,11 +90,18 @@ export default async function Algemeen({ searchParams }: { searchParams: Promise
   const fact = kop.status === "ok" ? kop.data : null;
   const gatenPer = new Map<string, number>();
   let gatenTotaal = 0;
+  let nogTeFactureren = 0;
+  let onbetaald = 0;
   if (fact) {
     for (const x of diensten) {
       const g = x.a.facturatie.length ? standVoor(fact, x.a, factJaar).gaten.filter((g) => !firmaNaam || (g.verkocht_via ? g.verkocht_via === firmaNaam : g.firma === firmaNaam)).length : 0;
       gatenPer.set(x.a.pad, g);
       gatenTotaal += g;
+      if (x.a.facturatie.length) {
+        const st = standVoor(fact, x.a, factJaar);
+        nogTeFactureren += st.nogTeFactureren;
+        onbetaald += st.openstaand;
+      }
     }
   }
 
@@ -209,6 +216,25 @@ export default async function Algemeen({ searchParams }: { searchParams: Promise
           </div>
         </div>
       </section>
+
+      {fact && (
+        <a
+          href={FACTURATIE_WEB}
+          target="_blank"
+          rel="noreferrer"
+          className="paneel mt-4 flex flex-wrap items-baseline justify-between gap-3"
+          style={{ textDecoration: "none", color: "inherit", padding: "14px 20px" }}
+        >
+          <span className="label">Cash {factJaar} (uit facturatiecontrole)</span>
+          <span className="text-[13px]">
+            Nog te factureren <b className="text-[17px] font-medium tabular-nums">{euro(nogTeFactureren)}</b>
+          </span>
+          <span className="text-[13px]">
+            Gefactureerd, nog niet betaald <b className="text-[17px] font-medium tabular-nums">{euro(onbetaald)}</b>
+          </span>
+          <span className="text-[12px] font-medium underline">Details in facturatiecontrole</span>
+        </a>
+      )}
 
       <section className="paneel mt-4">
         <div className="kop">
