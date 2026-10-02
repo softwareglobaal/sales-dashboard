@@ -119,6 +119,15 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
   const actieveAds = ads.filter((c) => c.status === "ENABLED");
   const fnaam = f ? firmaVan(f)?.naam : null;
   const fact = kop.status === "ok" && a.facturatie.length ? standVoor(kop.data, a, String(jaar)) : null;
+  // Het facturatieplatform telt als "verkocht" enkel wat in Pipedrive gewonnen is. Verkoop
+  // uit andere bronnen (bv. EE rechtstreeks op Monday) zit wel in de omzet hierboven.
+  const buitenPipedrive = a.bronnen
+    .filter((b) => b.soort !== "pipedrive")
+    .map((b) => ({
+      label: b.label,
+      bedrag: Math.round(alles.omzet.filter((o) => o.bron === b.sleutel && o.won.startsWith(String(jaar))).reduce((s, o) => s + o.bedrag, 0)),
+    }))
+    .filter((x) => x.bedrag > 0);
   const gaten = fact ? fact.gaten.filter((g) => !fnaam || (g.verkocht_via ? g.verkocht_via === fnaam : g.firma === fnaam)) : [];
 
   return (
@@ -198,7 +207,7 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
             <h2>Facturatie</h2>
             <small>verkocht tegenover gefactureerd · {jaar}</small>
           </div>
-          <FacturatieBlok a={a} status={kop.status} fact={fact} gaten={gaten} melding={kop.status === "fout" ? kop.melding : null} />
+          <FacturatieBlok a={a} status={kop.status} fact={fact} gaten={gaten} buitenPipedrive={buitenPipedrive} melding={kop.status === "fout" ? kop.melding : null} />
         </div>
 
         <div className="paneel">
@@ -481,12 +490,14 @@ function FacturatieBlok({
   status,
   fact,
   gaten,
+  buitenPipedrive,
   melding,
 }: {
   a: Afdeling;
   status: string;
   fact: ReturnType<typeof standVoor> | null;
   gaten: ReturnType<typeof standVoor>["gaten"];
+  buitenPipedrive: { label: string; bedrag: number }[];
   melding: string | null;
 }) {
   if (!a.facturatie.length) return <p className="text-[13px] text-zinc-500">{a.facturatieNoot || "Geen facturatie in onze boekhouding."}</p>;
@@ -501,12 +512,26 @@ function FacturatieBlok({
         <div>
           <span className="label">Verkocht</span>
           <div className="text-[20px] tabular-nums">{euro(fact.verkocht)}</div>
+          <div className="text-[11.5px] text-[var(--inkt-vaag)]">enkel verkoop in Pipedrive</div>
         </div>
         <div>
           <span className="label">Gefactureerd</span>
           <div className="text-[20px] tabular-nums">{euro(fact.gefactureerd)}</div>
+          <div className="text-[11.5px] text-[var(--inkt-vaag)]">alle facturen</div>
         </div>
       </div>
+      {buitenPipedrive.length > 0 && (
+        <p className="text-[12px] text-[var(--inkt-zacht)]">
+          De omzet bovenaan telt ook verkoop buiten Pipedrive mee:{" "}
+          {buitenPipedrive.map((x, i) => (
+            <span key={x.label}>
+              {i > 0 && " · "}
+              {x.label} <b className="tabular-nums">{euro(x.bedrag)}</b>
+            </span>
+          ))}
+          . Die zit niet in &quot;verkocht&quot; hier.
+        </p>
+      )}
       {/* Cash (vraag Mehdi): wat nog gefactureerd moet worden en wat gefactureerd maar onbetaald is. */}
       <a href={facturatieLink(a)} target="_blank" rel="noreferrer" className="grid grid-cols-2 gap-2 rounded-xl bg-white/50 p-2 hover:bg-white/80" style={{ textDecoration: "none", color: "inherit" }}>
         <div>
