@@ -62,3 +62,14 @@ export function magPad(pad: string, groepenKop: string | null): boolean {
   if (!afdeling) return true;
   return afdelingenVoor(groepenKop).has(afdeling);
 }
+
+/**
+ * Mag deze bezoeker de teambeloning (teampot, bedragen per persoon, regels) zien?
+ * Enkel `wp-alles` (directie en het salesteam zelf). Afdelingsteams zien wel de
+ * teamdoel-balk (omzet tegenover het doel), maar niet wie er commissie op krijgt.
+ */
+export function magCommissie(groepenKop: string | null): boolean {
+  const groepen = groepenUit(groepenKop);
+  if (process.env.TOEGANG_DEV === "1" && groepen.length === 0) return true;
+  return groepen.includes("wp-alles");
+}

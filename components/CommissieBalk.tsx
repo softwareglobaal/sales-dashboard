@@ -3,6 +3,8 @@ import commissie from "@/config/commissie.json";
 
 // Voortgang van de maandelijkse teambeloning (Joey & Shelton) voor één afdeling.
 // Klikken op de balk klapt de regels open (<details>, dus geen client-JS nodig).
+// Zonder `toonBeloning` (iedereen buiten wp-alles) blijft enkel het teamdoel over:
+// omzet tegenover het doel en de mijlpalen, zonder pot, namen of regels.
 
 type Mijlpaal = { omzet: number; pot: number };
 type Afdeling = {
@@ -22,8 +24,10 @@ export function CommissieBalk({
   omzet,
   maandLabel,
   dagenOver,
+  toonBeloning,
 }: {
   afdeling: "engineering" | "energy";
+  toonBeloning: boolean;
   omzet: number;
   maandLabel: string;
   dagenOver: number | null; // null = afgesloten maand
@@ -34,9 +38,13 @@ export function CommissieBalk({
   const volgende = cfg.mijlpalen.find((m) => omzet < m.omzet) || null;
   const pot = behaald?.pot || 0;
 
+  // Met beloning: openklapbaar (<details>) voor de regels; zonder: een gewoon paneel.
+  const Buiten = toonBeloning ? "details" : "section";
+  const Kop = toonBeloning ? "summary" : "div";
+
   return (
-    <details id="teamdoel" className="paneel group mb-8 scroll-mt-40 cursor-pointer" style={{ padding: "18px 22px" }}>
-      <summary className="list-none [&::-webkit-details-marker]:hidden">
+    <Buiten id="teamdoel" className={"paneel group mb-8 scroll-mt-40" + (toonBeloning ? " cursor-pointer" : "")} style={{ padding: "18px 22px" }}>
+      <Kop className="list-none [&::-webkit-details-marker]:hidden">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <div>
             <span className="label">
@@ -47,6 +55,7 @@ export function CommissieBalk({
               <span className="text-[13px] text-[var(--inkt-vaag)]">van {euro(cfg.doel)}</span>
             </div>
           </div>
+          {toonBeloning && (
           <div className="text-right">
             <span className="label">Teampot</span>
             <div className="mt-1 flex items-baseline justify-end gap-2">
@@ -58,6 +67,7 @@ export function CommissieBalk({
               </span>
             </div>
           </div>
+          )}
         </div>
 
         {/* Balk met mijlpalen */}
@@ -93,7 +103,7 @@ export function CommissieBalk({
                 <span style={{ color: ok ? "var(--goed)" : "var(--inkt-zacht)", fontWeight: ok ? 600 : 500 }}>
                   {kort(m.omzet)}
                 </span>
-                <span style={{ color: ok ? "var(--goed)" : "var(--inkt-vaag)" }}>{euro(m.pot)}</span>
+                {toonBeloning && <span style={{ color: ok ? "var(--goed)" : "var(--inkt-vaag)" }}>{euro(m.pot)}</span>}
               </div>
             );
           })}
@@ -103,8 +113,8 @@ export function CommissieBalk({
           <span>
             {volgende ? (
               <>
-                Nog <b className="text-[var(--inkt)]">{euro(volgende.omzet - omzet)}</b> tot {kort(volgende.omzet)} (pot{" "}
-                {euro(volgende.pot)})
+                Nog <b className="text-[var(--inkt)]">{euro(volgende.omzet - omzet)}</b> tot {kort(volgende.omzet)}
+                {toonBeloning && <> (pot {euro(volgende.pot)})</>}
               </>
             ) : (
               <b style={{ color: "var(--goed)" }}>Hoogste mijlpaal behaald</b>
@@ -112,14 +122,17 @@ export function CommissieBalk({
             {dagenOver != null && <> · nog {dagenOver} {dagenOver === 1 ? "dag" : "dagen"} deze maand</>}
             {cfg.breakeven && <> · breakeven {euro(cfg.breakeven)} (streepjeslijn)</>}
           </span>
+          {toonBeloning && (
           <span className="chip">
             <span className="group-open:hidden">Regels tonen ▾</span>
             <span className="hidden group-open:inline">Regels verbergen ▴</span>
           </span>
+          )}
         </div>
-      </summary>
+      </Kop>
 
       {/* Regels */}
+      {toonBeloning && (
       <div className="mt-5 grid cursor-auto gap-5 border-t pt-5 text-[13px] md:grid-cols-2" style={{ borderColor: "var(--lijn)" }}>
         <div>
           <div className="label mb-2">Mijlpalen per maand</div>
@@ -164,7 +177,8 @@ export function CommissieBalk({
           <p className="mt-3 text-[12px] text-[var(--inkt-vaag)]">{commissie.status}.</p>
         </div>
       </div>
-    </details>
+      )}
+    </Buiten>
   );
 }
 

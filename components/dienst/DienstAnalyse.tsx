@@ -46,7 +46,7 @@ function Tabelletje({ titel, rijen, totaal, leeg }: { titel: string; rijen: Tell
   );
 }
 
-export function DienstAnalyse({ a, sp }: { a: Afdeling; sp: DienstZoek & { rs?: string } }) {
+export function DienstAnalyse({ a, sp, toonBeloning }: { a: Afdeling; sp: DienstZoek & { rs?: string }; toonBeloning: boolean }) {
   const periode = isDienstPeriode(sp.periode) ? sp.periode : "ytd";
   const f = sp.firma && firmasVan(a).some((x) => x.sleutel === sp.firma) ? sp.firma : undefined;
   const b = bereik(periode);
@@ -100,7 +100,7 @@ export function DienstAnalyse({ a, sp }: { a: Afdeling; sp: DienstZoek & { rs?: 
 
       {commissie && (
         <section id="teamdoel" className="mt-4 scroll-mt-40">
-          <CommissieBalk afdeling={commissie} omzet={cmOmzet} maandLabel={cm.maand} dagenOver={cm.dagenOver} />
+          <CommissieBalk afdeling={commissie} omzet={cmOmzet} maandLabel={cm.maand} dagenOver={cm.dagenOver} toonBeloning={toonBeloning} />
         </section>
       )}
       {commissie && (
