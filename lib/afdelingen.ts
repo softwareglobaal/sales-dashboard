@@ -12,6 +12,7 @@
 
 import cfg from "@/config/afdelingen.json";
 import commissie from "@/config/commissie.json";
+import productnamen from "@/config/productnamen.json";
 import { getDb } from "./db";
 import { ACCOUNTS } from "./accounts";
 import { HIDDEN_PIPELINES } from "./hiddenPipelines";
@@ -225,7 +226,16 @@ function offerteDrempels(acc: string): Map<string, number> {
   return uit;
 }
 
-const productNaam = (n: string | null) => (n || "(geen productnaam)").replace(/^[A-Z0-9 -]+:\s*/, "").trim() || n || "(geen productnaam)";
+// Vertaaltabel (config/productnamen.json): UNABO en TKN-Buro noemen hetzelfde product
+// anders, dus eerst gelijktrekken; anders de Pipedrive-naam zonder afdelingsprefix.
+const PRODUCTNAMEN = productnamen as { namen: Record<string, string>; patronen: { patroon: string; naam: string }[] };
+const PATRONEN = PRODUCTNAMEN.patronen.map((p) => ({ re: new RegExp(p.patroon), naam: p.naam }));
+export function productNaam(n: string | null): string {
+  const ruw = (n || "").trim();
+  if (!ruw) return "(geen productnaam)";
+  const vast = PRODUCTNAMEN.namen[ruw] ?? PATRONEN.find((p) => p.re.test(ruw))?.naam;
+  return vast || ruw.replace(/^[A-Z0-9 -]+:\s*/, "").trim() || ruw;
+}
 
 function pipedriveData(a: Afdeling, b: PipedriveBron): Dataset {
   const db = getDb();

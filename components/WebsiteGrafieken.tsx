@@ -11,7 +11,7 @@ import { num } from "@/lib/format";
 type SiteKleur = { sleutel: string; naam: string; kleur: string };
 
 const as = { fontSize: 11, fill: "#8f8a82" };
-const raster = "rgba(22,21,15,.08)";
+const raster = "var(--lijn)";
 
 function datumLabel(d: string) {
   if (d.length === 7) {
@@ -26,11 +26,11 @@ function Tip({ active, payload, label }: { active?: boolean; payload?: { name: s
   if (!active || !payload?.length) return null;
   const rijen = [...payload].sort((a, b) => b.value - a.value);
   return (
-    <div style={{ background: "rgba(255,255,255,.96)", border: "1px solid rgba(22,21,15,.1)", borderRadius: 12, padding: "8px 12px", fontSize: 12, boxShadow: "0 10px 24px rgba(22,21,15,.1)" }}>
-      <div style={{ color: "#5f5a52", marginBottom: 4 }}>{label ? datumLabel(label) : ""}</div>
+    <div style={{ background: "var(--wit)", border: "1px solid var(--lijn)", borderRadius: 12, padding: "8px 12px", fontSize: 12, boxShadow: "0 10px 24px rgba(22,21,15,.1)" }}>
+      <div style={{ color: "var(--inkt-zacht)", marginBottom: 4 }}>{label ? datumLabel(label) : ""}</div>
       {rijen.map((r) => (
         <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#16150f" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--inkt)" }}>
             <i style={{ width: 10, height: 3, borderRadius: 2, background: r.color, display: "inline-block" }} />
             {r.name}
           </span>
@@ -49,11 +49,11 @@ export function VergelijkingPerSite({ data, sites }: { data: Record<string, stri
         <CartesianGrid stroke={raster} vertical={false} />
         <XAxis dataKey="d" tick={as} tickFormatter={datumLabel} axisLine={false} tickLine={false} minTickGap={24} />
         <YAxis allowDecimals={false} tick={as} width={36} axisLine={false} tickLine={false} />
-        <Tooltip content={<Tip />} cursor={{ stroke: "rgba(22,21,15,.25)", strokeWidth: 1 }} />
+        <Tooltip content={<Tip />} cursor={{ stroke: "var(--inkt-vaag)", strokeWidth: 1 }} />
         <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
         {sites.map((s) => (
           <Line key={s.sleutel} dataKey={s.sleutel} name={s.naam} stroke={s.kleur} strokeWidth={2} dot={false}
-            activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }} />
+            activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--wit)" }} />
         ))}
       </LineChart>
     </ResponsiveContainer>
@@ -73,11 +73,11 @@ export function KernReeks({ data }: { data: { d: string; bezoekers: number; sess
         <CartesianGrid stroke={raster} vertical={false} />
         <XAxis dataKey="d" tick={as} tickFormatter={datumLabel} axisLine={false} tickLine={false} minTickGap={24} />
         <YAxis allowDecimals={false} tick={as} width={36} axisLine={false} tickLine={false} />
-        <Tooltip content={<Tip />} cursor={{ stroke: "rgba(22,21,15,.25)", strokeWidth: 1 }} />
+        <Tooltip content={<Tip />} cursor={{ stroke: "var(--inkt-vaag)", strokeWidth: 1 }} />
         <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
         {reeksen.map((r) => (
           <Line key={r.key} dataKey={r.key} name={r.naam} stroke={r.kleur} strokeWidth={2} dot={false}
-            activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }} />
+            activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--wit)" }} />
         ))}
       </LineChart>
     </ResponsiveContainer>

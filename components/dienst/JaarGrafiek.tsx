@@ -46,9 +46,9 @@ export function JaarGrafiek({ rijen, jaar, bronnen }: { rijen: GrafiekRij[]; jaa
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
           <CartesianGrid vertical={false} stroke="var(--lijn)" />
-          <XAxis dataKey="maand" tick={{ fontSize: 11, fill: "#8f8a82" }} axisLine={false} tickLine={false} />
+          <XAxis dataKey="maand" tick={{ fontSize: 11, fill: "var(--inkt-vaag)" }} axisLine={false} tickLine={false} />
           <YAxis
-            tick={{ fontSize: 11, fill: "#8f8a82" }}
+            tick={{ fontSize: 11, fill: "var(--inkt-vaag)" }}
             axisLine={false}
             tickLine={false}
             width={48}
@@ -75,7 +75,7 @@ export function JaarGrafiek({ rijen, jaar, bronnen }: { rijen: GrafiekRij[]; jaa
                     </div>
                   ))}
                   {nu.length > 1 && (
-                    <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(22,21,15,.1)", marginTop: 4, paddingTop: 4, fontWeight: 600 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid var(--lijn)", marginTop: 4, paddingTop: 4, fontWeight: 600 }}>
                       <span>Totaal {jaar}</span>
                       <span>{fmt(som)}</span>
                     </div>

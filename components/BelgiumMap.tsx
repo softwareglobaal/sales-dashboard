@@ -273,7 +273,7 @@ export function BelgiumMap({
       >
         <g transform={`translate(${t.x} ${t.y}) scale(${t.k})`}>
           {BE_PROVINCES.map((pr) => (
-            <path key={pr.name} d={pr.d} fill="#e9eef5" stroke="#c3ccd9" strokeWidth={0.8} fillRule="evenodd" vectorEffect="non-scaling-stroke">
+            <path key={pr.name} d={pr.d} fill="var(--vlak)" stroke="var(--inkt-vaag)" strokeOpacity={0.5} strokeWidth={0.8} fillRule="evenodd" vectorEffect="non-scaling-stroke">
               <title>{pr.name}</title>
             </path>
           ))}
@@ -292,7 +292,7 @@ export function BelgiumMap({
                   r={isSel ? dotR * 1.5 : dotR}
                   fill={pointColor(p)}
                   fillOpacity={0.85}
-                  stroke={isSel ? "#0f172a" : "#fff"}
+                  stroke={isSel ? "var(--inkt)" : "var(--wit)"}
                   strokeWidth={isSel ? 1.6 : 0.8}
                   vectorEffect="non-scaling-stroke"
                   className="cursor-pointer"
@@ -315,7 +315,7 @@ export function BelgiumMap({
                   d={diamond(x + jx, y + jy, isSel ? dmS * 1.4 : dmS)}
                   fill={B2B_COLOR}
                   fillOpacity={0.9}
-                  stroke={isSel ? "#0f172a" : "#fff"}
+                  stroke={isSel ? "var(--inkt)" : "var(--wit)"}
                   strokeWidth={isSel ? 1.6 : 0.8}
                   vectorEffect="non-scaling-stroke"
                   className="cursor-pointer"

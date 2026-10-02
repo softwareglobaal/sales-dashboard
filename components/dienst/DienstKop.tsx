@@ -80,7 +80,7 @@ export function DienstKop({
                 fontSize: 13,
                 fontWeight: 500,
                 background: t.key === tab ? "var(--donker)" : undefined,
-                color: t.key === tab ? "#fff" : "var(--inkt-zacht)",
+                color: t.key === tab ? "var(--donker-tekst)" : "var(--inkt-zacht)",
               }}
             >
               {t.label}
