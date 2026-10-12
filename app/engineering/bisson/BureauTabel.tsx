@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Architect, BissonProject } from "@/lib/architecten";
-import { BureauDetail } from "@/components/architecten/BureauDetail";
+import { BureauDetail, jaarVan } from "@/components/architecten/BureauDetail";
 
 // Uitklapbare lijst bureaus op de Bisson-pagina: klik een bureau open en zie elk project
 // bij onze firma's (dienst, firma, deal, factuur, map) naast elk Bisson-project.
@@ -34,6 +34,17 @@ export function BureauTabel({
   anker?: string; // id-voorvoegsel: #bureau-<id> opent het bureau in deze tabel
 }) {
   const [open, setOpen] = useState<string | null>(null);
+  const [jaar, setJaar] = useState("");
+  const jaren = [
+    ...new Set([
+      ...bureaus.flatMap((b) => (metOns ? b.projecten.map((p) => jaarVan(p.datum)) : [])),
+      ...bureaus.flatMap((b) => (bisson[b.id] || []).map((p) => String(p.jaar))),
+    ].filter(Boolean)),
+  ].sort((x, y) => y.localeCompare(x));
+  const telOns = (b: Architect) =>
+    b.projecten.filter((p) => !p.zonder_verwijzing && (!jaar || jaarVan(p.datum) === jaar)).length;
+  const telBis = (b: Architect) => (bisson[b.id] || []).filter((p) => !jaar || String(p.jaar) === jaar).length;
+  const zichtbaar = bureaus.filter((b) => !jaar || telBis(b) > 0 || (metOns && telOns(b) > 0));
 
   useEffect(() => {
     const lees = () => {
@@ -52,22 +63,40 @@ export function BureauTabel({
   const kolommen = metOns ? 8 : 6;
   return (
     <div className="overflow-x-auto">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <select
+          className="rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-[12.5px]"
+          value={jaar}
+          onChange={(e) => setJaar(e.target.value)}
+          aria-label="Jaar"
+        >
+          <option value="">Alle jaren</option>
+          {jaren.map((j) => (
+            <option key={j} value={j}>
+              {j}
+            </option>
+          ))}
+        </select>
+        <span className="text-[12px] text-zinc-500">
+          {zichtbaar.length} bureaus{jaar ? ` met een project in ${jaar}` : ""} · klik een bureau voor de projecten
+        </span>
+      </div>
       <table className="tabel">
         <thead>
           <tr>
             <th>Bureau</th>
             <th>Status bij ons</th>
             {metOns && <th>Bij ons</th>}
-            {metOns && <th className="num">Projecten bij ons</th>}
+            {metOns && <th className="num">Projecten bij ons{jaar ? ` (${jaar})` : ""}</th>}
             {metOns && <th>Periode bij ons</th>}
             {!metOns && <th>Code in de map</th>}
-            <th className="num">Via Bisson</th>
+            <th className="num">Via Bisson{jaar ? ` (${jaar})` : ""}</th>
             <th>Periode Bisson</th>
             {metOns ? <th className="num">Bij ons na 1e Bisson</th> : <th />}
           </tr>
         </thead>
         <tbody>
-          {bureaus.map((x) => {
+          {zichtbaar.map((x) => {
             const isOpen = open === x.id;
             const s = x.signaal ? SIGNAAL[x.signaal] : null;
             return [
@@ -91,14 +120,14 @@ export function BureauTabel({
                     <div className="text-zinc-500">{x.diensten.join(", ")}</div>
                   </td>
                 )}
-                {metOns && <td className="num">{x.aantal_projecten}</td>}
+                {metOns && <td className="num">{telOns(x)}</td>}
                 {metOns && (
                   <td className="whitespace-nowrap">
                     {maandJaar(x.eerste_bij_ons)} – {maandJaar(x.laatste_bij_ons)}
                   </td>
                 )}
                 {!metOns && <td className="text-[12px] text-zinc-500">{x.codes.join(", ")}</td>}
-                <td className="num font-medium">{x.aantal_bisson}</td>
+                <td className="num font-medium">{telBis(x)}</td>
                 <td className="whitespace-nowrap">
                   {maandJaar(x.eerste_bisson)} – {maandJaar(x.laatste_bisson)}
                 </td>
@@ -107,7 +136,7 @@ export function BureauTabel({
               isOpen && (
                 <tr key={x.id + "-detail"}>
                   <td colSpan={kolommen} style={{ background: "var(--vlak)" }}>
-                    <BureauDetail a={x} bisson={bisson[x.id] || []} />
+                    <BureauDetail key={jaar} a={x} bisson={bisson[x.id] || []} jaar={jaar} />
                   </td>
                 </tr>
               ),

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Architect, BissonProject } from "@/lib/architecten";
-import { BureauDetail } from "@/components/architecten/BureauDetail";
+import { BureauDetail, jaarVan } from "@/components/architecten/BureauDetail";
 
 // Tabel van architect-klanten met filters en een uitklapbare projectlijst per bureau.
 
@@ -34,6 +34,22 @@ export function ArchitectenLijst({
   const [firma, setFirma] = useState("");
   const [dienst, setDienst] = useState("");
   const [zoek, setZoek] = useState("");
+  const [jaar, setJaar] = useState("");
+  // Per jaar: wat dit bureau dat jaar bij ons (en via Bisson) deed.
+  const inJaar = (a: Architect) => a.projecten.filter((p) => !jaar || jaarVan(p.datum) === jaar);
+  const bisJaar = (a: Architect) => (bisson?.[a.id] || []).filter((p) => !jaar || String(p.jaar) === jaar).length;
+  const jaren = useMemo(
+    () =>
+      [
+        ...new Set(
+          [
+            ...architecten.flatMap((a) => a.projecten.map((p) => jaarVan(p.datum))),
+            ...Object.values(bisson || {}).flatMap((l) => l.map((p) => String(p.jaar))),
+          ].filter(Boolean),
+        ),
+      ].sort((x, y) => y.localeCompare(x)),
+    [architecten, bisson],
+  );
   const [open, setOpen] = useState<string | null>(null);
 
   // Een link als /architecten#mv2 opent meteen dat bureau.
@@ -56,6 +72,7 @@ export function ArchitectenLijst({
     return architecten
       .filter((a) => !firma || a.firmas.includes(firma))
       .filter((a) => !dienst || a.diensten.includes(dienst))
+      .filter((a) => !jaar || inJaar(a).length > 0 || (toonBisson && bisJaar(a) > 0))
       .filter(
         (a) =>
           !z ||
@@ -63,7 +80,8 @@ export function ArchitectenLijst({
             (v || "").toLowerCase().includes(z),
           ),
       );
-  }, [architecten, firma, dienst, zoek]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [architecten, firma, dienst, zoek, jaar]);
 
   const keuze = "rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-[12.5px]";
   const kolommen = toonBisson ? 8 : 7;
@@ -74,6 +92,14 @@ export function ArchitectenLijst({
           <option value="">Alle firma&apos;s</option>
           {firmas.map((f) => (
             <option key={f}>{f}</option>
+          ))}
+        </select>
+        <select className={keuze} value={jaar} onChange={(e) => setJaar(e.target.value)} aria-label="Jaar">
+          <option value="">Alle jaren</option>
+          {jaren.map((j) => (
+            <option key={j} value={j}>
+              {j}
+            </option>
           ))}
         </select>
         <select className={keuze} value={dienst} onChange={(e) => setDienst(e.target.value)} aria-label="Dienst">
@@ -97,7 +123,7 @@ export function ArchitectenLijst({
               <th>Bureau</th>
               <th>Firma&apos;s</th>
               <th>Diensten</th>
-              <th className="num">Projecten</th>
+              <th className="num">Projecten{jaar ? ` (${jaar})` : ""}</th>
               <th>Eerste – laatste</th>
               <th className="num">Verkocht</th>
               <th className="num">Gefactureerd</th>
@@ -127,21 +153,21 @@ export function ArchitectenLijst({
                   </td>
                   <td className="text-[12.5px]">{a.diensten.join(", ")}</td>
                   <td className="num font-medium">
-                    {a.aantal_projecten}
-                    {a.projecten.some((p) => p.zonder_verwijzing) && (
+                    {inJaar(a).filter((p) => !p.zonder_verwijzing).length}
+                    {inJaar(a).some((p) => p.zonder_verwijzing) && (
                       <span className="text-[11px] font-normal text-zinc-400" title="plus facturen zonder projectverwijzing"> +</span>
                     )}
                   </td>
                   <td className="whitespace-nowrap">
                     {maandJaar(a.eerste_bij_ons)} – {maandJaar(a.laatste_bij_ons)}
                   </td>
-                  <td className="num">{a.verkocht ? euro(a.verkocht) : "—"}</td>
-                  <td className="num">{a.gefactureerd ? euro(a.gefactureerd) : "—"}</td>
+                  <td className="num">{(() => { const v = inJaar(a).reduce((t, p) => t + p.verkocht, 0); return v ? euro(v) : "—"; })()}</td>
+                  <td className="num">{(() => { const v = inJaar(a).reduce((t, p) => t + p.gefactureerd, 0); return v ? euro(v) : "—"; })()}</td>
                   {toonBisson && (
                     <td className="num">
-                      {a.aantal_bisson ?? 0 ? (
+                      {bisJaar(a) ? (
                         <span className={"chip " + (s?.[1] || "")} title={s?.[0]}>
-                          {a.aantal_bisson}
+                          {bisJaar(a)}
                         </span>
                       ) : (
                         "—"
@@ -152,7 +178,7 @@ export function ArchitectenLijst({
                 isOpen && (
                   <tr key={a.id + "-detail"}>
                     <td colSpan={kolommen} style={{ background: "var(--vlak)" }}>
-                      <BureauDetail a={a} bisson={toonBisson ? bisson?.[a.id] || [] : undefined} />
+                      <BureauDetail key={jaar} a={a} bisson={toonBisson ? bisson?.[a.id] || [] : undefined} jaar={jaar} />
                     </td>
                   </tr>
                 ),
