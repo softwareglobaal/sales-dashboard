@@ -744,3 +744,34 @@ enkel op en verstuurt via de Zoom-app van de andere meldingen. `--droog` toont z
 - **Donkere modus**: zon/maan onderaan de zijbalk; zonder keuze volgt het dashboard het toestel.
   De Tailwind-kleuren lezen variabelen (`@theme` zonder inline), zodat de donkere modus enkel de
   variabelen omdraait (onderaan `app/globals.css`, zelfde tokens als het takendashboard).
+
+## 18. Studiebureau Bisson en architecten-klanten (oktober 2026)
+
+Vraag van Siyan (12 okt 2026): hoeveel projecten voert TKN-Buro uit voor Studiebureau Bisson (de
+firma van vennoot Tom, grotendeels gratis), en werken onze eigen architect-klanten intussen via
+Bisson? Daarnaast één overzicht van alle architecten die klant zijn bij onze firma's.
+
+- **Bron**: het facturatieplatform bouwt het 's nachts op (`architecten.py` daar, na refresh.py)
+  en geeft het via `GET /api/koppeling/architecten` (zelfde `KOPPELING_TOKEN` als §17). Het
+  dashboard leest het met `lib/architecten.ts` (10 min cache) en voegt één eigen toets toe:
+  staat een Bisson-werfadres als deal in onze Pipedrive, in elke status (`dealsOpBissonWerven`).
+- **Bisson-project** = TKN-projectmap of Monday-regel met "SB BISSON" in de naam, of kanaal
+  "SB Bisson" op het Monday-bord TKN-Buro projects. De naam draagt dienst (STA/DRA), soort
+  (RO/NB/...), pakket (FP/PS), architect en werfadres. Noemer voor het aandeel = alle
+  TKN-projectnummers van het jaar (het nummeroverzicht van het platform).
+- **Geschatte waarde** = per STA-project de mediaanprijs van TKN's eigen stabiliteitsprojecten
+  (nieuwbouw/renovatie apart vanaf 3 projecten). Tekenwerk heeft geen eigen prijsbasis en wordt
+  sinds juni 2024 per maand aan Studieburo Bisson BV gefactureerd; die facturen staan apart.
+- **Architect-klant** = minstens één gewonnen deal (contact "B2B ARC" of bureaunaam met
+  architect/architectuur/studio), factuur (Octopus-relatie idem) of eigen TKN-projectmap met
+  de architect in de naam. Eigen firma's en leadplatformen (architectoffertes.be) tellen niet.
+  Welke mapcode bij welk bureau hoort: `architecten_aliassen.json` in het facturatieplatform
+  (zeker=false = "te bevestigen" op het scherm; een onzekere alias telt bij namen enkel als de
+  naam zelf "architect" of "B2B" draagt).
+- **Signalen**: *eerst bij ons, nu via Bisson* (eerste project bij ons vóór het eerste
+  Bisson-project), *klant bij ons én via Bisson*, *eigen firma via Bisson*, *in onze B2B-lijst*
+  (prospect in Pipedrive), *enkel via Bisson*.
+- **Toegang**: `/engineering/bisson` (subtab, `extra` met `alleen: "bisson"`) enkel voor
+  `BISSON_KIJKERS` (standaard siyan,mehdi; `magBisson`). De subtab is voor anderen onzichtbaar.
+  `/architecten` (menu "Klanten") voor wp-alles (`magArchitecten`); wie geen magBisson heeft,
+  krijgt daar geen enkel Bisson-veld mee naar de browser.

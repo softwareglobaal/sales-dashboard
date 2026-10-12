@@ -35,6 +35,8 @@ const MARKETING: Item[] = [
   { href: "/seo-sea", label: "SEO / SEA", icon: "zoek" },
   { href: "/websites", label: "Websites", icon: "web" },
 ];
+// Het klantenbestand van architecten over alle firma's heen; enkel voor wp-alles.
+const KLANTEN: Item[] = [{ href: "/architecten", label: "Architecten", icon: "klanten" }];
 const TEAM: Item[] = [
   { href: "/sales-team", label: "Sales team", icon: "team" },
   { href: "/woordenboek", label: "Woordenboek", icon: "boek" },
@@ -69,6 +71,7 @@ const ICONEN: Record<string, string> = {
   slot: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   links: '<path d="M15 5l-7 7 7 7"/>',
   rechts: '<path d="m9 5 7 7-7 7"/>',
+  klanten: '<path d="M3 21V9l6-4 6 4v12"/><path d="M15 21h6v-8l-6-3"/><path d="M7 12h4M7 16h4"/>',
 };
 
 function Icoon({ naam, className }: { naam: string; className?: string }) {
@@ -83,7 +86,15 @@ function Icoon({ naam, className }: { naam: string; className?: string }) {
   );
 }
 
-export function Sidebar({ afdelingen, wachtend = 0 }: { afdelingen: string[]; wachtend?: number }) {
+export function Sidebar({
+  afdelingen,
+  wachtend = 0,
+  architecten = false,
+}: {
+  afdelingen: string[];
+  wachtend?: number;
+  architecten?: boolean; // het architecten-klantenbestand (enkel wp-alles, lib/toegang.ts)
+}) {
   const mag = (pad: string) => afdelingen.includes(pad);
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -182,6 +193,7 @@ export function Sidebar({ afdelingen, wachtend = 0 }: { afdelingen: string[]; wa
       <nav aria-label="Hoofdmenu">
         {group("Overzicht", OVERZICHT)}
         {afdelingGroep()}
+        {architecten && group("Klanten", KLANTEN)}
         {group("Marketing", MARKETING)}
         {group("Team", TEAM)}
       </nav>

@@ -700,6 +700,8 @@ main a.rounded-lg {
 }
 :root[data-thema="donker"] .scene i { opacity: .10; }
 :root[data-thema="donker"] .rail nav a:hover { background: rgba(255, 255, 255, .06); }
+/* De hover van .tabel (glas.css) is een witte waas: in donkere modus maakt die de rij onleesbaar. */
+:root[data-thema="donker"] .tabel tbody tr:hover td { background: rgba(255, 255, 255, .05); }
 :root[data-thema="donker"] .rail nav .actief,
 :root[data-thema="donker"] .rail nav .actief:hover { background: var(--inkt); color: var(--grond); }
 :root[data-thema="donker"] .paneel.donker { border-color: rgba(255, 255, 255, .10); box-shadow: 0 28px 60px rgba(0, 0, 0, .45); }

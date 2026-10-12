@@ -87,6 +87,13 @@
       "doel": {
         "bron": "commissie.engineering"
       },
+      "extra": [
+        {
+          "href": "/engineering/bisson",
+          "label": "Studiebureau Bisson",
+          "alleen": "bisson"
+        }
+      ],
       "facturatieTab": "engineering"
     },
     {
