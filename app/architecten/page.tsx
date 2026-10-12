@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { magArchitecten, magBisson } from "@/lib/toegang";
-import { architectenOverzicht, type Architect } from "@/lib/architecten";
+import { architectenOverzicht, type Architect, type BissonProject } from "@/lib/architecten";
 import { euro, num } from "@/lib/format";
 import { ArchitectenLijst } from "./ArchitectenLijst";
 
@@ -68,7 +68,10 @@ export default async function Page() {
     bureaus: klanten.filter((a) => a.firmas.includes(f)).length,
     projecten: klanten.reduce((s, a) => s + a.projecten.filter((p) => !p.zonder_verwijzing && p.firmas.includes(f)).length, 0),
   }));
-  const viaBisson = klanten.filter((a) => a.aantal_bisson > 0).length;
+  const viaBisson = klanten.filter((a) => (a.aantal_bisson ?? 0) > 0).length;
+  // Enkel voor de directie: de Bisson-projecten per bureau, voor de uitklapweergave.
+  const perBureau: Record<string, BissonProject[]> = {};
+  if (toonBisson) for (const p of stand.data.bisson.projecten) if (p.bureau) (perBureau[p.bureau] ||= []).push(p);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8">
@@ -128,7 +131,7 @@ export default async function Page() {
       </section>
 
       <section className="paneel mt-4">
-        <ArchitectenLijst architecten={klanten} directie={toonBisson} firmas={firmas} />
+        <ArchitectenLijst architecten={klanten} directie={toonBisson} firmas={firmas} bisson={toonBisson ? perBureau : undefined} />
         <p className="mt-3 text-[12px] text-zinc-500">
           Een architect wordt herkend aan het contact &ldquo;B2B ARC&rdquo; in Pipedrive, aan een bureaunaam met &ldquo;architect&rdquo;,
           &ldquo;architectuur&rdquo; of &ldquo;studio&rdquo; in Pipedrive of Octopus, of aan de architect in de naam van een
