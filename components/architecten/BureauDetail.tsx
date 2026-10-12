@@ -1,7 +1,11 @@
+"use client";
+
 // Detail van één architectenbureau: elk project bij onze firma's (met dienst, firma en
 // een link naar de deal, de factuur, de map of Monday) en, voor de directie, elk project
 // dat via Bisson liep. Gedeeld door /architecten en /engineering/bisson.
+// Filterbaar per jaar: de knoppen bovenaan tonen enkel de jaren waarin er iets gebeurde.
 
+import { useState } from "react";
 import type { Architect, BissonProject, ProjectBron } from "@/lib/architecten";
 
 function euro(n: number) {
@@ -30,8 +34,18 @@ function Bron({ b }: { b: ProjectBron }) {
   );
 }
 
-export function OnzeProjecten({ a, toonBissonNr = false }: { a: Architect; toonBissonNr?: boolean }) {
-  if (!a.projecten.length) return <p className="text-[12.5px] text-zinc-500">Geen project bij onze firma&apos;s gevonden.</p>;
+export function jaarVan(d: string | null | undefined): string {
+  return (d || "").slice(0, 4);
+}
+
+export function OnzeProjecten({
+  projecten,
+  toonBissonNr = false,
+}: {
+  projecten: Architect["projecten"];
+  toonBissonNr?: boolean;
+}) {
+  if (!projecten.length) return <p className="text-[12.5px] text-zinc-500">Geen project bij onze firma&apos;s in deze periode.</p>;
   return (
     <div className="overflow-x-auto">
       <table className="tabel">
@@ -48,7 +62,7 @@ export function OnzeProjecten({ a, toonBissonNr = false }: { a: Architect; toonB
           </tr>
         </thead>
         <tbody>
-          {a.projecten.map((p, i) => (
+          {projecten.map((p, i) => (
             <tr key={i}>
               <td className="whitespace-nowrap">{datum(p.datum)}</td>
               <td className="whitespace-nowrap">
@@ -141,21 +155,49 @@ export function BissonProjecten({ projecten }: { projecten: BissonProject[] }) {
   );
 }
 
-/** Beide lijsten onder elkaar, met een korte kop. */
-export function BureauDetail({ a, bisson }: { a: Architect; bisson?: BissonProject[] }) {
+/** Beide lijsten onder elkaar, met jaarknoppen bovenaan. */
+export function BureauDetail({ a, bisson, jaar: beginJaar = "" }: { a: Architect; bisson?: BissonProject[]; jaar?: string }) {
+  const [jaar, setJaar] = useState(beginJaar);
+  const jaren = [
+    ...new Set([...a.projecten.map((p) => jaarVan(p.datum)), ...(bisson || []).map((p) => String(p.jaar))].filter(Boolean)),
+  ].sort((x, y) => y.localeCompare(x));
+  const ons = a.projecten.filter((p) => !jaar || jaarVan(p.datum) === jaar);
+  const bis = (bisson || []).filter((p) => !jaar || String(p.jaar) === jaar);
+  const telOns = ons.filter((p) => !p.zonder_verwijzing).length;
+  const knop = (waarde: string, label: string) => (
+    <button
+      key={label}
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setJaar(waarde);
+      }}
+      className={jaar === waarde ? "chip donker" : "chip"}
+      style={{ padding: "4px 11px", fontSize: 12, cursor: "pointer" }}
+    >
+      {label}
+    </button>
+  );
   return (
     <div className="space-y-4 py-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-[12px] text-zinc-500">Jaar:</span>
+        {knop("", "Alle")}
+        {jaren.map((j) => knop(j, j))}
+      </div>
       {a.namen.length > 0 && <div className="text-[12px] text-zinc-500">Staat in onze systemen als: {a.namen.join(" · ")}</div>}
       <div>
         <div className="label mb-1">
-          Bij onze firma&apos;s · {a.aantal_projecten} project{a.aantal_projecten === 1 ? "" : "en"}
+          Bij onze firma&apos;s{jaar ? ` in ${jaar}` : ""} · {telOns} project{telOns === 1 ? "" : "en"}
         </div>
-        <OnzeProjecten a={a} toonBissonNr={!!bisson} />
+        <OnzeProjecten projecten={ons} toonBissonNr={!!bisson} />
       </div>
       {bisson && bisson.length > 0 && (
         <div>
-          <div className="label mb-1">Via Studiebureau Bisson · {bisson.length} projecten</div>
-          <BissonProjecten projecten={bisson} />
+          <div className="label mb-1">
+            Via Studiebureau Bisson{jaar ? ` in ${jaar}` : ""} · {bis.length} projecten
+          </div>
+          {bis.length ? <BissonProjecten projecten={bis} /> : <p className="text-[12.5px] text-zinc-500">Geen Bisson-project in deze periode.</p>}
         </div>
       )}
     </div>
