@@ -73,3 +73,27 @@ export function magCommissie(groepenKop: string | null): boolean {
   if (process.env.TOEGANG_DEV === "1" && groepen.length === 0) return true;
   return groepen.includes("wp-alles");
 }
+
+/**
+ * Mag deze bezoeker het Bisson-overzicht zien (Engineering → Studiebureau Bisson)?
+ * Strenger dan wp-alles: enkel de directie (BISSON_KIJKERS, standaard Siyan en Mehdi).
+ * Het overzicht gaat over de samenwerking met de firma van een vennoot; het salesteam
+ * en de afdelingen hoeven het niet te zien. Op gebruikersnaam, want daar bestaat geen
+ * eigen Authentik-groep voor.
+ */
+export function magBisson(groepenKop: string | null, gebruiker: string | null): boolean {
+  const groepen = groepenUit(groepenKop);
+  if (process.env.TOEGANG_DEV === "1" && groepen.length === 0) return true;
+  const kijkers = (process.env.BISSON_KIJKERS || "siyan,mehdi")
+    .split(",")
+    .map((u) => u.trim().toLowerCase())
+    .filter(Boolean);
+  return kijkers.includes((gebruiker || "").trim().toLowerCase());
+}
+
+/** Het architecten-klantenbestand (/architecten): klantgegevens over alle firma's heen, dus wp-alles. */
+export function magArchitecten(groepenKop: string | null): boolean {
+  const groepen = groepenUit(groepenKop);
+  if (process.env.TOEGANG_DEV === "1" && groepen.length === 0) return true;
+  return groepen.includes("wp-alles");
+}

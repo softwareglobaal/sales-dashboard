@@ -65,7 +65,8 @@ export type Afdeling = {
   bronnen: Bron[];
   kanalen: { websites: WebsiteKanaal[]; ads: string[] };
   concurrentie?: string;
-  extra?: { href: string; label: string }[];
+  // alleen: "bisson" = enkel zichtbaar voor wie magBisson heeft (lib/toegang.ts).
+  extra?: { href: string; label: string; alleen?: string }[];
   facturatie: string[];
   facturatieNoot?: string;
   facturatieTab?: string; // tabblad in facturatiecontrole (#...), voor de doorklik

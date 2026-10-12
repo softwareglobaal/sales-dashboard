@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { magBisson } from "@/lib/toegang";
 import { afdeling as afdelingVan, firmasVan, maandOpties, type Afdeling } from "@/lib/afdelingen";
 import { MaandKeuze } from "./MaandKeuze";
 
@@ -26,7 +28,16 @@ function Pil({ actief, naar, children }: { actief: boolean; naar: string; childr
   );
 }
 
-export function DienstKop({
+/** Extra subtabs, zonder die welke deze bezoeker niet mag zien (alleen: "bisson"). */
+async function zichtbareExtra(a: Afdeling) {
+  const extra = a.extra || [];
+  if (!extra.some((e) => e.alleen)) return extra;
+  const h = await headers();
+  const bisson = magBisson(h.get("x-authentik-groups"), h.get("x-authentik-username"));
+  return extra.filter((e) => e.alleen !== "bisson" || bisson);
+}
+
+export async function DienstKop({
   a,
   tab,
   sp,
@@ -34,7 +45,7 @@ export function DienstKop({
   ondertitel,
 }: {
   a: Afdeling;
-  tab: Tab;
+  tab: Tab | string;
   sp: DienstZoek;
   filters?: boolean;
   ondertitel?: string;
@@ -46,7 +57,7 @@ export function DienstKop({
     { key: "concurrentie", label: "Concurrentie", href: a.concurrentie || basis + "/concurrentie" },
   ];
   tabs.push({ key: "analyse", label: "Analyse", href: dienstHref(basis + "/analyse", sp) });
-  for (const e of a.extra || []) tabs.push({ key: e.href, label: e.label, href: e.href });
+  for (const e of await zichtbareExtra(a)) tabs.push({ key: e.href, label: e.label, href: e.href });
 
   const firmas = firmasVan(a);
   const periode = sp.periode || "ytd";
@@ -120,7 +131,7 @@ export function DienstKop({
  * Enkel de subtabs, voor de oudere pagina's met een eigen kop (Concurrentie,
  * Analyse, Verslaggevers). Zo wissel je overal op dezelfde manier van onderdeel.
  */
-export function DienstTabs({ pad, tab }: { pad: string; tab: Tab | string }) {
+export async function DienstTabs({ pad, tab }: { pad: string; tab: Tab | string }) {
   const a = afdelingVan(pad);
   if (!a) return null;
   const basis = "/" + a.pad;
@@ -130,7 +141,7 @@ export function DienstTabs({ pad, tab }: { pad: string; tab: Tab | string }) {
     { key: "concurrentie", label: "Concurrentie", href: a.concurrentie || basis + "/concurrentie" },
   ];
   tabs.push({ key: "analyse", label: "Analyse", href: basis + "/analyse" });
-  for (const e of a.extra || []) tabs.push({ key: e.href, label: e.label, href: e.href });
+  for (const e of await zichtbareExtra(a)) tabs.push({ key: e.href, label: e.label, href: e.href });
   return (
     <nav className="flex flex-wrap items-center gap-1 pt-4 text-[12.5px]" aria-label={`Onderdelen van ${a.naam}`}>
       <span className="mr-2 font-medium text-zinc-700">{a.naam}</span>
