@@ -10,6 +10,8 @@ import { getDb } from "./db";
 import { ACCOUNTS } from "./accounts";
 
 export type MondayRegel = {
+  architect?: string | null;
+  ingenieur?: string | null;
   naam: string | null;
   link: string | null;
   stand: string | null;
@@ -19,7 +21,7 @@ export type MondayRegel = {
   factuur_1: string | null;
   factuur_2: string | null;
 };
-export type Factuur = { dossier: string; nr: string; datum: string | null; bedrag: number | null; klant?: string | null; omschrijving?: string };
+export type Factuur = { dossier: string; nr: string; datum: string | null; bedrag: number | null; klant?: string | null; omschrijving?: string; pdf?: string | null };
 export type WerfTreffer = { bron: string; firma: string | null; tekst: string | null; klant?: string | null; datum?: string | null; link?: string | null; status?: string };
 export type BissonProject = {
   nr: string;
@@ -31,7 +33,12 @@ export type BissonProject = {
   soort_naam: string | null;
   pakket: string | null;
   architect_code: string | null;
+  architect_bron: "mapnaam" | "Monday" | null;
   bureau: string | null;
+  // Mehdi: de architect, of het ingenieursbureau als het in onderaanneming was.
+  ingenieur: string | null;
+  ingenieur_bron: "Monday" | "factuur" | null;
+  opdrachtgever: { soort: "architect" | "ingenieur"; naam: string; bron: string | null; zeker?: boolean } | null;
   adres: string | null;
   postcode: string | null;
   map: string | null;

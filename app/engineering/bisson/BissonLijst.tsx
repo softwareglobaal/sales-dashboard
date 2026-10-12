@@ -15,6 +15,8 @@ type Rij = {
   soort_naam: string | null;
   architect_code: string | null;
   bureau: string | null;
+  ingenieur: string | null;
+  opdrachtgever: { soort: "architect" | "ingenieur"; naam: string; bron: string | null } | null;
   bureau_naam: string | null;
   bureau_zeker: boolean;
   signaal: string | null;
@@ -22,7 +24,7 @@ type Rij = {
   link: string | null;
   bestanden: number | null;
   monday: { link: string | null; stand: string | null; uitvoerder: string | null; factuur_1: string | null } | null;
-  facturen: { nr: string; bedrag: number | null; klant?: string | null }[];
+  facturen: { nr: string; bedrag: number | null; klant?: string | null; pdf?: string | null }[];
   schatting: number | null;
   werf_treffers: number;
 };
@@ -33,8 +35,8 @@ function euro(n: number) {
   return new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 }
 
-export function BissonLijst({ projecten }: { projecten: Rij[] }) {
-  const [jaar, setJaar] = useState("");
+export function BissonLijst({ projecten, beginJaar = "" }: { projecten: Rij[]; beginJaar?: string }) {
+  const [jaar, setJaar] = useState(beginJaar);
   const [dienst, setDienst] = useState("");
   const [klant, setKlant] = useState("");
   const [zoek, setZoek] = useState("");
@@ -55,7 +57,7 @@ export function BissonLijst({ projecten }: { projecten: Rij[] }) {
       .filter(
         (p) =>
           !z ||
-          [p.nr, p.adres, p.bureau_naam, p.architect_code].some((v) => (v || "").toLowerCase().includes(z)),
+          [p.nr, p.adres, p.bureau_naam, p.architect_code, p.ingenieur].some((v) => (v || "").toLowerCase().includes(z)),
       )
       .sort((a, b) => b.nr.localeCompare(a.nr));
   }, [projecten, jaar, dienst, klant, zoek]);
@@ -98,7 +100,7 @@ export function BissonLijst({ projecten }: { projecten: Rij[] }) {
               <th>Nr</th>
               <th>Dienst</th>
               <th>Soort</th>
-              <th>Architect</th>
+              <th>Architect / ingenieur</th>
               <th>Werfadres</th>
               <th>Monday</th>
               <th className="num">Bestanden</th>
@@ -115,13 +117,23 @@ export function BissonLijst({ projecten }: { projecten: Rij[] }) {
                 <td className="text-[12.5px]">
                   {p.bureau_naam ? (
                     <>
-                      {p.bureau_naam}
+                      <a href={`#bureau-${p.bureau}`} className="underline decoration-dotted underline-offset-4" title="Alle projecten van dit bureau">
+                        {p.bureau_naam}
+                      </a>
                       {!p.bureau_zeker && <span className="text-zinc-400"> (?)</span>}
                       {ONZE.has(p.signaal || "") && <span className="chip kritiek ml-1">onze klant</span>}
                       {p.signaal === "prospect" && <span className="chip accent ml-1">B2B-lijst</span>}
                     </>
-                  ) : (
+                  ) : !p.ingenieur ? (
                     <span className="text-zinc-400">niet vermeld</span>
+                  ) : null}
+                  {p.ingenieur && (
+                    <div>
+                      <span className="chip let" title={p.opdrachtgever?.bron === "factuur" ? "uit de factuur op dit projectnummer" : "uit de kolom op Monday"}>
+                        ingenieur (OA)
+                      </span>{" "}
+                      {p.ingenieur}
+                    </div>
                   )}
                 </td>
                 <td className="text-[12.5px]">
@@ -146,7 +158,17 @@ export function BissonLijst({ projecten }: { projecten: Rij[] }) {
                 <td className="num">{p.bestanden ?? "—"}</td>
                 <td className="num">{p.schatting ? euro(p.schatting) : "—"}</td>
                 <td className="text-[12px]">
-                  {p.facturen.length > 0 && <span className="chip let">factuur</span>}
+                  {p.facturen.map((f) =>
+                    f.pdf ? (
+                      <a key={f.nr} href={f.pdf} target="_blank" rel="noopener" className="chip let" style={{ textDecoration: "none" }} title={`${f.klant || ""} ${euro(f.bedrag || 0)}`}>
+                        factuur ↗
+                      </a>
+                    ) : (
+                      <span key={f.nr} className="chip let" title={`${f.klant || ""} ${euro(f.bedrag || 0)}`}>
+                        factuur
+                      </span>
+                    ),
+                  )}
                   {p.monday?.factuur_1 && /gefactureerd/i.test(p.monday.factuur_1) && !p.facturen.length && (
                     <span className="chip" title="Monday zegt gefactureerd, maar er is geen factuur in onze boekhouding">
                       Monday: {p.monday.factuur_1}

@@ -1,15 +1,17 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { DienstKop } from "@/components/dienst/DienstKop";
 import { afdeling } from "@/lib/afdelingen";
 import { magBisson } from "@/lib/toegang";
-import { architectenOverzicht, dealsOpBissonWerven, maandJaar, SIGNAAL, type Architect, type BissonProject } from "@/lib/architecten";
+import { architectenOverzicht, dealsOpBissonWerven, maandJaar, type BissonProject } from "@/lib/architecten";
 import { euro, num } from "@/lib/format";
 import { BissonLijst } from "./BissonLijst";
+import { BureauTabel } from "./BureauTabel";
 
 // Engineering → Studiebureau Bisson (spec §18). Twee vragen:
 // 1. Hoeveel projecten doet TKN-Buro voor Bisson, en hoe verhoudt zich dat tot het eigen werk?
 // 2. Werken onze architect-klanten intussen via Bisson?
+// Alles is doorklikbaar: een bureau toont elk project (dienst, firma, deal, factuur, map),
+// een jaar filtert de projectlijst, een factuur opent de PDF.
 // Enkel voor de directie (magBisson); de subtab is voor anderen onzichtbaar.
 
 export const dynamic = "force-dynamic";
@@ -22,8 +24,23 @@ function schatting(p: BissonProject, prijzen: Record<string, { mediaan: number; 
   return k ? k.mediaan : null;
 }
 
-export default async function Page() {
+function dag(d: string | null | undefined) {
+  return d ? d.slice(0, 10).split("-").reverse().join("/") : "—";
+}
+
+function KpiLink({ naar, label, waarde, sub, toon }: { naar: string; label: string; waarde: string; sub: React.ReactNode; toon?: string }) {
+  return (
+    <a href={naar} className={"paneel kpi block " + (toon || "")} style={{ textDecoration: "none", color: "inherit" }}>
+      <span className="label">{label} ↓</span>
+      <div className="groot">{waarde}</div>
+      <div className="delta">{sub}</div>
+    </a>
+  );
+}
+
+export default async function Page({ searchParams }: { searchParams: Promise<{ jaar?: string }> }) {
   const h = await headers();
+  const sp = await searchParams;
   const a = afdeling("engineering")!;
   if (!magBisson(h.get("x-authentik-groups"), h.get("x-authentik-username"))) {
     return (
@@ -66,6 +83,9 @@ export default async function Page() {
   const werfDeals = dealsOpBissonWerven(projecten);
   const nu = new Date().getFullYear();
 
+  const perBureau: Record<string, BissonProject[]> = {};
+  for (const p of projecten) if (p.bureau) (perBureau[p.bureau] ||= []).push(p);
+
   const perJaar = bisson.per_jaar.map((j) => {
     const pj = projecten.filter((p) => p.jaar === j.jaar);
     const waarden = pj.map((p) => schatting(p, bisson.prijzen)).filter((x): x is number => x != null);
@@ -77,11 +97,22 @@ export default async function Page() {
   const vorig = perJaar.find((j) => j.jaar === nu - 1);
   const hoogsteJaar = Math.max(1, ...perJaar.map((j) => j.tkn_totaal));
 
+  // Facturen aan Bisson: wat, wanneer, en hoeveel Bisson-projecten er sindsdien bijkwamen.
+  const fb = bisson.facturen_aan_bisson;
   const factuurPerJaar = new Map<string, number>();
-  for (const f of bisson.facturen_aan_bisson) {
+  for (const f of fb) {
     const j = (f.datum || "").slice(0, 4);
     factuurPerJaar.set(j, (factuurPerJaar.get(j) || 0) + (f.bedrag || 0));
   }
+  const laatsteFactuur = fb.length ? fb[fb.length - 1].datum : null;
+  // Na de laatste factuur gestart: startdatum op Monday erna, of (zonder startdatum) een
+  // projectnummer van een later jaar.
+  const naLaatste = laatsteFactuur
+    ? projecten.filter((p) =>
+        p.datum.endsWith("-01-01") ? p.jaar > Number(laatsteFactuur.slice(0, 4)) : p.datum.slice(0, 10) > laatsteFactuur,
+      ).length
+    : 0;
+  const staFactuur = projecten.filter((p) => p.dienst === "STA").length;
   const metFactuur = projecten.filter((p) => p.facturen.length);
 
   const bissonArchitecten = architecten
@@ -89,7 +120,8 @@ export default async function Page() {
     .sort((x, y) => (ERNST[x.signaal || ""] ?? 9) - (ERNST[y.signaal || ""] ?? 9) || y.aantal_bisson - x.aantal_bisson);
   const overlap = bissonArchitecten.filter((x) => x.signaal === "eerst-bij-ons" || x.signaal === "beide" || x.signaal === "eigen");
   const prospects = bissonArchitecten.filter((x) => x.signaal === "prospect");
-  const zonderArchitect = projecten.filter((p) => !p.bureau).length;
+  const zonderOpdrachtgever = projecten.filter((p) => !p.opdrachtgever);
+  const ingenieurs = projecten.filter((p) => p.ingenieur);
 
   const werven = projecten
     .map((p) => ({ p, treffers: [...(p.werf_bij_ons || []), ...(werfDeals[p.nr] || [])] }))
@@ -115,60 +147,78 @@ export default async function Page() {
       <div className="notitie mt-4">
         Een Bisson-project is een TKN-projectmap of Monday-regel met <b>SB BISSON</b>{" "}in de naam (of kanaal &ldquo;SB Bisson&rdquo; op
         het Monday-bord). De naam zegt ook de dienst (STA = stabiliteit, DRA = tekenwerk) en voor welke architect Bisson het doet.
-        Bron: facturatiecontrole, ververst {stand.data.ververst?.slice(0, 10).split("-").reverse().join("/") || "—"}.
+        Alles hieronder is aanklikbaar. Bron: facturatiecontrole, ververst{" "}
+        {stand.data.ververst?.slice(0, 10).split("-").reverse().join("/") || "—"}.
       </div>
 
       {/* ---------------------------------------------------------------- kerncijfers */}
       <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div className="paneel kpi">
-          <span className="label">Bisson-projecten</span>
-          <div className="groot">{num(projecten.length)}</div>
-          <div className="delta">
-            sinds {perJaar[0]?.jaar} · {Math.round((projecten.length / Math.max(1, totaalTkn)) * 100)}% van alle TKN-projecten
-          </div>
-        </div>
-        <div className="paneel kpi">
-          <span className="label">Dit jaar ({nu})</span>
-          <div className="groot">{num(dit?.bisson || 0)}</div>
-          <div className="delta">
-            {dit ? `${Math.round(dit.aandeel * 100)}% van ${dit.tkn_totaal} TKN-projecten` : "nog geen"}
-            {vorig ? ` · vorig jaar ${vorig.bisson} (${Math.round(vorig.aandeel * 100)}%)` : ""}
-          </div>
-        </div>
-        <div className="paneel kpi">
-          <span className="label">Geschatte waarde</span>
-          <div className="groot">{euro(totaalWaarde)}</div>
-          <div className="delta">
-            stabiliteit tegen onze eigen prijs{prijsSta ? ` (mediaan ${euro(prijsSta.mediaan)} over ${prijsSta.n} TKN-projecten)` : ""}
-          </div>
-        </div>
-        <div className="paneel kpi">
-          <span className="label">Gefactureerd aan Bisson BV</span>
-          <div className="groot">{euro(bisson.facturen_aan_bisson_totaal)}</div>
-          <div className="delta">{bisson.facturen_aan_bisson.length} boekingen, excl. btw, vooral tekenwerk per maand</div>
-        </div>
-        <div className="paneel kpi">
-          <span className="label">Onze klanten via Bisson</span>
-          <div className="groot">{overlap.filter((x) => !x.eigen).length}</div>
-          <div className="delta">
-            {overlap.filter((x) => x.signaal === "eerst-bij-ons").length} eerst bij ons · {prospects.length} uit onze B2B-lijst
-            {overlap.some((x) => x.eigen) ? " · plus H-Architects zelf" : ""}
-          </div>
-        </div>
+        <KpiLink
+          naar="#projecten"
+          label="Bisson-projecten"
+          waarde={num(projecten.length)}
+          sub={`sinds ${perJaar[0]?.jaar} · ${Math.round((projecten.length / Math.max(1, totaalTkn)) * 100)}% van alle TKN-projecten`}
+        />
+        <KpiLink
+          naar={`?jaar=${nu}#projecten`}
+          label={`Dit jaar (${nu})`}
+          waarde={num(dit?.bisson || 0)}
+          sub={
+            (dit ? `${Math.round(dit.aandeel * 100)}% van ${dit.tkn_totaal} TKN-projecten` : "nog geen") +
+            (vorig ? ` · vorig jaar ${vorig.bisson} (${Math.round(vorig.aandeel * 100)}%)` : "")
+          }
+        />
+        <KpiLink
+          naar="#per-jaar"
+          label="Geschatte waarde"
+          waarde={euro(totaalWaarde)}
+          sub={`stabiliteit tegen onze eigen prijs${prijsSta ? ` (mediaan ${euro(prijsSta.mediaan)} over ${prijsSta.n} TKN-projecten)` : ""}`}
+        />
+        <KpiLink
+          naar="#facturen"
+          label="Gefactureerd aan Bisson BV"
+          waarde={euro(bisson.facturen_aan_bisson_totaal)}
+          sub={
+            <>
+              vooral tekenwerk per maand · laatste factuur <b>{dag(laatsteFactuur)}</b>
+            </>
+          }
+        />
+        <KpiLink
+          naar="#overlap"
+          label="Onze klanten via Bisson"
+          waarde={String(overlap.filter((x) => !x.eigen).length)}
+          sub={
+            `${overlap.filter((x) => x.signaal === "eerst-bij-ons").length} eerst bij ons · ${prospects.length} uit onze B2B-lijst` +
+            (overlap.some((x) => x.eigen) ? " · plus H-Architects zelf" : "")
+          }
+        />
+      </section>
+
+      {/* ---------------------------------------------------------------- wat er gefactureerd wordt */}
+      <section className="notitie kritiek mt-4" style={{ fontSize: 13 }}>
+        <b>Wat TKN aan Bisson aanrekent:</b> vooral tekenwerk, als één bedrag per maand ({fb.length} boekingen,{" "}
+        {euro(bisson.facturen_aan_bisson_totaal)} excl. btw sinds {dag(fb[0]?.datum)}). Geen van de {staFactuur}{" "}
+        stabiliteitsprojecten staat met zijn nummer op een factuur. De laatste factuur aan Bisson is van{" "}
+        <b>{dag(laatsteFactuur)}</b>: sindsdien is er niets meer aangerekend, ook geen tekenwerk, terwijl er in die periode{" "}
+        <b>{naLaatste} Bisson-projecten</b> startten.{" "}
+        <a href="#facturen" className="underline">
+          Bekijk de facturen
+        </a>
       </section>
 
       {/* ---------------------------------------------------------------- per jaar */}
-      <section className="paneel mt-4">
+      <section className="paneel mt-4 scroll-mt-32" id="per-jaar">
         <div className="kop">
           <h2>Per jaar: Bisson tegenover het eigen TKN-werk</h2>
-          <small>noemer = alle TKN-projectnummers van dat jaar (Dropbox, Monday, facturen)</small>
+          <small>klik een jaar voor de projecten · noemer = alle TKN-projectnummers van dat jaar</small>
         </div>
         <div className="overflow-x-auto">
           <table className="tabel">
             <thead>
               <tr>
                 <th>Jaar</th>
-                <th style={{ width: "34%" }}>Verdeling</th>
+                <th style={{ width: "30%" }}>Verdeling</th>
                 <th className="num">TKN-projecten</th>
                 <th className="num">Via Bisson</th>
                 <th className="num">Eigen</th>
@@ -182,7 +232,12 @@ export default async function Page() {
             <tbody>
               {perJaar.map((j) => (
                 <tr key={j.jaar}>
-                  <td className="font-medium">{j.jaar}{j.jaar === nu ? " (lopend)" : ""}</td>
+                  <td className="font-medium">
+                    <a href={`?jaar=${j.jaar}#projecten`} className="underline decoration-dotted underline-offset-4">
+                      {j.jaar}
+                      {j.jaar === nu ? " (lopend)" : ""}
+                    </a>
+                  </td>
                   <td>
                     <div className="flex h-3 overflow-hidden rounded-full" style={{ width: `${(j.tkn_totaal / hoogsteJaar) * 100}%`, background: "var(--vlak)" }}>
                       <span style={{ width: `${j.aandeel * 100}%`, background: "var(--kritiek)" }} title={`Bisson: ${j.bisson}`} />
@@ -190,7 +245,11 @@ export default async function Page() {
                     </div>
                   </td>
                   <td className="num">{j.tkn_totaal}</td>
-                  <td className="num font-medium">{j.bisson}</td>
+                  <td className="num font-medium">
+                    <a href={`?jaar=${j.jaar}#projecten`} className="underline decoration-dotted underline-offset-4">
+                      {j.bisson}
+                    </a>
+                  </td>
                   <td className="num">{j.eigen}</td>
                   <td className="num">
                     <span className={"chip " + (j.aandeel >= 0.66 ? "kritiek" : j.aandeel >= 0.4 ? "let" : "")}>{Math.round(j.aandeel * 100)}%</span>
@@ -198,7 +257,15 @@ export default async function Page() {
                   <td className="num">{j.sta}</td>
                   <td className="num">{j.dra}</td>
                   <td className="num">{j.waarde ? euro(j.waarde) : "—"}</td>
-                  <td className="num">{factuurPerJaar.get(String(j.jaar)) ? euro(factuurPerJaar.get(String(j.jaar))!) : "—"}</td>
+                  <td className="num">
+                    {factuurPerJaar.get(String(j.jaar)) ? (
+                      <a href="#facturen" className="underline decoration-dotted underline-offset-4">
+                        {euro(factuurPerJaar.get(String(j.jaar))!)}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -207,85 +274,57 @@ export default async function Page() {
         <p className="mt-3 text-[12px] text-zinc-500">
           Rood = via Bisson, grijs = eigen TKN-werk. De geschatte waarde rekent elk stabiliteitsproject aan de mediaanprijs die TKN
           zelf vraagt (nieuwbouw en renovatie apart waar er genoeg eigen projecten zijn); voor tekenwerk is er geen eigen prijsbasis.
-          Tekenwerk voor Bisson staat sinds 2025 bijna niet meer als eigen projectmap; het wordt per maand aan Bisson BV gefactureerd.
         </p>
       </section>
 
       {/* ---------------------------------------------------------------- overlap */}
-      <section className="paneel mt-4" id="overlap">
+      <section className="paneel mt-4 scroll-mt-32" id="overlap">
         <div className="kop">
           <h2>Onze klanten die via Bisson werken</h2>
-          <small>klant = minstens één gewonnen deal, factuur of eigen TKN-project bij een van onze firma&apos;s</small>
+          <small>klik een bureau: elk project bij ons (dienst, firma, deal, factuur) naast elk Bisson-project</small>
         </div>
         {overlap.length === 0 ? (
           <p className="text-[13px] text-zinc-500">Geen overlap gevonden.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="tabel">
-              <thead>
-                <tr>
-                  <th>Bureau</th>
-                  <th>Signaal</th>
-                  <th>Bij ons</th>
-                  <th className="num">Projecten</th>
-                  <th>Periode bij ons</th>
-                  <th className="num">Via Bisson</th>
-                  <th>Periode Bisson</th>
-                  <th className="num">Bij ons na 1e Bisson</th>
-                </tr>
-              </thead>
-              <tbody>
-                {overlap.map((x) => (
-                  <OverlapRij key={x.id} x={x} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <BureauTabel bureaus={overlap} bisson={perBureau} metOns anker="klant" />
         )}
         <p className="mt-3 text-[12px] text-zinc-500">
-          &ldquo;Eerst bij ons, nu via Bisson&rdquo; = het eerste project bij een van onze firma&apos;s ligt vóór het eerste
-          Bisson-project. &ldquo;Bij ons na 1e Bisson&rdquo; = hoeveel projecten we daarna nog zelf voor dit bureau deden.
+          Klant = minstens één gewonnen deal, factuur of eigen TKN-project bij een van onze firma&apos;s. &ldquo;Eerst bij ons, nu via
+          Bisson&rdquo; = het eerste project bij ons ligt vóór het eerste Bisson-project.
         </p>
       </section>
 
       {/* ---------------------------------------------------------------- architecten achter Bisson */}
-      <section className="paneel mt-4">
+      <section className="paneel mt-4 scroll-mt-32" id="bureaus">
         <div className="kop">
           <h2>Voor wie doet Bisson het werk?</h2>
           <small>
-            {bissonArchitecten.length} bureaus · {zonderArchitect} projecten zonder architect in de naam
+            {bissonArchitecten.length} bureaus · klik voor de projecten
+            {ingenieurs.length ? ` · ${ingenieurs.length} projecten in onderaanneming van een ingenieur` : ""}
           </small>
         </div>
-        <div className="overflow-x-auto">
-          <table className="tabel">
-            <thead>
-              <tr>
-                <th>Bureau</th>
-                <th>Code in de map</th>
-                <th>Status bij ons</th>
-                <th className="num">Bisson-projecten</th>
-                <th>Eerste – laatste</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bissonArchitecten.map((x) => (
-                <tr key={x.id}>
-                  <td>
-                    <span className="font-medium">{x.naam}</span>
-                    {x.plaats && <span className="text-zinc-500"> · {x.plaats}</span>}
-                    {!x.zeker && <span className="chip ml-2" title="De code is niet eenduidig aan één bureau te hangen">te bevestigen</span>}
-                  </td>
-                  <td className="text-[12px] text-zinc-500">{x.codes.join(", ")}</td>
-                  <td>
-                    {x.signaal && <span className={"chip " + SIGNAAL[x.signaal].klasse} title={SIGNAAL[x.signaal].uitleg}>{SIGNAAL[x.signaal].label}</span>}
-                  </td>
-                  <td className="num font-medium">{x.aantal_bisson}</td>
-                  <td>{maandJaar(x.eerste_bisson)} – {maandJaar(x.laatste_bisson)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <BureauTabel bureaus={bissonArchitecten} bisson={perBureau} metOns={false} />
+        {zonderOpdrachtgever.length > 0 && (
+          <div className="notitie let mt-3">
+            <b>{zonderOpdrachtgever.length} projecten zonder architect of ingenieur.</b> De naam staat niet in de Dropbox-map en niet in
+            de kolom &ldquo;architect&rdquo; op het Monday-bord TKN-Buro projects. Vul die kolom in en het platform neemt het de volgende
+            nacht over:{" "}
+            {zonderOpdrachtgever.map((p, i) => (
+              <span key={p.nr}>
+                {i > 0 && ", "}
+                {p.monday?.link ? (
+                  <a href={p.monday.link} target="_blank" rel="noopener" className="underline">
+                    {p.nr}
+                  </a>
+                ) : (
+                  p.nr
+                )}{" "}
+                ({p.adres})
+              </span>
+            ))}
+            .
+          </div>
+        )}
       </section>
 
       {/* ---------------------------------------------------------------- werven en facturen */}
@@ -296,7 +335,9 @@ export default async function Page() {
             <small>zelfde adres in Pipedrive (elke status) of in de boekhouding</small>
           </div>
           {werven.length === 0 ? (
-            <p className="text-[13px] text-zinc-500">Geen enkel Bisson-adres komt terug in onze deals of facturen.</p>
+            <p className="text-[13px] text-zinc-500">
+              Geen enkel Bisson-adres komt terug in onze deals of facturen: er is geen offerte van ons die daarna via Bisson ging.
+            </p>
           ) : (
             <ul className="space-y-3 text-[13px]">
               {werven.map(({ p, treffers }) => (
@@ -326,10 +367,10 @@ export default async function Page() {
             </ul>
           )}
         </div>
-        <div className="paneel">
+        <div className="paneel scroll-mt-32" id="facturen">
           <div className="kop">
             <h2>Facturen</h2>
-            <small>excl. btw · creditnota&apos;s en correcties tellen negatief</small>
+            <small>excl. btw · klik voor de PDF · creditnota&apos;s en correcties tellen negatief</small>
           </div>
           <span className="label">Op een Bisson-projectnummer, aan een ander dan Bisson</span>
           {metFactuur.length === 0 ? (
@@ -339,19 +380,41 @@ export default async function Page() {
               {metFactuur.map((p) => (
                 <li key={p.nr}>
                   <b>{p.nr}</b> {p.adres ? `· ${p.adres}` : ""} →{" "}
-                  {p.facturen.map((f) => `${f.klant || "?"} ${euro(f.bedrag || 0)} (${f.nr})`).join(", ")}
+                  {p.facturen.map((f, i) => (
+                    <span key={f.nr}>
+                      {i > 0 && ", "}
+                      {f.klant || "?"} {euro(f.bedrag || 0)}{" "}
+                      {f.pdf ? (
+                        <a href={f.pdf} target="_blank" rel="noopener" className="underline">
+                          ({f.nr}) ↗
+                        </a>
+                      ) : (
+                        `(${f.nr})`
+                      )}
+                    </span>
+                  ))}
                 </li>
               ))}
             </ul>
           )}
           <span className="label">Aan Studieburo Bisson BV</span>
-          <div className="mt-1 max-h-72 overflow-y-auto">
+          <div className="mt-1 max-h-80 overflow-y-auto">
             <table className="tabel">
               <tbody>
-                {bisson.facturen_aan_bisson.map((f) => (
+                {fb.map((f) => (
                   <tr key={f.dossier + f.nr}>
-                    <td className="whitespace-nowrap">{f.datum?.split("-").reverse().join("/")}</td>
-                    <td className="text-[12px] text-zinc-500">{f.dossier} {f.nr}</td>
+                    <td className="whitespace-nowrap">{dag(f.datum)}</td>
+                    <td className="text-[12px]">
+                      {f.pdf ? (
+                        <a href={f.pdf} target="_blank" rel="noopener" className="chip accent" style={{ textDecoration: "none" }}>
+                          {f.dossier} {f.nr} ↗
+                        </a>
+                      ) : (
+                        <span className="text-zinc-500" title="Geen PDF gevonden in de boekhoudmap">
+                          {f.dossier} {f.nr}
+                        </span>
+                      )}
+                    </td>
                     <td className="text-[12.5px]">{f.omschrijving || "—"}</td>
                     <td className="num">{euro(f.bedrag || 0)}</td>
                   </tr>
@@ -367,39 +430,18 @@ export default async function Page() {
       </section>
 
       {/* ---------------------------------------------------------------- alle projecten */}
-      <section className="paneel mt-4" id="projecten">
+      <section className="paneel mt-4 scroll-mt-32" id="projecten">
         <div className="kop">
           <h2>Alle Bisson-projecten</h2>
           <small>
-            klik een adres voor de Dropbox-map · <Link href="/architecten" className="underline">architecten-klanten</Link>
+            klik een architect voor al zijn projecten · klik map of Monday om te openen ·{" "}
+            <a href="/architecten" className="underline">
+              architecten-klanten
+            </a>
           </small>
         </div>
-        <BissonLijst projecten={lijst} />
+        <BissonLijst projecten={lijst} beginJaar={sp.jaar || ""} />
       </section>
     </main>
-  );
-}
-
-function OverlapRij({ x }: { x: Architect }) {
-  const s = x.signaal ? SIGNAAL[x.signaal] : null;
-  return (
-    <tr>
-      <td>
-        <Link href={`/architecten#${x.id}`} className="font-medium underline-offset-2 hover:underline">
-          {x.naam}
-        </Link>
-        {!x.zeker && <span className="chip ml-2">te bevestigen</span>}
-      </td>
-      <td>{s && <span className={"chip " + s.klasse} title={s.uitleg}>{s.label}</span>}</td>
-      <td className="text-[12.5px]">
-        {x.firmas.join(", ")}
-        <div className="text-zinc-500">{x.diensten.join(", ")}</div>
-      </td>
-      <td className="num">{x.aantal_projecten}</td>
-      <td>{maandJaar(x.eerste_bij_ons)} – {maandJaar(x.laatste_bij_ons)}</td>
-      <td className="num font-medium">{x.aantal_bisson}</td>
-      <td>{maandJaar(x.eerste_bisson)} – {maandJaar(x.laatste_bisson)}</td>
-      <td className="num">{x.bij_ons_na_eerste_bisson ?? "—"}</td>
-    </tr>
   );
 }

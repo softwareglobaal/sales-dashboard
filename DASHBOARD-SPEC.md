@@ -775,3 +775,14 @@ Bisson? Daarnaast één overzicht van alle architecten die klant zijn bij onze f
   `BISSON_KIJKERS` (standaard siyan,mehdi; `magBisson`). De subtab is voor anderen onzichtbaar.
   `/architecten` (menu "Klanten") voor wp-alles (`magArchitecten`); wie geen magBisson heeft,
   krijgt daar geen enkel Bisson-veld mee naar de browser.
+- **Doorklikbaar (12 okt 2026, op vraag van Siyan):** elk bureau klapt open met elk project bij onze
+  firma's (datum, projectnummer, werf, firma, dienst, verkocht, gefactureerd) en knoppen naar de
+  Pipedrive-deal, de factuur-PDF (Dropbox-boekhoudmap), de werkmap en Monday; daaronder de
+  Bisson-projecten van dat bureau. Een jaar filtert de projectlijst (`?jaar=`), een architect in
+  de lijst opent zijn bureau (`#bureau-<id>`), de kerncijfers springen naar hun blok.
+- **Opdrachtgever per Bisson-project** (vraag van Mehdi): de architect voluit, of het
+  ingenieursbureau als het in onderaanneming was (kolom op Monday, of de klant van een factuur op
+  dat projectnummer). Projecten zonder architect staan in een lijst om op Monday aan te vullen.
+- **Facturen aan Bisson**: enkel tekenwerk per maand; de laatste datum en het aantal projecten
+  sindsdien staan bovenaan.
+
