@@ -131,7 +131,7 @@ export default async function Page() {
       </section>
 
       <section className="paneel mt-4">
-        <ArchitectenLijst architecten={klanten} directie={toonBisson} firmas={firmas} bisson={toonBisson ? perBureau : undefined} />
+        <ArchitectenLijst architecten={klanten} directie={toonBisson} firmas={firmas} {...(toonBisson ? { bisson: perBureau } : {})} />
         <p className="mt-3 text-[12px] text-zinc-500">
           Een architect wordt herkend aan het contact &ldquo;B2B ARC&rdquo; in Pipedrive, aan een bureaunaam met &ldquo;architect&rdquo;,
           &ldquo;architectuur&rdquo; of &ldquo;studio&rdquo; in Pipedrive of Octopus, of aan de architect in de naam van een
