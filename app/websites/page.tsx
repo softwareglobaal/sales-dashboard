@@ -198,7 +198,7 @@ function ConcurrentieSectie({ conc, rijen, siteNaam }: {
             </span>,
             r.website === false ? <span key="p" className="text-zinc-400">Facebook-groep</span>
               : r.gemeten == null ? <span key="p" className="text-zinc-400">nog niet</span>
-              : r.bereikbaar === false ? <span key="p" className="text-zinc-400" title={r.fout || ""}>onbereikbaar</span>
+              : r.bereikbaar === false ? <span key="p" className="text-zinc-400" title={r.fout || ""}>{/403/.test(r.fout || "") ? "blokkeert onze crawler" : "onbereikbaar"}</span>
               : r.paginas == null ? <span key="p" className="text-zinc-400">geen sitemap</span>
               : `${num(r.paginas)}${r.afgekapt ? "+" : ""}`,
             r.groei == null ? "–" : r.groei > 0 ? `+${num(r.groei)}` : num(r.groei),
