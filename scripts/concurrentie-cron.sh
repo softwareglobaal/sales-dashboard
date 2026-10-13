@@ -47,6 +47,11 @@ roep '/api/searchconsole?dagen=28' || echo '{"ok":false}'
 # dat past nog, met een kleine marge voor een handmatige meting tussendoor. Komt
 # er een vijfde markt bij, dan moet er een term af of een betaald plan bij.
 if [ "$(date +%u)" = "1" ]; then
+  # Concurrenten van sites zonder dienst (angela.sr, Suriname): wekelijks, enkel
+  # sitemap en homepage, geen zoektegoed. Staat los van de Belgische markten.
+  echo "$(date -Is) concurrentie sites zonder dienst"
+  roep '/api/concurrentie/sites' || echo '{"ok":false}'
+
   echo "$(date -Is) posities energie"
   roep '/api/zoekwoorden?markt=energie&posities=1&limiet=30' || echo '{"ok":false}'
 

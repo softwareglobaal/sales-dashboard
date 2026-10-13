@@ -432,7 +432,7 @@ export function getSignalen(limiet = 50, markt?: Markt) {
     SELECT s.id, s.domein, s.datum, s.soort, s.omschrijving, s.url, s.gezien,
            COALESCE(NULLIF(c.naam,''), s.domein) naam
     FROM signalen s LEFT JOIN concurrenten c ON c.domein = s.domein
-    ${markt ? `WHERE ${inMarkt(markt, "s")}` : ""}
+    ${markt ? `WHERE ${inMarkt(markt, "s")}` : "WHERE s.domein IN (SELECT domein FROM concurrenten)"}
     ORDER BY s.datum DESC, s.id DESC LIMIT ?
   `).all(limiet) as {
     id: number; domein: string; datum: string; soort: string;

@@ -6,6 +6,7 @@ import { Kpi } from "@/components/ui";
 import { VergelijkingPerSite, KernReeks, ParamKeuze, InklapTabel } from "@/components/WebsiteGrafieken";
 import { num, pct } from "@/lib/format";
 import { geoStatus } from "@/lib/geoip";
+import { siteConcurrentie, stand as concurrentieStand } from "@/lib/siteConcurrentie";
 import { BE_VIEWBOX, BE_PROVINCES, projectLatLng } from "@/lib/belgiumGeo";
 import {
   PERIODES, isPeriode, bereik, heeftMetingen, zichtbareSites, kern, perSite, nuOnline, reeksPerSite, reeksKern,
@@ -155,6 +156,78 @@ const SiteLabel = ({ sleutel, sites }: { sleutel: string; sites: { sleutel: stri
     </span>
   );
 };
+
+const datumNl = (d: string | null) => (d ? d.slice(0, 10).split("-").reverse().join("/") : "–");
+
+/** Concurrenten en kernzoektermen van een site zonder dienst (config/concurrentie-sites.json). */
+function ConcurrentieSectie({ conc, rijen, siteNaam }: {
+  conc: NonNullable<ReturnType<typeof siteConcurrentie>>;
+  rijen: ReturnType<typeof concurrentieStand>;
+  siteNaam: string;
+}) {
+  const gemeten = rijen.filter((r) => r.gemeten).length;
+  const websites = rijen.filter((r) => r.website !== false).length;
+  const onderdeel = (k: string) => conc.onderdelen[k] || k;
+  const eigenInTop = (top: string[]) => top.some((d) => d.replace(/^www\./, "") === conc.eigenDomein);
+  return (
+    <section id="concurrentie" className="scroll-mt-44 space-y-4">
+      <div className="notitie text-[12.5px]">
+        <b className="font-medium">Let op:</b> {conc.onderzoek.noot} Onderzoek van {datumNl(conc.onderzoek.datum)}:{" "}
+        <code className="text-[11.5px]">{conc.onderzoek.pad}</code>
+      </div>
+      <Paneel
+        titel={`Concurrentie ${siteNaam} in ${conc.markt}`}
+        uitleg={`${rijen.length - 1} concurrenten uit het onderzoek. Elke maandag opnieuw gemeten via hun sitemap en homepage (${gemeten} van ${websites} websites al gemeten). Groei en nieuw tellen pas vanaf de tweede meting. De crawl leest maximaal 3.000 pagina's per site.`}
+      >
+        <Tabel
+          koppen={["Site", "Onderdelen", "Pagina's", "Groei 30 d", "Nieuw 30 d", "Laatste artikel", "Gemeten"]}
+          rechts={[2, 3, 4]}
+          rijen={rijen.map((r) => [
+            <div key="n" className="min-w-[220px]">
+              {r.website === false ? (
+                <span className={r.eigen ? "font-semibold" : ""}>{r.naam}</span>
+              ) : (
+                <a href={`https://${r.domein}`} target="_blank" rel="noreferrer" className={"underline decoration-black/20 " + (r.eigen ? "font-semibold" : "")}>
+                  {r.eigen ? `${r.domein} (wij)` : r.naam}
+                </a>
+              )}
+              <div className="text-[11.5px] text-zinc-500">{r.omschrijving}</div>
+            </div>,
+            <span key="o" className="flex flex-wrap gap-1">
+              {r.onderdelen.map((o) => <span key={o} className="chip" style={{ fontSize: 11, padding: "1px 7px" }}>{onderdeel(o)}</span>)}
+            </span>,
+            r.website === false ? <span key="p" className="text-zinc-400">Facebook-groep</span>
+              : r.gemeten == null ? <span key="p" className="text-zinc-400">nog niet</span>
+              : r.bereikbaar === false ? <span key="p" className="text-zinc-400" title={r.fout || ""}>onbereikbaar</span>
+              : r.paginas == null ? <span key="p" className="text-zinc-400">geen sitemap</span>
+              : `${num(r.paginas)}${r.afgekapt ? "+" : ""}`,
+            r.groei == null ? "–" : r.groei > 0 ? `+${num(r.groei)}` : num(r.groei),
+            r.nieuw30 == null ? "–" : num(r.nieuw30),
+            r.afgekapt ? <span key="l" className="text-zinc-400" title="Meer dan 3.000 pagina's: het nieuwste artikel valt buiten wat de crawl leest">niet te bepalen</span> : r.laatsteArtikelUrl ? (
+              <a key="l" href={r.laatsteArtikelUrl} target="_blank" rel="noreferrer" className="underline decoration-black/20">{datumNl(r.laatsteArtikel)}</a>
+            ) : datumNl(r.laatsteArtikel),
+            datumNl(r.gemeten),
+          ])}
+        />
+      </Paneel>
+      <Paneel
+        titel="Kernzoektermen"
+        uitleg={`Wie staat bovenaan op de zoektermen die Surinamers gebruiken. Nulmeting: ${conc.zoektermen.bron} Google-posities vragen zoektegoed (SerpApi) en blijven leeg tot dat er is.`}
+      >
+        <Tabel
+          koppen={["Zoekterm", "Onderdeel", "Top 5", conc.eigenDomein, "Google"]}
+          rijen={conc.zoektermen.termen.map((t) => [
+            <b key="t" className="font-medium">{t.term}</b>,
+            onderdeel(t.onderdeel),
+            <span key="5" className="text-[12px] text-zinc-600">{t.top5.map((d, i) => <span key={i}>{i > 0 && " · "}{i + 1}. {d}</span>)}</span>,
+            eigenInTop(t.top5) ? <b key="e" style={{ color: "var(--goed)" }}>in top 5</b> : <span key="e" className="text-zinc-500">niet in top 5</span>,
+            <span key="g" className="text-zinc-400">wacht op zoektegoed</span>,
+          ])}
+        />
+      </Paneel>
+    </section>
+  );
+}
 
 /** Sessies per weekdag x uur, één kleurtint van licht naar donker. */
 function UurRaster({ cellen }: { cellen: { weekdag: number; uur: number; n: number }[] }) {
@@ -357,11 +430,16 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
     </div>
   );
 
+  // Concurrentie voor sites zonder dienst (bv. angela.sr): enkel als die ene site gekozen is.
+  const conc = gekozen ? siteConcurrentie(gekozen.sleutel) : null;
+  const concRijen = conc ? concurrentieStand(conc) : [];
+
   if (!heeftMetingen()) {
     return (
       <main className="mx-auto max-w-7xl px-6 pb-10">
         {Kop}
         <div className="mt-4"><Leegstand sites={alleSites} geo={geo} /></div>
+        {conc && gekozen && <div className="mt-4"><ConcurrentieSectie conc={conc} rijen={concRijen} siteNaam={gekozen.naam} /></div>}
       </main>
     );
   }
@@ -432,6 +510,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
             { id: "gedrag", label: "Klikken & aandacht" },
             { id: "techniek", label: "Toestel & snelheid" },
             { id: "live", label: "Live" },
+            ...(conc ? [{ id: "concurrentie", label: "Concurrentie" }] : []),
           ]}
         />
       </Suspense>
@@ -725,6 +804,8 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
             />
           </Paneel>
         </section>
+
+        {conc && gekozen && <ConcurrentieSectie conc={conc} rijen={concRijen} siteNaam={gekozen.naam} />}
 
         <p className="text-[11.5px] text-zinc-400">
           Eigen meting zonder cookies; IP-adressen worden niet bewaard. Bezoekers worden per kalendermaand herkend.
