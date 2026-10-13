@@ -26,6 +26,7 @@ export type Site = {
   domeinen: string[];
   firma: string;
   kleur: string;
+  kaart?: string[]; // landen waarop de bezoekerskaart start, eerste = standaard
   live: boolean;
 };
 
