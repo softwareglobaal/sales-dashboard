@@ -1294,5 +1294,435 @@
       ],
       "maxBlogs": 5
     }
+  },
+  "hdssr": {
+    "markt": "Suriname",
+    "eigenDomein": "hdssr.com",
+    "onderzoek": {
+      "datum": "2026-10-13",
+      "pad": "marketing/seo/firmas/HDS-Suriname/onderzoek/CONCURRENTIE-SURINAME-2026-10-13.md",
+      "noot": "Gemeten op de live site www.hdssr.com van 13 oktober 2026 (build van 17 september, 11 pagina's). Posities komen uit Brave: Google, Bing en DuckDuckGo blokkeerden. hdssr.com staat op #11 voor 'architectenbureau suriname' en #12 voor 'tekenbureau paramaribo'."
+    },
+    "onderdelen": {
+      "architectuur": "Architectuur",
+      "vergunning": "Bouwtekening en vergunning",
+      "interieur": "Interieur",
+      "visualisatie": "3D-visualisatie",
+      "opmeting": "3D-opmeting en digital twin",
+      "drone": "Drone",
+      "begeleiding": "Projectbegeleiding",
+      "erfgoed": "Restauratie en erfgoed",
+      "duurzaam": "Duurzaam bouwen",
+      "bouw": "Ontwerp en uitvoering"
+    },
+    "concurrenten": [
+      {
+        "domein": "nextarchitect.sr",
+        "naam": "Next Architecture & Construction",
+        "onderdelen": [
+          "architectuur",
+          "bouw",
+          "begeleiding"
+        ],
+        "omschrijving": "Ontwerp, bouw en projectmanagement; Engelstalig; FB 14.706 volgers; #4 'architect suriname'"
+      },
+      {
+        "domein": "haaks.sr",
+        "naam": "HAAKS Architecten- en Ingenieursburo",
+        "onderdelen": [
+          "architectuur",
+          "vergunning",
+          "begeleiding"
+        ],
+        "omschrijving": "Nederlandstalig; VO/DO, bestek, vergunningen, directievoering"
+      },
+      {
+        "domein": "kdvarchitects.com",
+        "naam": "KDV Architects",
+        "onderdelen": [
+          "architectuur",
+          "begeleiding",
+          "erfgoed"
+        ],
+        "omschrijving": "Sinds 1983; restauratie, Suriname Heritage Guide; ~126 pagina's"
+      },
+      {
+        "domein": "woei-architects.sr",
+        "naam": "Woei A Sioe Architects & Partners",
+        "onderdelen": [
+          "architectuur",
+          "erfgoed",
+          "interieur"
+        ],
+        "omschrijving": "Sinds 1973, ook Curaçao; #1 'architectenbureau suriname'"
+      },
+      {
+        "domein": "aurora-architects.com",
+        "naam": "Aurora Architects",
+        "onderdelen": [
+          "architectuur",
+          "interieur"
+        ],
+        "omschrijving": "Verouderde WordPress-site; FB-pagina #1 'architect paramaribo'"
+      },
+      {
+        "domein": "karimainvest.com",
+        "naam": "Karima Invest",
+        "onderdelen": [
+          "vergunning",
+          "bouw"
+        ],
+        "omschrijving": "Makelaar met pagina's bouwtekening en vergunning; #1 en #3 'bouwtekening suriname'"
+      },
+      {
+        "domein": "rtvastgoed.com",
+        "naam": "RT Vastgoed Suriname",
+        "onderdelen": [
+          "architectuur",
+          "interieur",
+          "bouw",
+          "begeleiding"
+        ],
+        "omschrijving": "Ontwerp, interieur, aannemer en makelaar; top 3 bij interieurtermen"
+      },
+      {
+        "domein": "lilianidesign.com",
+        "naam": "Lilian I-Design",
+        "onderdelen": [
+          "interieur",
+          "visualisatie"
+        ],
+        "omschrijving": "Interieur en 3D-visualisaties met blog; #1 'interieurontwerp suriname'"
+      },
+      {
+        "domein": "architect.sr",
+        "naam": "architect.sr",
+        "onderdelen": [
+          "architectuur",
+          "visualisatie",
+          "duurzaam",
+          "bouw"
+        ],
+        "omschrijving": "Duurzame architectuur, BIM, 3D-visualisatie; Engelstalig"
+      },
+      {
+        "domein": "facebook.com/bouwtekeningenSuriname",
+        "naam": "Bouwtekeningen Suriname",
+        "onderdelen": [
+          "vergunning",
+          "visualisatie"
+        ],
+        "omschrijving": "5.421 volgers; #2 'bouwtekening suriname'",
+        "website": false,
+        "label": "enkel Facebook"
+      },
+      {
+        "domein": "marsatarchitecture.com",
+        "naam": "Marsat Architecture",
+        "onderdelen": [
+          "architectuur",
+          "interieur",
+          "visualisatie",
+          "bouw"
+        ],
+        "omschrijving": "Wix-site, deels sjabloon; FB 9.261"
+      },
+      {
+        "domein": "fairali.com",
+        "naam": "FAIRALI Design Engineering",
+        "onderdelen": [
+          "architectuur",
+          "visualisatie",
+          "bouw"
+        ],
+        "omschrijving": "Ontwerp, engineering, stedenbouw; #1 '3d visualisatie suriname'"
+      },
+      {
+        "domein": "superwonen.com",
+        "naam": "Superwonen",
+        "onderdelen": [
+          "bouw",
+          "vergunning"
+        ],
+        "omschrijving": "Woningbouwer met modellen tot sleuteloplevering"
+      },
+      {
+        "domein": "osonangadjari.com",
+        "naam": "Oso Nanga Djari",
+        "onderdelen": [
+          "vergunning",
+          "begeleiding",
+          "bouw"
+        ],
+        "omschrijving": "Makelaar met pagina's bouwtekeningen, renovatie en directievoering"
+      },
+      {
+        "domein": "carelvanhest.sr",
+        "naam": "Carel van Hest Architecten",
+        "onderdelen": [
+          "architectuur"
+        ],
+        "omschrijving": "Eén welkomstpagina, toch #2 'architectenbureau suriname'"
+      },
+      {
+        "domein": "babarchitects.com",
+        "naam": "Ulrich BAB Architecten & Ingenieurs",
+        "onderdelen": [
+          "architectuur"
+        ],
+        "omschrijving": "#1 'interieur architect paramaribo'; site was onbereikbaar"
+      },
+      {
+        "domein": "lavigianv.com",
+        "naam": "La Vigia Lines & Bricks",
+        "onderdelen": [
+          "vergunning",
+          "bouw",
+          "interieur"
+        ],
+        "omschrijving": "Bouwbedrijf: bouwtekeningen, begrotingen, inrichtingsadvies"
+      },
+      {
+        "domein": "elegantinteriorsnv.com",
+        "naam": "Elegant Interiors",
+        "onderdelen": [
+          "interieur"
+        ],
+        "omschrijving": "Keukens, badkamers en interieur op maat"
+      },
+      {
+        "domein": "dulamari.com",
+        "naam": "dulamari",
+        "onderdelen": [
+          "drone"
+        ],
+        "omschrijving": "Webbureau met dronefilm en -foto; #3 'drone fotografie suriname'"
+      },
+      {
+        "domein": "prototecsuriname.com",
+        "naam": "ProtoTEC Suriname",
+        "onderdelen": [
+          "opmeting"
+        ],
+        "omschrijving": "3D-printen en scannen van objecten, geen gebouwen"
+      },
+      {
+        "domein": "stadsherstelsuriname.org",
+        "naam": "Stichting Stadsherstel Paramaribo",
+        "onderdelen": [
+          "erfgoed"
+        ],
+        "omschrijving": "Restauratie; eerder partner dan concurrent"
+      },
+      {
+        "domein": "intervast.nl",
+        "naam": "Intervast",
+        "onderdelen": [
+          "bouw",
+          "interieur"
+        ],
+        "omschrijving": "Den Haag + Suriname, bouwt voor de diaspora"
+      },
+      {
+        "domein": "facebook.com/gtaarchitect",
+        "naam": "Gracia Tjon Atsoi, Architect",
+        "onderdelen": [
+          "architectuur"
+        ],
+        "omschrijving": "692 volgers; #3 'architect paramaribo'",
+        "website": false,
+        "label": "enkel Facebook"
+      },
+      {
+        "domein": "facebook.com/JouwHuisSuriname",
+        "naam": "Jouw Huis Suriname",
+        "onderdelen": [
+          "bouw",
+          "architectuur"
+        ],
+        "omschrijving": "5.922 volgers; #4 'woning ontwerp paramaribo'",
+        "website": false,
+        "label": "enkel Facebook"
+      }
+    ],
+    "zoektermen": {
+      "bron": "Brave vanuit Suriname, 13 oktober 2026; hdssr.com stond bij geen enkele term in de top 10 (beste: #11 en #12). Google kon niet gemeten worden.",
+      "termen": [
+        {
+          "term": "3d scanning suriname",
+          "onderdeel": "opmeting",
+          "top5": [
+            "artec3d.com",
+            "prototecsuriname.com",
+            "environmental-expert.com",
+            "3dmdb.com",
+            "3dscanserviceamsterdam.nl"
+          ]
+        },
+        {
+          "term": "restauratie monument paramaribo",
+          "onderdeel": "erfgoed",
+          "top5": [
+            "dbsuriname.com",
+            "waterkant.net",
+            "erfgoedstem.nl",
+            "stadsherstelsuriname.org",
+            "gov.sr"
+          ]
+        },
+        {
+          "term": "tekenbureau paramaribo",
+          "onderdeel": "vergunning",
+          "top5": [
+            "vymaps.com",
+            "gov.sr",
+            "suriname.gevondenbedrijven.nl",
+            "freelance.sr",
+            "surivisuals.weebly.com"
+          ]
+        },
+        {
+          "term": "bouwtekening suriname",
+          "onderdeel": "vergunning",
+          "top5": [
+            "karimainvest.com",
+            "facebook.com/bouwtekeningenSuriname",
+            "superwonen.com",
+            "subhan.nl"
+          ]
+        },
+        {
+          "term": "bouwtekening laten maken paramaribo",
+          "onderdeel": "vergunning",
+          "top5": [
+            "subhan.nl",
+            "bouwjeeigenhuis.nl",
+            "osonangadjari.com",
+            "karimainvest.com"
+          ]
+        },
+        {
+          "term": "bouwvergunning aanvragen suriname",
+          "onderdeel": "vergunning",
+          "top5": [
+            "gov.sr",
+            "subhan.nl",
+            "caricom.gov.sr",
+            "dagbladdewest.com"
+          ]
+        },
+        {
+          "term": "architect paramaribo",
+          "onderdeel": "architectuur",
+          "top5": [
+            "facebook.com/AuroraArchitectsSuriname",
+            "lmpublishers.nl",
+            "facebook.com/gtaarchitect",
+            "werkgroepcaraibischeletteren.nl",
+            "nl.wikipedia.org"
+          ]
+        },
+        {
+          "term": "architect suriname",
+          "onderdeel": "architectuur",
+          "top5": [
+            "roest-architectuur.nl",
+            "emporioarchitect.com",
+            "nl.wikipedia.org",
+            "nextarchitect.sr",
+            "archined.nl"
+          ]
+        },
+        {
+          "term": "architectenbureau suriname",
+          "onderdeel": "architectuur",
+          "top5": [
+            "woei-architects.sr",
+            "carelvanhest.sr",
+            "roest-architectuur.nl",
+            "facebook.com/NextarchitectSu",
+            "houcable.com"
+          ]
+        },
+        {
+          "term": "huis ontwerpen suriname",
+          "onderdeel": "architectuur",
+          "top5": [
+            "bouwjeeigenhuis.nl",
+            "subhan.nl",
+            "karimainvest.com",
+            "eleganthuis.nl"
+          ]
+        },
+        {
+          "term": "3d visualisatie suriname",
+          "onderdeel": "visualisatie",
+          "top5": [
+            "fairali.com",
+            "lilianidesign.com",
+            "freevectormaps.com",
+            "sketchfab.com",
+            "nl-be.topographic-map.com"
+          ]
+        },
+        {
+          "term": "interieurontwerp suriname",
+          "onderdeel": "interieur",
+          "top5": [
+            "lilianidesign.com",
+            "rtvastgoed.com",
+            "intervast.nl",
+            "bouwjeeigenhuis.nl"
+          ]
+        },
+        {
+          "term": "projectbegeleiding bouw suriname",
+          "onderdeel": "begeleiding",
+          "top5": [
+            "surgoed.com",
+            "rtvastgoed.com",
+            "moesbergen-bab.nl",
+            "buva.nl",
+            "rmnprojectbegeleiding.nl"
+          ]
+        },
+        {
+          "term": "drone fotografie suriname",
+          "onderdeel": "drone",
+          "top5": [
+            "youtube.com",
+            "dulamari.com"
+          ]
+        },
+        {
+          "term": "duurzaam bouwen suriname",
+          "onderdeel": "duurzaam",
+          "top5": [
+            "gov.sr",
+            "subhan.nl",
+            "starnieuws.com",
+            "woneninmarienhof.nl",
+            "bloklandstudio.com"
+          ]
+        }
+      ],
+      "_volgorde": "Eerst waar HDS kan winnen: 3D-opmeting en digital twin (geen Surinaamse concurrent), erfgoed, bouwtekening en vergunning."
+    },
+    "content": {
+      "firma": "HDS-Suriname",
+      "woorden": [
+        "architect",
+        "bouwtekening",
+        "vergunning",
+        "interieur",
+        "3d",
+        "restauratie",
+        "erfgoed",
+        "ontwerp",
+        "renovatie",
+        "bouwen"
+      ],
+      "maxBlogs": 5
+    }
   }
 }
