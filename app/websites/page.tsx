@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { afdeling } from "@/lib/afdelingen";
+import { afdeling, AFDELINGEN } from "@/lib/afdelingen";
 import { Suspense } from "react";
 import { SubNav } from "@/components/SubNav";
 import { Kpi } from "@/components/ui";
@@ -404,6 +404,10 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
   // Concurrentie voor sites zonder dienst (bv. angela.sr): enkel als die ene site gekozen is.
   const conc = gekozen ? siteConcurrentie(gekozen.sleutel) : null;
   const concRijen = conc ? concurrentieStand(conc) : [];
+  // Sites met een dienst: de concurrentiemonitor van die dienst(en) meet hun markt al.
+  const concDiensten = gekozen && !conc
+    ? AFDELINGEN.filter((a) => a.concurrentie && a.kanalen.websites.some((w) => w.site === gekozen.sleutel))
+    : [];
 
   if (!heeftMetingen()) {
     return (
@@ -483,7 +487,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
             { id: "gedrag", label: "Klikken & aandacht" },
             { id: "techniek", label: "Toestel & snelheid" },
             { id: "live", label: "Live" },
-            ...(conc ? [{ id: "concurrentie", label: "Concurrentie" }] : []),
+            ...(gekozen ? [{ id: "concurrentie", label: "Concurrentie" }] : []),
           ]}
         />
       </Suspense>
@@ -779,6 +783,26 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
         </section>
 
         {conc && gekozen && <ConcurrentieSectie conc={conc} rijen={concRijen} siteNaam={gekozen.naam} />}
+        {!conc && gekozen && (
+          <section id="concurrentie" className="scroll-mt-44">
+            <Paneel
+              titel={`Concurrentie ${gekozen.naam}`}
+              uitleg={concDiensten.length
+                ? "De markt van deze site wordt gemeten door de concurrentiemonitor van de dienst: registers, zoekresultaten en een dagelijkse crawl van de concurrenten."
+                : "Voor deze site is er nog geen concurrentiemeting."}
+            >
+              {concDiensten.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {concDiensten.map((a) => (
+                    <Link key={a.pad} href={a.concurrentie!} className="chip accent" style={{ padding: "6px 13px", fontSize: 12.5 }}>
+                      Concurrentie {a.naam} →
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Paneel>
+          </section>
+        )}
 
         <p className="text-[11.5px] text-zinc-400">
           Eigen meting zonder cookies; IP-adressen worden niet bewaard. Bezoekers worden per kalendermaand herkend.
