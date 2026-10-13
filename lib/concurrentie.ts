@@ -26,6 +26,7 @@
 import fs from "fs";
 import path from "path";
 import { getDb } from "./db";
+import siteCfg from "@/config/concurrentie-sites.json";
 
 const UA =
   "Mozilla/5.0 (compatible; UnaboConcurrentieMonitor/1.0; +https://unabo.be)";
@@ -779,6 +780,17 @@ export function categoriseerUitSite() {
   return { bekeken: rijen.length, ...telling };
 }
 
+/** Domeinen uit config/concurrentie-sites.json: gecrawld, maar buiten de Belgische markten. */
+function buitenBelgischeMarkten(): Set<string> {
+  const uit = new Set<string>();
+  for (const [k, v] of Object.entries(siteCfg as Record<string, any>)) {
+    if (k.startsWith("_") || typeof v !== "object") continue;
+    if (v.eigenDomein) uit.add(v.eigenDomein);
+    for (const c of v.concurrenten || []) uit.add(c.domein);
+  }
+  return uit;
+}
+
 export function bepaalMarkten() {
   const db = getDb();
   const rijen = db
@@ -809,8 +821,13 @@ export function bepaalMarkten() {
 
   const geteld: Record<Markt, number> = { energie: 0, engineering: 0, architectuur: 0, regularisatie: 0 };
   let ingetrokken = 0;
+  const buitenMarkt = buitenBelgischeMarkten();
   db.transaction(() => {
     for (const r of rijen) {
+      // Concurrenten van sites zonder dienst (bv. Suriname voor angela.sr) delen de
+      // crawl, maar horen in geen enkele Belgische markt: een Surinaamse nieuwssite
+      // met artikels over "regularisatie" is geen concurrent van regulariseren.be.
+      if (buitenMarkt.has(r.domein)) continue;
       // Architectuur staat hier bewust niet bij. Voor die markt bestaat een
       // volledig register -- niemand mag in België architect zijn zonder
       // inschrijving bij de Orde -- dus de crawl hoeft niet te raden wie er in

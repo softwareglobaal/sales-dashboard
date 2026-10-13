@@ -13,6 +13,7 @@
 import { getDb } from "./db";
 import { getHerschrijfKansen, geenConcurrentVoor, type Markt } from "./concurrentieQueries";
 import cfg from "@/config/afdelingen.json";
+import { sitesMetConcurrentie, nieuweArtikels } from "./siteConcurrentie";
 
 export const MARKTEN: { markt: Markt; dienst: string; firma: string; sites: string[]; woorden: string[] }[] = [
   { markt: "energie", dienst: "energy", firma: "Energie Efficiënt", sites: ["energie-efficient.be", "epb-boete.be"], woorden: ["epb", "energie", "ventilat", "epc", "renovatieplicht", "isolat", "warmtepomp", "blowerdoor", "verslaggev"] },
@@ -23,8 +24,8 @@ export const MARKTEN: { markt: Markt; dienst: string; firma: string; sites: stri
 
 export type Kans = {
   id: string; // stabiel: soort + markt + url/term
-  soort: "herschrijf" | "concurrent-blog";
-  markt: Markt;
+  soort: "herschrijf" | "concurrent-blog" | "zoekterm";
+  markt: Markt | string; // string = site zonder dienst (bv. "angela", Suriname)
   dienst: string;
   firma: string;
   doelsites: string[];
@@ -101,10 +102,51 @@ export function kansen(max = 30): Kans[] {
   // Eén kans per id (een term kan door meerdere pagina's bezet zijn); Franstalige
   // pagina's vallen weg, onze sites zijn Nederlandstalig.
   const gezien = new Set<string>();
-  return uit
-    .filter((k) => !behandeld.has(k.id) && !gezien.has(k.id) && gezien.add(k.id))
-    .filter((k) => !/\/fr(-[a-z]{2})?\//.test(k.bron))
-    .slice(0, max);
+  const open = (k: Kans) => !behandeld.has(k.id) && !gezien.has(k.id) && !!gezien.add(k.id);
+  const belgisch = uit.filter(open).filter((k) => !/\/fr(-[a-z]{2})?\//.test(k.bron));
+  // Sites zonder dienst (angela.sr) krijgen een eigen, kleine plek in de lijst, zodat ze
+  // niet altijd achter de Belgische markten wegvallen.
+  const extra = kansenZonderDienst().filter(open).slice(0, 5);
+  return [...belgisch.slice(0, Math.max(0, max - extra.length)), ...extra];
+}
+
+/**
+ * Kansen voor sites zonder dienst (config/concurrentie-sites.json): nieuwe artikels van
+ * hun concurrenten en kernzoektermen waar de site niet in de top 5 staat. Geen
+ * zoekvolume: de agents toetsen zelf of het onderwerp past.
+ */
+function kansenZonderDienst(): Kans[] {
+  const uit: Kans[] = [];
+  for (const { site, cfg: c } of sitesMetConcurrentie()) {
+    if (!c.content) continue;
+    const doelsites = [c.eigenDomein];
+    for (const b of nieuweArtikels(c)) {
+      uit.push({
+        id: `blog:${site}:${b.url}`,
+        soort: "concurrent-blog",
+        markt: site, dienst: "", firma: c.content.firma, doelsites,
+        onderwerp: decodeURIComponent(String(b.url).replace(/\/$/, "").split("/").pop() || b.url).replace(/[-_]/g, " "),
+        bron: b.url,
+        context: `${b.naam} (${c.markt}) publiceerde op ${b.datum} een nieuw artikel. Toets of het onderwerp bij ${c.eigenDomein} past; verzin nooit interviews, personen of citaten.`,
+        volume: null,
+        datum: b.datum,
+      });
+    }
+    for (const t of c.zoektermen.termen) {
+      if (t.top5.some((d) => d.replace(/^www\./, "") === c.eigenDomein)) continue;
+      uit.push({
+        id: `zoekterm:${site}:${t.term}`,
+        soort: "zoekterm",
+        markt: site, dienst: "", firma: c.content.firma, doelsites,
+        onderwerp: t.term,
+        bron: `https://duckduckgo.com/?q=${encodeURIComponent(t.term)}`,
+        context: `"${t.term}" (${c.onderdelen[t.onderdeel] || t.onderdeel}, ${c.markt}): ${c.eigenDomein} staat niet in de top 5. Nu bovenaan: ${t.top5.join(", ")}. Nulmeting: ${c.zoektermen.bron}`,
+        volume: null,
+        datum: null,
+      });
+    }
+  }
+  return uit;
 }
 
 export function opdrachten(status?: ContentStatus): ContentOpdracht[] {

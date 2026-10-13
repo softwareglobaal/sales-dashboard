@@ -1,0 +1,428 @@
+{
+  "_uitleg": "Concurrentie voor eigen sites zonder dienst (geen sales), getoond op de tab Websites als die ene site gekozen is. Sleutel = site-sleutel uit config/websites.json. 'concurrenten' worden wekelijks gecrawld (sitemap + homepage, zelfde crawl als de concurrentiemonitor, geen zoektegoed nodig); 'website: false' = Facebook-groep, niet te crawlen, enkel ter info. 'zoektermen' = kernzoektermen met de nulmeting uit het onderzoek; posities in Google vragen zoektegoed (SerpApi) en blijven leeg tot dat er is. 'onderzoek' = het bronrapport.",
+  "angela": {
+    "markt": "Suriname",
+    "eigenDomein": "angela.sr",
+    "onderzoek": {
+      "datum": "2026-10-13",
+      "pad": "marketing/seo/firmas/Angela/onderzoek/CONCURRENTIE-SURINAME-2026-10-13.md",
+      "noot": "Gemeten op de huidige, oude live site van angela.sr. Het nieuwe ontwerp (proef, met /events, /bedrijven, sitemap en robots.txt) staat nog niet online en is niet meegenomen."
+    },
+    "onderdelen": {
+      "jobs": "Jobs",
+      "events": "Events",
+      "verhalen": "Verhalen en zakennieuws",
+      "bedrijven": "Bedrijven",
+      "markt": "Markt (te koop)"
+    },
+    "concurrenten": [
+      {
+        "domein": "vacaturebank.sr",
+        "naam": "Vacaturebank.sr",
+        "onderdelen": [
+          "jobs"
+        ],
+        "omschrijving": "Grootste vacaturebord, nr. 1 op bijna alle vacaturetermen; betalende pakketten op aanvraag"
+      },
+      {
+        "domein": "vacatures.sr",
+        "naam": "Vacatures.sr",
+        "onderdelen": [
+          "jobs"
+        ],
+        "omschrijving": "Gratis pakket (1 vacature), Basis SRD 1.499 en Onbeperkt SRD 2.999 per maand"
+      },
+      {
+        "domein": "recruitment.4u.sr",
+        "naam": "4U Recruitment",
+        "onderdelen": [
+          "jobs",
+          "events"
+        ],
+        "omschrijving": "Vacatureportaal van HR-platform 4u.sr; gratis tijdens de lancering; sterk groeiend sinds juni 2026"
+      },
+      {
+        "domein": "jobs.sr",
+        "naam": "JOBS.SR",
+        "onderdelen": [
+          "jobs"
+        ],
+        "omschrijving": "Uitzendbureau met vacaturebord en CV-database"
+      },
+      {
+        "domein": "werkstraat.com",
+        "naam": "Werkstraat.com",
+        "onderdelen": [
+          "jobs"
+        ],
+        "omschrijving": "Gratis vacaturebord, veel spam"
+      },
+      {
+        "domein": "werkendsuriname.com",
+        "naam": "Werkend Suriname",
+        "onderdelen": [
+          "jobs",
+          "bedrijven"
+        ],
+        "omschrijving": "Vacatures, CV-database en gids; laatste wijziging 2025"
+      },
+      {
+        "domein": "solliciteren.sr",
+        "naam": "solliciteren.sr",
+        "onderdelen": [
+          "jobs"
+        ],
+        "omschrijving": "AI-matching en talentpool"
+      },
+      {
+        "domein": "eventsinsuriname.com",
+        "naam": "Events in Suriname",
+        "onderdelen": [
+          "events"
+        ],
+        "omschrijving": "Grootste uitgaansagenda, filter Zakelijk & Netwerken"
+      },
+      {
+        "domein": "exploresuriname.com",
+        "naam": "Explore Suriname",
+        "onderdelen": [
+          "events",
+          "bedrijven"
+        ],
+        "omschrijving": "Gids en agenda in zes talen; events gratis plaatsen"
+      },
+      {
+        "domein": "unitednews.sr",
+        "naam": "United News / United Business",
+        "onderdelen": [
+          "verhalen",
+          "bedrijven",
+          "events"
+        ],
+        "omschrijving": "Grootste zakelijke nieuwssite, United Business Fair, directory en magazine"
+      },
+      {
+        "domein": "localcontentsuriname.com",
+        "naam": "Local Content Suriname",
+        "onderdelen": [
+          "verhalen",
+          "bedrijven",
+          "events",
+          "jobs"
+        ],
+        "omschrijving": "Ondernemersprofielen, bedrijven, nieuws, events en vacatures"
+      },
+      {
+        "domein": "surinamehosselt.com",
+        "naam": "Surinamehosselt",
+        "onderdelen": [
+          "verhalen",
+          "events"
+        ],
+        "omschrijving": "Hosselverhalen van ondernemers; stil sinds oktober 2025"
+      },
+      {
+        "domein": "discover-suriname.com",
+        "naam": "Discover Suriname",
+        "onderdelen": [
+          "events",
+          "verhalen"
+        ],
+        "omschrijving": "Informatieplatform voor investeerders en ondernemers"
+      },
+      {
+        "domein": "ondernemershuis.sr",
+        "naam": "Ondernemershuis Suriname",
+        "onderdelen": [
+          "events"
+        ],
+        "omschrijving": "Community met agenda en trainingen; lidmaatschap"
+      },
+      {
+        "domein": "socialsuriname.com",
+        "naam": "Social Suriname",
+        "onderdelen": [
+          "bedrijven",
+          "events",
+          "markt"
+        ],
+        "omschrijving": "Grootste gids (ongeveer 8.500 bedrijven) met agenda en kleine marktplaats"
+      },
+      {
+        "domein": "surinaamsegids.com",
+        "naam": "Surinaamse Gids Exclusief",
+        "onderdelen": [
+          "bedrijven",
+          "verhalen",
+          "jobs",
+          "events"
+        ],
+        "omschrijving": "Bedrijvengids met nieuws, vacatures en events; vanaf 1 USD per dag"
+      },
+      {
+        "domein": "surinamyp.com",
+        "naam": "SurinamYP",
+        "onderdelen": [
+          "bedrijven"
+        ],
+        "omschrijving": "Engelstalige gids, $20 tot $145"
+      },
+      {
+        "domein": "whoswho.sr",
+        "naam": "Who's Who in Suriname Business",
+        "onderdelen": [
+          "bedrijven"
+        ],
+        "omschrijving": "Sectorgids"
+      },
+      {
+        "domein": "businessdirectorysuriname.sr",
+        "naam": "Business Directory Suriname",
+        "onderdelen": [
+          "bedrijven"
+        ],
+        "omschrijving": "Gids, deels gratis"
+      },
+      {
+        "domein": "surinamemarktplaats.com",
+        "naam": "SurinameMarktplaats",
+        "onderdelen": [
+          "markt"
+        ],
+        "omschrijving": "Marktplaats met 18 categorieën"
+      },
+      {
+        "domein": "via2000.sr",
+        "naam": "Via2000",
+        "onderdelen": [
+          "markt"
+        ],
+        "omschrijving": "Advertentiesite"
+      },
+      {
+        "domein": "wojo24.com",
+        "naam": "Wojo24",
+        "onderdelen": [
+          "markt"
+        ],
+        "omschrijving": "Marktplaats"
+      },
+      {
+        "domein": "viamarkt.com",
+        "naam": "ViaMarkt",
+        "onderdelen": [
+          "markt"
+        ],
+        "omschrijving": "Marktplaats SR-NL-BE, gratis basisadvertentie"
+      },
+      {
+        "domein": "facebook.com/groups/ThingsForSaleSu",
+        "naam": "Things For Sale (Suriname)",
+        "onderdelen": [
+          "markt"
+        ],
+        "omschrijving": "Ongeveer 154.700 leden",
+        "website": false
+      },
+      {
+        "domein": "facebook.com/groups/vacaturessuriname",
+        "naam": "VACATURES SURINAME",
+        "onderdelen": [
+          "jobs"
+        ],
+        "omschrijving": "Ongeveer 65.900 leden",
+        "website": false
+      },
+      {
+        "domein": "facebook.com/groups/SuEvents",
+        "naam": "Events in Suriname (groep)",
+        "onderdelen": [
+          "events"
+        ],
+        "omschrijving": "Ongeveer 14.900 leden",
+        "website": false
+      }
+    ],
+    "zoektermen": {
+      "bron": "DuckDuckGo (Bing-index, zonder Surinaamse regio), 13 oktober 2026; angela.sr stond bij geen enkele term in de top 10. Google kon niet gemeten worden.",
+      "termen": [
+        {
+          "term": "ondernemers suriname",
+          "onderdeel": "verhalen",
+          "top5": [
+            "ondernemershuis.sr",
+            "rvo.nl",
+            "suriname-entrepreneursplatform.com",
+            "voorondernemers.sr",
+            "discover-suriname.com"
+          ]
+        },
+        {
+          "term": "ondernemersverhalen suriname",
+          "onderdeel": "verhalen",
+          "top5": [
+            "miriroshi.com",
+            "surinameglobalgroup.com",
+            "surinamehosselt.com",
+            "ondernemershuis.sr",
+            "suriname-entrepreneursplatform.com"
+          ]
+        },
+        {
+          "term": "business nieuws suriname",
+          "onderdeel": "verhalen",
+          "top5": [
+            "surinamenieuwscentrale.com",
+            "unitednews.sr",
+            "srnieuws.com",
+            "suriname.myfinancial.news"
+          ]
+        },
+        {
+          "term": "events suriname",
+          "onderdeel": "events",
+          "top5": [
+            "eventsinsuriname.com",
+            "allevents.in",
+            "suriname.travel",
+            "stayhappening.com",
+            "facebook.com (groep)"
+          ]
+        },
+        {
+          "term": "events paramaribo",
+          "onderdeel": "events",
+          "top5": [
+            "stayhappening.com",
+            "allevents.in",
+            "thingstodoinparamaribo.com",
+            "eventsinsuriname.com"
+          ]
+        },
+        {
+          "term": "netwerkevent suriname",
+          "onderdeel": "events",
+          "top5": [
+            "peerssuriname.com",
+            "surinameglobalgroup.com",
+            "suriname.nl",
+            "facebook.com (groep)",
+            "facebook.com (pagina)"
+          ]
+        },
+        {
+          "term": "business events suriname",
+          "onderdeel": "events",
+          "top5": [
+            "discover-suriname.com",
+            "peerssuriname.com",
+            "suriname.travel",
+            "gep-events.com",
+            "internationalconferencealerts.com"
+          ]
+        },
+        {
+          "term": "bedrijvengids suriname",
+          "onderdeel": "bedrijven",
+          "top5": [
+            "socialsuriname.com",
+            "surinaamsegids.com",
+            "samensterkvoorsuriname.com"
+          ]
+        },
+        {
+          "term": "bedrijven paramaribo",
+          "onderdeel": "bedrijven",
+          "top5": [
+            "surinamyp.com",
+            "bedrijvengids.cybo.com",
+            "glassdoor.nl",
+            "businesses10.com"
+          ]
+        },
+        {
+          "term": "vacatures suriname",
+          "onderdeel": "jobs",
+          "top5": [
+            "vacaturebank.sr",
+            "sr.linkedin.com",
+            "vacatures.sr",
+            "jobs.sr",
+            "gov.sr"
+          ]
+        },
+        {
+          "term": "jobs suriname",
+          "onderdeel": "jobs",
+          "top5": [
+            "vacaturebank.sr",
+            "sr.linkedin.com",
+            "jooble.org",
+            "linkedin.com",
+            "facebook.com (groep)"
+          ]
+        },
+        {
+          "term": "vacature plaatsen suriname",
+          "onderdeel": "jobs",
+          "top5": [
+            "vacaturebank.sr",
+            "vacatures.sr",
+            "surinamevacatures.com",
+            "jobs.sr",
+            "recruitment.4u.sr"
+          ]
+        },
+        {
+          "term": "werk suriname",
+          "onderdeel": "jobs",
+          "top5": [
+            "vacaturebank.sr",
+            "sr.linkedin.com",
+            "werkendsuriname.com",
+            "vacatures.sr",
+            "nl.jooble.org"
+          ]
+        },
+        {
+          "term": "tweedehands suriname",
+          "onderdeel": "markt",
+          "top5": [
+            "facebook.com (groep)",
+            "facebook.com (marketplace)",
+            "autoyas.com",
+            "via2000.sr",
+            "fernandesautomotive.com"
+          ]
+        },
+        {
+          "term": "gratis adverteren suriname",
+          "onderdeel": "markt",
+          "top5": [
+            "facebook.com (groep)",
+            "via2000.sr",
+            "socialsuriname.com"
+          ]
+        }
+      ],
+      "_volgorde": "Volgorde = prioriteit voor de SEO-agents: eerst waar Angela kan winnen (verhalen, zakelijke events), jobs en markt achteraan."
+    },
+    "content": {
+      "firma": "Angela",
+      "woorden": [
+        "ondernem",
+        "interview",
+        "verhaal",
+        "business",
+        "netwerk",
+        "event",
+        "vacature",
+        "startup",
+        "werkgever",
+        "mkb",
+        "zaken"
+      ],
+      "maxBlogs": 5
+    }
+  }
+}

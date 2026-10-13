@@ -14,7 +14,7 @@ function Kaart({ o, metOordeel }: { o: ContentOpdracht; metOordeel?: boolean }) 
       <div className="kop">
         <h2 style={{ fontSize: 18 }}>{o.titel || o.kans_id}</h2>
         <small>
-          {DIENST_NAAM[o.dienst] || o.dienst} · {o.firma} · {o.soort === "herschrijf" ? "herschrijfkans" : "reactie op concurrent-blog"} · {datum(o.bijgewerkt)}
+          {DIENST_NAAM[o.dienst] || o.dienst || "Website"} · {o.firma} · {o.soort === "herschrijf" ? "herschrijfkans" : o.soort === "zoekterm" ? "zoekterm zonder eigen pagina" : "reactie op concurrent-blog"} · {datum(o.bijgewerkt)}
         </small>
       </div>
       {o.samenvatting && <p className="mb-3 text-[13px] text-zinc-700">{o.samenvatting}</p>}
