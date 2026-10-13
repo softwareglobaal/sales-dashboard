@@ -7,7 +7,7 @@ import { VergelijkingPerSite, KernReeks, ParamKeuze, InklapTabel } from "@/compo
 import { num, pct } from "@/lib/format";
 import { geoStatus } from "@/lib/geoip";
 import { siteConcurrentie, stand as concurrentieStand } from "@/lib/siteConcurrentie";
-import { BE_VIEWBOX, BE_PROVINCES, projectLatLng } from "@/lib/belgiumGeo";
+import { BezoekersKaart } from "@/components/BezoekersKaart";
 import {
   PERIODES, isPeriode, bereik, heeftMetingen, zichtbareSites, kern, perSite, nuOnline, reeksPerSite, reeksKern,
   uurRaster, kanalen, kanaalPerSite, bronnen, instappaginas, uitstappaginas, paginas, paden, paginaKeuze, landen,
@@ -260,35 +260,6 @@ function UurRaster({ cellen }: { cellen: { weekdag: number; uur: number; n: numb
 /** "/" is de startpagina van een site: zo leesbaar in de tabellen in plaats van een los teken. */
 const padNaam = (p: string | null | undefined) => (!p || p === "/" ? "Startpagina (/)" : p);
 
-/** Belgiëkaart met een bol per gemeente; grootte = sessies. */
-function KaartBelgie({ punten }: { punten: { stad: string | null; lat: number | null; lon: number | null; sessies: number; conversies: number }[] }) {
-  // De kaart dekt Vlaanderen en Brussel; wat erbuiten valt staat in de tabellen.
-  const be = punten.filter((p) => {
-    if (p.lat == null || p.lon == null) return false;
-    const [x, y] = projectLatLng(p.lat, p.lon);
-    return x >= 0 && x <= 1000 && y >= 0 && y <= 387;
-  });
-  const max = Math.max(...be.map((p) => p.sessies), 1);
-  return (
-    <svg viewBox={BE_VIEWBOX} className="h-auto w-full" role="img" aria-label="Bezoekers per gemeente in België">
-      {BE_PROVINCES.map((p) => (
-        <path key={p.name} d={p.d} fill="var(--vlak)" stroke="var(--inkt-vaag)" strokeOpacity={0.45} strokeWidth={1}>
-          <title>{p.name}</title>
-        </path>
-      ))}
-      {[...be].sort((a, b) => b.sessies - a.sessies).map((p, i) => {
-        const [x, y] = projectLatLng(p.lat!, p.lon!);
-        const r = 4 + Math.sqrt(p.sessies / max) * 22;
-        return (
-          <circle key={i} cx={x} cy={y} r={r} fill="#2a78d6" fillOpacity={0.55} stroke="var(--wit)" strokeWidth={2}>
-            <title>{`${p.stad}: ${num(p.sessies)} sessies${p.conversies ? `, ${num(p.conversies)} met contactactie` : ""}`}</title>
-          </circle>
-        );
-      })}
-    </svg>
-  );
-}
-
 /**
  * Klikkaart: de pagina als lange strook, met de secties op hun gemeten plaats, de
  * klikken als punten en rechts hoeveel bezoekers tot op die hoogte scrollden.
@@ -470,6 +441,8 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
     taal: verdeling(sites, b, "taal"),
   };
   const totaalSessies = k.nu.sessies || 1;
+  // Startland van de kaart: de landen van de gekozen site(s), anders van alle sites.
+  const kaartLanden = [...new Set((gekozenLijst.length ? gekozenLijst : alleSites).flatMap((s) => s.kaart || ["BE"]))];
 
   // Klikkaart: één pagina van één site.
   const keuze = gekozen ? paginaKeuze([gekozen.sleutel], b) : [];
@@ -647,8 +620,8 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
         <section id="locatie" className="scroll-mt-44 space-y-4">
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <Paneel titel="Bezoekers in Vlaanderen en Brussel" uitleg="Per gemeente (Wallonië en het buitenland staan in de tabellen), op basis van het IP-adres. Land en provincie kloppen; de gemeente is een benadering, want sommige providers tonen hun knooppunt (vaak Brussel of Antwerpen).">
-                <KaartBelgie punten={stadRijen.filter((r) => r.land === "BE")} />
+              <Paneel titel="Bezoekers op de kaart" uitleg="Per gemeente, op basis van het IP-adres. Land klopt; de gemeente is een benadering, want sommige providers tonen hun knooppunt (vaak de hoofdstad of een grote stad).">
+                <BezoekersKaart punten={stadRijen} landen={kaartLanden} />
               </Paneel>
             </div>
             <Paneel titel="Landen">
