@@ -18,6 +18,8 @@ const LANDEN: Record<string, { naam: string; bbox: [number, number, number, numb
   BE: { naam: "België", bbox: [2.5, 49.45, 6.45, 51.55] },
   SR: { naam: "Suriname", bbox: [-58.1, 1.8, -53.9, 6.1] },
   NL: { naam: "Nederland", bbox: [3.3, 50.7, 7.3, 53.6] },
+  "US-FL": { naam: "Zuid-Florida", bbox: [-80.75, 25.55, -79.95, 26.45] },
+  US: { naam: "Verenigde Staten", bbox: [-125, 24.5, -66.9, 49.4] },
 };
 
 const STIJL = { licht: "https://tiles.openfreemap.org/styles/positron", donker: "https://tiles.openfreemap.org/styles/dark" };

@@ -423,6 +423,876 @@
         "zaken"
       ],
       "maxBlogs": 5
+    },
+    "eigenWachtrij": true
+  },
+  "elevait": {
+    "markt": "Suriname en Vlaanderen",
+    "eigenDomein": "elevaitservices.com",
+    "onderzoek": {
+      "datum": "2026-10-13",
+      "pad": "marketing/seo/firmas/Elevait/onderzoek/CONCURRENTIE-2026-10-13.md",
+      "noot": "Gemeten op de live site van 13 oktober 2026 (homepage van 8 oktober). Top 5 gemeten in Bing, Google kon niet gemeten worden."
+    },
+    "onderdelen": {
+      "it": "IT-partner",
+      "ai": "AI en automatisering",
+      "websites": "Websites",
+      "software": "Applicaties op maat",
+      "marketing": "Marketing"
+    },
+    "concurrenten": [
+      {
+        "domein": "adept.sr",
+        "naam": "Adept N.V.",
+        "onderdelen": [
+          "software",
+          "websites",
+          "it"
+        ],
+        "omschrijving": "Maatwerksoftware, mobiele apps, websites en hosting; top 5 op 4 van 12 SR-termen"
+      },
+      {
+        "domein": "tad.sr",
+        "naam": "TAD N.V.",
+        "onderdelen": [
+          "websites",
+          "software",
+          "marketing",
+          "ai"
+        ],
+        "omschrijving": "Digital agency met eigen producten (Invoice+, Bouw+, WhatsApp AI Chatbot)"
+      },
+      {
+        "domein": "auronx.net",
+        "naam": "AuronX",
+        "onderdelen": [
+          "websites",
+          "ai",
+          "software"
+        ],
+        "omschrijving": "Websites, webshops, kassasystemen, AI-automations en maatwerk"
+      },
+      {
+        "domein": "aisuriname.com",
+        "naam": "AI Suriname",
+        "onderdelen": [
+          "ai"
+        ],
+        "omschrijving": "Noemt zich de eerste AI agency van Suriname; #1 op 'ai suriname' en 'automatisering suriname'"
+      },
+      {
+        "domein": "luminapartnersnv.com",
+        "naam": "Lumina Partners N.V.",
+        "onderdelen": [
+          "it",
+          "ai",
+          "websites"
+        ],
+        "omschrijving": "IT-support, cloud, beveiliging, websites en AI; positionering het dichtst bij Elevait"
+      },
+      {
+        "domein": "eparamaribo.com",
+        "naam": "eParamaribo",
+        "onderdelen": [
+          "websites",
+          "software",
+          "marketing",
+          "ai"
+        ],
+        "omschrijving": "Websites, webshops, software op maat, SEO en automatiseren"
+      },
+      {
+        "domein": "volnix.io",
+        "naam": "VolNix",
+        "onderdelen": [
+          "websites",
+          "marketing"
+        ],
+        "omschrijving": "Webdesign en hosting met publieke prijzen ($450-$3.250); #1 op 'webdesign suriname'"
+      },
+      {
+        "domein": "dorffdesign.sr",
+        "naam": "Dorff Design",
+        "onderdelen": [
+          "marketing",
+          "websites"
+        ],
+        "omschrijving": "Online marketing en webdesign; #1 op 'website laten maken suriname' en 'seo suriname'"
+      },
+      {
+        "domein": "optimize.sr",
+        "naam": "Optimize",
+        "onderdelen": [
+          "marketing",
+          "ai"
+        ],
+        "omschrijving": "Online marketingbureau (Ads, SEO, AI Automations); #1 op 'digital marketing suriname'"
+      },
+      {
+        "domein": "kernel.sr",
+        "naam": "Kernel IT",
+        "onderdelen": [
+          "it"
+        ],
+        "omschrijving": "Microsoft 365, Power Platform en cloud; #1 op 'it bedrijf suriname'"
+      },
+      {
+        "domein": "tekzys.sr",
+        "naam": "TEKZYS",
+        "onderdelen": [
+          "it"
+        ],
+        "omschrijving": "Managed IT en consulting sinds september 2024"
+      },
+      {
+        "domein": "qualogycaribbean.com",
+        "naam": "Qualogy Caribbean",
+        "onderdelen": [
+          "software"
+        ],
+        "omschrijving": "Nearshore softwareontwikkeling en IT-staffing"
+      },
+      {
+        "domein": "zentacreative.com",
+        "naam": "Zenta",
+        "onderdelen": [
+          "websites",
+          "marketing"
+        ],
+        "omschrijving": "Webdesign en Google-zichtbaarheid in Suriname"
+      },
+      {
+        "domein": "stoliowebsolutions.com",
+        "naam": "Stolio Web Solutions",
+        "onderdelen": [
+          "websites",
+          "software",
+          "ai"
+        ],
+        "omschrijving": "Kleine AI-softwareontwikkelaar uit Paramaribo"
+      },
+      {
+        "domein": "thedevelopers.be",
+        "naam": "The Developers",
+        "onderdelen": [
+          "websites",
+          "software",
+          "ai"
+        ],
+        "omschrijving": "Vlaanderen: websites, software en AI voor kmo's; #2 op 'website laten maken leuven'"
+      },
+      {
+        "domein": "codelines.be",
+        "naam": "Codelines",
+        "onderdelen": [
+          "software",
+          "ai"
+        ],
+        "omschrijving": "Vlaanderen (Antwerpen): AI-agents en maatwerksoftware voor kmo's"
+      },
+      {
+        "domein": "caikmo.be",
+        "naam": "CAIKMO",
+        "onderdelen": [
+          "ai"
+        ],
+        "omschrijving": "Vlaanderen: AI-automatisering voor kmo's"
+      },
+      {
+        "domein": "nunki.ai",
+        "naam": "Nunki",
+        "onderdelen": [
+          "ai"
+        ],
+        "omschrijving": "Vlaanderen: AI-automatisering voor kmo's"
+      }
+    ],
+    "zoektermen": {
+      "bron": "Bing vanuit Suriname (cc=SR, Vlaamse termen cc=BE), 13 oktober 2026; elevaitservices.com stond bij geen enkele term in de top 10, enkel op de eigen naam. Google kon niet gemeten worden.",
+      "termen": [
+        {
+          "term": "ai suriname",
+          "onderdeel": "ai",
+          "top5": [
+            "aisuriname.com",
+            "facebook.com",
+            "surinam.ai",
+            "socialmedia.sr",
+            "dbsuriname.com"
+          ]
+        },
+        {
+          "term": "automatisering suriname",
+          "onderdeel": "ai",
+          "top5": [
+            "aisuriname.com",
+            "bocari.com",
+            "auronx.net",
+            "royantautomation.com",
+            "ienergy.expert"
+          ]
+        },
+        {
+          "term": "it bedrijf suriname",
+          "onderdeel": "it",
+          "top5": [
+            "kernel.sr",
+            "ict-as.sr",
+            "adept.sr",
+            "tekzys.sr",
+            "luminapartnersnv.com"
+          ]
+        },
+        {
+          "term": "ict bedrijf paramaribo",
+          "onderdeel": "it",
+          "top5": [
+            "findglocal.com",
+            "tekzys.sr",
+            "dataconsept.com",
+            "ict-as.sr",
+            "iteenv.com"
+          ]
+        },
+        {
+          "term": "it services suriname",
+          "onderdeel": "it",
+          "top5": [
+            "kernel.sr",
+            "enableit.sr",
+            "tekzys.sr",
+            "ics.sr",
+            "itmssuriname.com"
+          ]
+        },
+        {
+          "term": "website laten maken suriname",
+          "onderdeel": "websites",
+          "top5": [
+            "dorffdesign.sr",
+            "surinamemarketing.com",
+            "adept.sr",
+            "eparamaribo.com",
+            "zentacreative.com"
+          ]
+        },
+        {
+          "term": "webdesign suriname",
+          "onderdeel": "websites",
+          "top5": [
+            "volnix.io",
+            "dorffdesign.sr",
+            "smartidesigns.com",
+            "gldynamic.com",
+            "my.socialsuriname.com"
+          ]
+        },
+        {
+          "term": "web development suriname",
+          "onderdeel": "websites",
+          "top5": [
+            "tad.sr",
+            "ictssuriname.com",
+            "datasur.sr",
+            "auronx.net",
+            "twine.net"
+          ]
+        },
+        {
+          "term": "software ontwikkeling suriname",
+          "onderdeel": "software",
+          "top5": [
+            "datasur.sr",
+            "adept.sr",
+            "qualogycaribbean.com",
+            "auronx.net",
+            "quantify.sr"
+          ]
+        },
+        {
+          "term": "app laten maken suriname",
+          "onderdeel": "software",
+          "top5": [
+            "tad.sr",
+            "adept.sr",
+            "surinamemarketing.com",
+            "eparamaribo.com",
+            "apptastic.sr"
+          ]
+        },
+        {
+          "term": "digital marketing suriname",
+          "onderdeel": "marketing",
+          "top5": [
+            "optimize.sr",
+            "dorffdesign.sr",
+            "tad.sr",
+            "facebook.com",
+            "fluxsuriname.com"
+          ]
+        },
+        {
+          "term": "seo suriname",
+          "onderdeel": "marketing",
+          "top5": [
+            "dorffdesign.sr",
+            "optimize.sr",
+            "socialsuriname.com",
+            "volnix.io",
+            "eparamaribo.com"
+          ]
+        },
+        {
+          "term": "ai automatisering kmo",
+          "onderdeel": "ai",
+          "top5": [
+            "aiautomatiseringexpert.be",
+            "automationstar.be",
+            "caikmo.be",
+            "nunki.ai",
+            "wdstudio.be"
+          ]
+        },
+        {
+          "term": "website laten maken leuven",
+          "onderdeel": "websites",
+          "top5": [
+            "vanmalderstudio.be",
+            "thedevelopers.be",
+            "alexweb.be",
+            "webstijl.be",
+            "clickforest.com"
+          ]
+        },
+        {
+          "term": "software op maat laten maken",
+          "onderdeel": "software",
+          "top5": [
+            "krits.be",
+            "orbid.be",
+            "codelines.be",
+            "softwareopmaat.net",
+            "peopleware.be"
+          ]
+        }
+      ]
+    },
+    "content": {
+      "firma": "Elevait",
+      "woorden": [
+        "ai",
+        "automatiser",
+        "website",
+        "webdesign",
+        "software",
+        "app",
+        "marketing",
+        "seo",
+        "cloud",
+        "chatbot"
+      ],
+      "maxBlogs": 5
+    }
+  },
+  "nook": {
+    "markt": "Vlaanderen, Nederland en Suriname",
+    "eigenDomein": "nook.elevaitservices.com",
+    "onderzoek": {
+      "datum": "2026-10-13",
+      "pad": "marketing/seo/firmas/Nook/onderzoek/CONCURRENTIE-2026-10-13.md",
+      "noot": "Gemeten op de live site van 13 oktober 2026: zoekmachines krijgen enkel de Engelse versie (geen hreflang of Nederlandse URL). Top 5 gemeten in Bing, Google kon niet gemeten worden."
+    },
+    "onderdelen": {
+      "planner": "Afspraken plannen",
+      "boeken": "Online boeken",
+      "alternatief": "Calendly-alternatief",
+      "koppeling": "Agenda-koppeling",
+      "engels": "Engelstalig"
+    },
+    "concurrenten": [
+      {
+        "domein": "calendly.com",
+        "naam": "Calendly",
+        "onderdelen": [
+          "planner",
+          "alternatief",
+          "koppeling",
+          "engels"
+        ],
+        "omschrijving": "De referentie; Free, Standard $10, Teams $16 per seat/maand"
+      },
+      {
+        "domein": "cal.com",
+        "naam": "Cal.com",
+        "onderdelen": [
+          "planner",
+          "alternatief",
+          "engels"
+        ],
+        "omschrijving": "Open-source planner, gratis voor individuen; Teams $12, Organizations $28"
+      },
+      {
+        "domein": "afspraakplanning.be",
+        "naam": "Afspraakplanning.be",
+        "onderdelen": [
+          "planner",
+          "boeken"
+        ],
+        "omschrijving": "Belgische gratis planner; Premium €5, Business €15/maand; #1 op 'afspraken plannen tool'"
+      },
+      {
+        "domein": "onlineafspraken.nl",
+        "naam": "OnlineAfspraken.nl",
+        "onderdelen": [
+          "boeken",
+          "planner"
+        ],
+        "omschrijving": "NL/BE-boekingssysteem; €20-80/maand; top 5 op 5 termen"
+      },
+      {
+        "domein": "simplybook.me",
+        "naam": "SimplyBook.me",
+        "onderdelen": [
+          "boeken",
+          "planner"
+        ],
+        "omschrijving": "Reserveringssysteem; Free (50 boekingen) tot Premium €59,9/maand"
+      },
+      {
+        "domein": "supersaas.nl",
+        "naam": "SuperSaaS",
+        "onderdelen": [
+          "boeken"
+        ],
+        "omschrijving": "Online reserveringssysteem; betaald vanaf €7/maand"
+      },
+      {
+        "domein": "timify.com",
+        "naam": "TIMIFY",
+        "onderdelen": [
+          "boeken"
+        ],
+        "omschrijving": "Afspraken en resourcebeheer; gratis tot €53/maand"
+      },
+      {
+        "domein": "calendr.be",
+        "naam": "Calendr",
+        "onderdelen": [
+          "planner",
+          "boeken"
+        ],
+        "omschrijving": "Belgisch, voor architecten, boekhouders en advocaten; €24,95-49,95/maand"
+      },
+      {
+        "domein": "reservio.com",
+        "naam": "Reservio",
+        "onderdelen": [
+          "boeken"
+        ],
+        "omschrijving": "Online boeken, betalen en POS; gratis tot 40 boekingen per 30 dagen"
+      },
+      {
+        "domein": "timeblockr.com",
+        "naam": "TimeBlockr",
+        "onderdelen": [
+          "boeken"
+        ],
+        "omschrijving": "Afspraakmodule voor websites; #1 op 'afspraakmodule website'"
+      },
+      {
+        "domein": "doodle.com",
+        "naam": "Doodle",
+        "onderdelen": [
+          "planner"
+        ],
+        "omschrijving": "Groepspolls en boekingspagina's, sterk in de NL-zoekresultaten",
+        "crawl": false
+      },
+      {
+        "domein": "zoho.com",
+        "naam": "Zoho Bookings",
+        "onderdelen": [
+          "alternatief",
+          "koppeling"
+        ],
+        "omschrijving": "Gratis plan voor 1 gebruiker; top 5 op 'calendly alternatief'",
+        "crawl": false
+      },
+      {
+        "domein": "workspace.google.com",
+        "naam": "Google Agenda afspraakplanningen",
+        "onderdelen": [
+          "koppeling",
+          "planner"
+        ],
+        "omschrijving": "Gratis in elk Google-account",
+        "crawl": false
+      },
+      {
+        "domein": "microsoft.com",
+        "naam": "Microsoft Bookings",
+        "onderdelen": [
+          "planner",
+          "koppeling"
+        ],
+        "omschrijving": "Boeken binnen Microsoft 365",
+        "crawl": false
+      },
+      {
+        "domein": "fresha.com",
+        "naam": "Fresha",
+        "onderdelen": [
+          "boeken"
+        ],
+        "omschrijving": "Salon/spa-platform, het enige boekplatform zichtbaar actief in Paramaribo",
+        "crawl": false
+      }
+    ],
+    "zoektermen": {
+      "bron": "Bing (NL-termen cc=BE, Engelse en Surinaamse termen cc=SR), 13 oktober 2026; Nook stond bij geen enkele term in de top 10, ook niet op de eigen naam. Google kon niet gemeten worden.",
+      "termen": [
+        {
+          "term": "afspraken plannen tool",
+          "onderdeel": "planner",
+          "top5": [
+            "afspraakplanning.be",
+            "doodle.com",
+            "appointlet.com",
+            "datumprikker.nl",
+            "microsoft.com"
+          ]
+        },
+        {
+          "term": "online afsprakenplanner",
+          "onderdeel": "planner",
+          "top5": [
+            "datumprikker.nl",
+            "onlineafspraken.nl",
+            "afspraakplanning.be",
+            "afspreken.nl"
+          ]
+        },
+        {
+          "term": "gratis afsprakenplanner",
+          "onderdeel": "planner",
+          "top5": [
+            "afspraakplanning.be",
+            "simplybook.me",
+            "datumprikker.nl",
+            "doodle.com",
+            "findstack.nl"
+          ]
+        },
+        {
+          "term": "online boekingssysteem afspraken",
+          "onderdeel": "boeken",
+          "top5": [
+            "onlineafspraken.nl",
+            "simplybook.me",
+            "supersaas.nl",
+            "timify.com",
+            "boeklio.nl"
+          ]
+        },
+        {
+          "term": "afspraakmodule website",
+          "onderdeel": "boeken",
+          "top5": [
+            "timeblockr.com",
+            "mtc-it4.be",
+            "appointment.qteam.be",
+            "sysplatform.nl"
+          ]
+        },
+        {
+          "term": "klanten online afspraak laten maken",
+          "onderdeel": "boeken",
+          "top5": [
+            "onlineafspraken.nl",
+            "reservio.com",
+            "doodle.com",
+            "plannen.nl",
+            "afspraakplanning.be"
+          ]
+        },
+        {
+          "term": "reservatiesysteem afspraken",
+          "onderdeel": "boeken",
+          "top5": [
+            "posworld.be",
+            "supersaas.nl",
+            "boeknu.be",
+            "reservio.com",
+            "timify.com"
+          ]
+        },
+        {
+          "term": "online afspraak systeem suriname",
+          "onderdeel": "boeken",
+          "top5": [
+            "sr.usembassy.gov",
+            "visa.vfsglobal.com",
+            "suriname.vfsevisa.com",
+            "supersaas.nl",
+            "onlineafspraken.nl"
+          ]
+        },
+        {
+          "term": "calendly alternatief",
+          "onderdeel": "alternatief",
+          "top5": [
+            "clickup.com",
+            "thedigitalprojectmanager.com",
+            "bedrijfssoftwaregids.nl",
+            "europealternative.com",
+            "zoho.com"
+          ]
+        },
+        {
+          "term": "calendly alternative",
+          "onderdeel": "alternatief",
+          "top5": [
+            "thedigitalprojectmanager.com",
+            "alternativeto.net",
+            "zoho.com",
+            "lunacal.ai",
+            "clickup.com"
+          ]
+        },
+        {
+          "term": "afspraken plannen google agenda",
+          "onderdeel": "koppeling",
+          "top5": [
+            "workspace.google.com",
+            "support.google.com"
+          ]
+        },
+        {
+          "term": "scheduling software",
+          "onderdeel": "engels",
+          "top5": [
+            "softwareadvice.com",
+            "forbes.com",
+            "workflowautomation.net",
+            "calendly.com"
+          ]
+        },
+        {
+          "term": "appointment booking software",
+          "onderdeel": "engels",
+          "top5": [
+            "softwaretestinghelp.com",
+            "guideflow.com",
+            "calendly.com",
+            "worldmetrics.org",
+            "softwareadvice.com"
+          ]
+        }
+      ]
+    },
+    "content": {
+      "firma": "Nook",
+      "woorden": [
+        "afspra",
+        "planner",
+        "booking",
+        "boek",
+        "calendly",
+        "reserv",
+        "schedul",
+        "agenda"
+      ],
+      "maxBlogs": 5
+    }
+  },
+  "stychintyme": {
+    "markt": "Fort Lauderdale",
+    "eigenDomein": "stychintyme.com",
+    "eigenWachtrij": true,
+    "onderzoek": {
+      "datum": "2026-10-13",
+      "pad": "Dropbox Elevait/03. Projects/04. Stychin Tyme/03. Analyse en ontwerp/Concurrentie en doorverwijzers.md",
+      "noot": "Gemeten op de live site v6 van 13 oktober 2026 (de nieuwe v7 staat op proef). Google-posities konden niet gemeten worden; de ranglijst steunt op Yelp, gidsen en AI-zoekantwoorden. De meeste concurrenten hebben geen eigen website."
+    },
+    "onderdelen": {
+      "bruid": "Bruid en feest",
+      "herstellingen": "Aanpassingen en herstellingen"
+    },
+    "concurrenten": [
+      {
+        "domein": "yelp:the-little-seamstress",
+        "naam": "The Little Seamstress",
+        "onderdelen": [
+          "bruid",
+          "herstellingen"
+        ],
+        "omschrijving": "Oakland Park; 4,2-4,3 uit ~70 Yelp-reviews; sinds 1967, 'Best Tailor' 2021; op WeddingWire",
+        "website": false,
+        "label": "Yelp, geen website"
+      },
+      {
+        "domein": "yelp:needlestitch",
+        "naam": "Needlestitch",
+        "onderdelen": [
+          "bruid",
+          "herstellingen"
+        ],
+        "omschrijving": "Wilton Manors; 4,7 uit 50-55; bruids- en avondkleding",
+        "website": false,
+        "label": "Yelp, geen website"
+      },
+      {
+        "domein": "yelp:bp-alterations",
+        "naam": "B&P Alterations",
+        "onderdelen": [
+          "herstellingen"
+        ],
+        "omschrijving": "W Sunrise Blvd; 4,8 uit 23-32; adverteert op Yelp (gesponsord)",
+        "website": false,
+        "label": "Yelp, geen website"
+      },
+      {
+        "domein": "yelp:pina-tailoring",
+        "naam": "Pina Tailoring & Alterations",
+        "onderdelen": [
+          "herstellingen"
+        ],
+        "omschrijving": "1263 E Las Olas Blvd (zelfde straat); 26 reviews, gemengd",
+        "website": false,
+        "label": "Yelp, geen website"
+      },
+      {
+        "domein": "yelp:tailor-shop-by-torrez",
+        "naam": "Tailor Shop by Torrez",
+        "onderdelen": [
+          "herstellingen",
+          "bruid"
+        ],
+        "omschrijving": "930 NE 20th Ave; 4,1 uit 18",
+        "website": false,
+        "label": "Yelp, geen website"
+      },
+      {
+        "domein": "munozbridal.com",
+        "naam": "Munoz Bridal & Formal Wear",
+        "onderdelen": [
+          "bruid"
+        ],
+        "omschrijving": "2643 Davie Blvd; breedste bruidsaanbod, koppen per zoekwoord, geen prijzen"
+      },
+      {
+        "domein": "spalterations.com",
+        "naam": "SP Alterations",
+        "onderdelen": [
+          "herstellingen",
+          "bruid"
+        ],
+        "omschrijving": "Lauderhill; sterkste online aanpak met een pagina per stad, 148 Google-reviews"
+      },
+      {
+        "domein": "zolakeller.com",
+        "naam": "Zola Keller",
+        "onderdelen": [
+          "bruid"
+        ],
+        "omschrijving": "818 E Las Olas Blvd; bruids- en feestkleding; concurrent én mogelijke partner"
+      },
+      {
+        "domein": "rosellestudios.com",
+        "naam": "Roselle Studios",
+        "onderdelen": [
+          "bruid",
+          "herstellingen"
+        ],
+        "omschrijving": "Fort Lauderdale, werkt op aanvraag; Instagram, Facebook, YouTube"
+      },
+      {
+        "domein": "creativeneedletailor.com",
+        "naam": "Creative Needle Tailoring",
+        "onderdelen": [
+          "herstellingen",
+          "bruid"
+        ],
+        "omschrijving": "1342 SE 17th St; pakken en trouwjurken; site lijkt jaren niet bijgewerkt"
+      },
+      {
+        "domein": "yelp:next-day-alterations",
+        "naam": "Next Day Alterations",
+        "onderdelen": [
+          "herstellingen"
+        ],
+        "omschrijving": "2556 N Federal Hwy; 3,0 uit 44",
+        "website": false,
+        "label": "Yelp, geen website"
+      },
+      {
+        "domein": "yelp:barton-and-miller",
+        "naam": "Barton and Miller Cleaners",
+        "onderdelen": [
+          "herstellingen"
+        ],
+        "omschrijving": "Wilton Manors; stomerij plus kleermaker; 2,7 uit 65",
+        "website": false,
+        "label": "Yelp, geen website"
+      },
+      {
+        "domein": "menswearhouse.com",
+        "naam": "Men's Wearhouse",
+        "onderdelen": [
+          "herstellingen"
+        ],
+        "omschrijving": "1638 N Federal Hwy; keten, smokingverhuur plus aanpassingen voor heren",
+        "crawl": false
+      }
+    ],
+    "zoektermen": {
+      "bron": "Niet gemeten: Google, Bing en DuckDuckGo blokkeerden en het SerpApi-tegoed was op. Google Trends (Miami-Ft. Lauderdale): zoekvraag het hele jaar vlak met een piek in april-mei; 'wedding dress alterations' heeft te weinig volume.",
+      "termen": [
+        {
+          "term": "alterations fort lauderdale",
+          "onderdeel": "herstellingen",
+          "top5": []
+        },
+        {
+          "term": "wedding dress alterations fort lauderdale",
+          "onderdeel": "bruid",
+          "top5": []
+        },
+        {
+          "term": "seamstress fort lauderdale",
+          "onderdeel": "herstellingen",
+          "top5": []
+        },
+        {
+          "term": "tailor near las olas",
+          "onderdeel": "herstellingen",
+          "top5": []
+        },
+        {
+          "term": "bridal alterations near me",
+          "onderdeel": "bruid",
+          "top5": []
+        },
+        {
+          "term": "alterations near me",
+          "onderdeel": "herstellingen",
+          "top5": []
+        }
+      ]
+    },
+    "content": {
+      "firma": "Stychin Tyme",
+      "woorden": [
+        "alteration",
+        "tailor",
+        "seamstress",
+        "bridal",
+        "wedding",
+        "hem",
+        "gown"
+      ],
+      "maxBlogs": 5
     }
   }
 }

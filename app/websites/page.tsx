@@ -8,6 +8,8 @@ import { num, pct } from "@/lib/format";
 import { geoStatus } from "@/lib/geoip";
 import { siteConcurrentie, stand as concurrentieStand } from "@/lib/siteConcurrentie";
 import { BezoekersKaart } from "@/components/BezoekersKaart";
+import { ContentKaart } from "@/components/ContentKaart";
+import { opdrachten } from "@/lib/content";
 import {
   PERIODES, isPeriode, bereik, heeftMetingen, zichtbareSites, kern, perSite, nuOnline, reeksPerSite, reeksKern,
   uurRaster, kanalen, kanaalPerSite, bronnen, instappaginas, uitstappaginas, paginas, paden, paginaKeuze, landen,
@@ -159,6 +161,33 @@ const SiteLabel = ({ sleutel, sites }: { sleutel: string; sites: { sleutel: stri
 
 const datumNl = (d: string | null) => (d ? d.slice(0, 10).split("-").reverse().join("/") : "–");
 
+/** De teksten van de SEO-agents voor één site met een eigen wachtrij (Angela, Stychin Tyme). */
+function Wachtrij({ opdrachten: alle, siteNaam }: { opdrachten: ReturnType<typeof opdrachten>; siteNaam: string }) {
+  const wacht = alle.filter((o) => o.status === "wacht-op-goedkeuring");
+  const bezig = alle.filter((o) => o.status === "in-behandeling");
+  const rest = alle.filter((o) => !["wacht-op-goedkeuring", "in-behandeling"].includes(o.status));
+  return (
+    <section id="wachtrij" className="scroll-mt-44 space-y-4">
+      <Paneel
+        titel={`Wacht op jou · ${siteNaam}`}
+        uitleg={`Teksten die de SEO-agents voor ${siteNaam} uitwerkten en door de kwaliteitscontrole haalden. Ze staan bewust niet in de algemene "Wacht op jou". Goedkeuren publiceert niets: dat gebeurt pas daarna, met akkoord van de klant.`}
+      >
+        {wacht.length === 0 ? (
+          <Leeg tekst={bezig.length ? `Niets te beoordelen; ${bezig.length} in behandeling.` : "Niets te beoordelen. De agents nemen elke werkdag de beste kansen op."} />
+        ) : (
+          <div className="flex flex-col gap-4">{wacht.map((o) => <ContentKaart key={o.kans_id} o={o} metOordeel />)}</div>
+        )}
+      </Paneel>
+      {bezig.length + rest.length > 0 && (
+        <details className="paneel">
+          <summary className="cursor-pointer font-serif text-[18px]">In behandeling en eerder beoordeeld ({bezig.length + rest.length})</summary>
+          <div className="mt-3 flex flex-col gap-3">{[...bezig, ...rest].map((o) => <ContentKaart key={o.kans_id} o={o} />)}</div>
+        </details>
+      )}
+    </section>
+  );
+}
+
 /** Concurrenten en kernzoektermen van een site zonder dienst (config/concurrentie-sites.json). */
 function ConcurrentieSectie({ conc, rijen, siteNaam }: {
   conc: NonNullable<ReturnType<typeof siteConcurrentie>>;
@@ -166,7 +195,7 @@ function ConcurrentieSectie({ conc, rijen, siteNaam }: {
   siteNaam: string;
 }) {
   const gemeten = rijen.filter((r) => r.gemeten).length;
-  const websites = rijen.filter((r) => r.website !== false).length;
+  const websites = rijen.filter((r) => r.website !== false && r.crawl !== false).length;
   const onderdeel = (k: string) => conc.onderdelen[k] || k;
   const eigenInTop = (top: string[]) => top.some((d) => d.replace(/^www\./, "") === conc.eigenDomein);
   return (
@@ -196,7 +225,8 @@ function ConcurrentieSectie({ conc, rijen, siteNaam }: {
             <span key="o" className="flex flex-wrap gap-1">
               {r.onderdelen.map((o) => <span key={o} className="chip" style={{ fontSize: 11, padding: "1px 7px" }}>{onderdeel(o)}</span>)}
             </span>,
-            r.website === false ? <span key="p" className="text-zinc-400">Facebook-groep</span>
+            r.website === false ? <span key="p" className="text-zinc-400">{r.label || "Facebook-groep"}</span>
+              : r.crawl === false ? <span key="p" className="text-zinc-400" title="Groot platform: de sitemap zegt niets over deze markt">niet gemeten</span>
               : r.gemeten == null ? <span key="p" className="text-zinc-400">nog niet</span>
               : r.bereikbaar === false ? <span key="p" className="text-zinc-400" title={r.fout || ""}>{/403/.test(r.fout || "") ? "blokkeert onze crawler" : "onbereikbaar"}</span>
               : r.paginas == null ? <span key="p" className="text-zinc-400">geen sitemap</span>
@@ -212,15 +242,15 @@ function ConcurrentieSectie({ conc, rijen, siteNaam }: {
       </Paneel>
       <Paneel
         titel="Kernzoektermen"
-        uitleg={`Wie staat bovenaan op de zoektermen die Surinamers gebruiken. Nulmeting: ${conc.zoektermen.bron} Google-posities vragen zoektegoed (SerpApi) en blijven leeg tot dat er is.`}
+        uitleg={`Wie staat bovenaan op de zoektermen van de doelgroep. Nulmeting: ${conc.zoektermen.bron} Google-posities vragen zoektegoed (SerpApi) en blijven leeg tot dat er is.`}
       >
         <Tabel
           koppen={["Zoekterm", "Onderdeel", "Top 5", conc.eigenDomein, "Google"]}
           rijen={conc.zoektermen.termen.map((t) => [
             <b key="t" className="font-medium">{t.term}</b>,
             onderdeel(t.onderdeel),
-            <span key="5" className="text-[12px] text-zinc-600">{t.top5.map((d, i) => <span key={i}>{i > 0 && " · "}{i + 1}. {d}</span>)}</span>,
-            eigenInTop(t.top5) ? <b key="e" style={{ color: "var(--goed)" }}>in top 5</b> : <span key="e" className="text-zinc-500">niet in top 5</span>,
+            t.top5.length ? <span key="5" className="text-[12px] text-zinc-600">{t.top5.map((d, i) => <span key={i}>{i > 0 && " · "}{i + 1}. {d}</span>)}</span> : <span key="5" className="text-zinc-400">niet gemeten</span>,
+            !t.top5.length ? "–" : eigenInTop(t.top5) ? <b key="e" style={{ color: "var(--goed)" }}>in top 5</b> : <span key="e" className="text-zinc-500">niet in top 5</span>,
             <span key="g" className="text-zinc-400">wacht op zoektegoed</span>,
           ])}
         />
@@ -404,6 +434,9 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
   // Concurrentie voor sites zonder dienst (bv. angela.sr): enkel als die ene site gekozen is.
   const conc = gekozen ? siteConcurrentie(gekozen.sleutel) : null;
   const concRijen = conc ? concurrentieStand(conc) : [];
+  // Eigen wachtrij (Angela, Stychin Tyme): de teksten van de agents voor deze site, hier en niet in de zijbalk.
+  const wachtrij = conc?.eigenWachtrij && gekozen ? opdrachten(undefined, { markt: gekozen.sleutel }) : null;
+  const teBeoordelen = wachtrij?.filter((o) => o.status === "wacht-op-goedkeuring") || [];
   // Sites met een dienst: de concurrentiemonitor van die dienst(en) meet hun markt al.
   const concDiensten = gekozen && !conc
     ? AFDELINGEN.filter((a) => a.concurrentie && a.kanalen.websites.some((w) => w.site === gekozen.sleutel))
@@ -415,6 +448,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
         {Kop}
         <div className="mt-4"><Leegstand sites={alleSites} geo={geo} /></div>
         {conc && gekozen && <div className="mt-4"><ConcurrentieSectie conc={conc} rijen={concRijen} siteNaam={gekozen.naam} /></div>}
+        {wachtrij && gekozen && <div className="mt-4"><Wachtrij opdrachten={wachtrij} siteNaam={gekozen.naam} /></div>}
       </main>
     );
   }
@@ -488,6 +522,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
             { id: "techniek", label: "Toestel & snelheid" },
             { id: "live", label: "Live" },
             ...(gekozen ? [{ id: "concurrentie", label: "Concurrentie" }] : []),
+            ...(wachtrij ? [{ id: "wachtrij", label: `Wacht op jou${teBeoordelen.length ? ` (${teBeoordelen.length})` : ""}` }] : []),
           ]}
         />
       </Suspense>
@@ -783,6 +818,7 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
         </section>
 
         {conc && gekozen && <ConcurrentieSectie conc={conc} rijen={concRijen} siteNaam={gekozen.naam} />}
+        {wachtrij && gekozen && <Wachtrij opdrachten={wachtrij} siteNaam={gekozen.naam} />}
         {!conc && gekozen && (
           <section id="concurrentie" className="scroll-mt-44">
             <Paneel

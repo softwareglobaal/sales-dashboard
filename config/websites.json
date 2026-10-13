@@ -12,6 +12,7 @@
     { "sleutel": "harmoniebouw", "naam": "HarmonieBOUW", "url": "https://harmoniebouw.be", "domeinen": ["harmoniebouw.be", "www.harmoniebouw.be"], "firma": "HarmonieBOUW", "kleur": "#5f5a52", "kaart": ["BE"], "live": false },
     { "sleutel": "nook", "naam": "Nook", "url": "https://nook.elevaitservices.com", "domeinen": ["nook.elevaitservices.com"], "firma": "Elevait N.V.", "kleur": "#a39e96", "kaart": ["SR", "BE"], "live": true },
     { "sleutel": "tkn-buro", "naam": "TKN-Buro", "url": "https://tkn-buro.be", "domeinen": ["tkn-buro.be", "www.tkn-buro.be"], "firma": "TKN-Buro", "kleur": "#8f8a82", "kaart": ["BE"], "live": false },
-    { "sleutel": "angela", "naam": "Angela.SR", "url": "https://angela.sr", "domeinen": ["angela.sr", "www.angela.sr"], "firma": "Angela.SR", "kleur": "#0f9fb5", "kaart": ["SR"], "live": true }
+    { "sleutel": "angela", "naam": "Angela.SR", "url": "https://angela.sr", "domeinen": ["angela.sr", "www.angela.sr"], "firma": "Angela.SR", "kleur": "#0f9fb5", "kaart": ["SR"], "live": true },
+    { "sleutel": "stychintyme", "naam": "Stychin Tyme", "url": "https://stychintyme.com", "domeinen": ["stychintyme.com", "www.stychintyme.com"], "firma": "Stychin Tyme (klant Elevait)", "kleur": "#b0417a", "kaart": ["US-FL", "US"], "live": true }
   ]
 }

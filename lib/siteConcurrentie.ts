@@ -11,7 +11,7 @@ import cfg from "@/config/concurrentie-sites.json";
 import { getDb } from "./db";
 import { crawlDomeinen } from "./concurrentie";
 
-export type SiteConcurrent = { domein: string; naam: string; onderdelen: string[]; omschrijving: string; website?: boolean };
+export type SiteConcurrent = { domein: string; naam: string; onderdelen: string[]; omschrijving: string; website?: boolean; crawl?: boolean; label?: string };
 export type SiteConcurrentieCfg = {
   markt: string;
   eigenDomein: string;
@@ -20,6 +20,7 @@ export type SiteConcurrentieCfg = {
   concurrenten: SiteConcurrent[];
   zoektermen: { bron: string; termen: { term: string; onderdeel: string; top5: string[] }[] };
   content?: { firma: string; woorden: string[]; maxBlogs: number };
+  eigenWachtrij?: boolean; // teksten van de agents in het eigen overzicht (tab Websites), niet in de algemene "Wacht op jou"
 };
 
 const ALLE = cfg as unknown as Record<string, SiteConcurrentieCfg | string>;
@@ -37,7 +38,7 @@ export function sitesMetConcurrentie(): { site: string; cfg: SiteConcurrentieCfg
 
 /** Te crawlen domeinen: eigen site + alle concurrenten met een website. */
 export function crawlbaar(c: SiteConcurrentieCfg): string[] {
-  return [c.eigenDomein, ...c.concurrenten.filter((x) => x.website !== false).map((x) => x.domein)];
+  return [c.eigenDomein, ...c.concurrenten.filter((x) => x.website !== false && x.crawl !== false).map((x) => x.domein)];
 }
 
 export async function crawlSite(site: string) {
@@ -73,7 +74,7 @@ export function stand(c: SiteConcurrentieCfg): ConcurrentStand[] {
   const eigen: SiteConcurrent = { domein: c.eigenDomein, naam: c.eigenDomein, onderdelen: Object.keys(c.onderdelen), omschrijving: "Onze site" };
   return [eigen, ...c.concurrenten].map((x) => {
     const isEigen = x.domein === c.eigenDomein;
-    if (x.website === false) {
+    if (x.website === false || x.crawl === false) {
       return { ...x, eigen: false, gemeten: null, bereikbaar: null, fout: null, sitemap: false, paginas: null, afgekapt: false, artikels: null, laatsteArtikel: null, laatsteArtikelUrl: null, nieuw30: null, groei: null };
     }
     const s = laatste.get(x.domein) as any;
@@ -104,7 +105,7 @@ export function stand(c: SiteConcurrentieCfg): ConcurrentStand[] {
 export function nieuweArtikels(c: SiteConcurrentieCfg, dagen = 21): { domein: string; naam: string; url: string; datum: string }[] {
   if (!c.content) return [];
   const db = getDb();
-  const domeinen = c.concurrenten.filter((x) => x.website !== false).map((x) => x.domein);
+  const domeinen = c.concurrenten.filter((x) => x.website !== false && x.crawl !== false).map((x) => x.domein);
   if (!domeinen.length) return [];
   const vanaf = new Date(Date.now() - dagen * 86400000).toISOString().slice(0, 10);
   const like = c.content.woorden.map(() => "lower(url) LIKE ?").join(" OR ");
