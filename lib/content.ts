@@ -106,7 +106,7 @@ export function kansen(max = 30): Kans[] {
   const belgisch = uit.filter(open).filter((k) => !/\/fr(-[a-z]{2})?\//.test(k.bron));
   // Sites zonder dienst (angela.sr) krijgen een eigen, kleine plek in de lijst, zodat ze
   // niet altijd achter de Belgische markten wegvallen.
-  const extra = kansenZonderDienst().filter(open).slice(0, 5);
+  const extra = kansenZonderDienst().filter(open).slice(0, 6);
   return [...belgisch.slice(0, Math.max(0, max - extra.length)), ...extra];
 }
 
@@ -116,9 +116,12 @@ export function kansen(max = 30): Kans[] {
  * zoekvolume: de agents toetsen zelf of het onderwerp past.
  */
 function kansenZonderDienst(): Kans[] {
-  const uit: Kans[] = [];
+  // Per site een eigen lijst, daarna om beurten: zo krijgt elke site een plaats.
+  const perSite: Kans[][] = [];
   for (const { site, cfg: c } of sitesMetConcurrentie()) {
     if (!c.content) continue;
+    const uit: Kans[] = [];
+    perSite.push(uit);
     const doelsites = [c.eigenDomein];
     for (const b of nieuweArtikels(c)) {
       uit.push({
@@ -127,7 +130,7 @@ function kansenZonderDienst(): Kans[] {
         markt: site, dienst: "", firma: c.content.firma, doelsites,
         onderwerp: decodeURIComponent(String(b.url).replace(/\/$/, "").split("/").pop() || b.url).replace(/[-_]/g, " "),
         bron: b.url,
-        context: `${b.naam} (${c.markt}) publiceerde op ${b.datum} een nieuw artikel. Toets of het onderwerp bij ${c.eigenDomein} past; verzin nooit interviews, personen of citaten.`,
+        context: `${b.naam} (${c.markt}) publiceerde op ${b.datum} een nieuw artikel. Toets of het onderwerp bij ${c.eigenDomein} past; verzin nooit interviews, personen, klanten of citaten.`,
         volume: null,
         datum: b.datum,
       });
@@ -140,26 +143,37 @@ function kansenZonderDienst(): Kans[] {
         markt: site, dienst: "", firma: c.content.firma, doelsites,
         onderwerp: t.term,
         bron: `https://duckduckgo.com/?q=${encodeURIComponent(t.term)}`,
-        context: `"${t.term}" (${c.onderdelen[t.onderdeel] || t.onderdeel}, ${c.markt}): ${c.eigenDomein} staat niet in de top 5. Nu bovenaan: ${t.top5.join(", ")}. Nulmeting: ${c.zoektermen.bron}`,
+        context: t.top5.length
+          ? `"${t.term}" (${c.onderdelen[t.onderdeel] || t.onderdeel}, ${c.markt}): ${c.eigenDomein} staat niet in de top 5. Nu bovenaan: ${t.top5.join(", ")}. Nulmeting: ${c.zoektermen.bron}`
+          : `"${t.term}" (${c.onderdelen[t.onderdeel] || t.onderdeel}, ${c.markt}): kernzoekterm, positie van ${c.eigenDomein} niet gemeten. ${c.zoektermen.bron}`,
         volume: null,
         datum: null,
       });
     }
   }
-  return uit;
+  const om: Kans[] = [];
+  for (let i = 0; perSite.some((l) => i < l.length); i++) for (const l of perSite) if (l[i]) om.push(l[i]);
+  return om;
 }
 
-export function opdrachten(status?: ContentStatus): ContentOpdracht[] {
+/** Markten met een eigen wachtrij (config/concurrentie-sites.json `eigenWachtrij`): niet in de algemene "Wacht op jou". */
+export function apartMarkten(): string[] {
+  return sitesMetConcurrentie().filter((x) => x.cfg.eigenWachtrij).map((x) => x.site);
+}
+
+export function opdrachten(status?: ContentStatus, o: { zonderApart?: boolean; markt?: string } = {}): ContentOpdracht[] {
   tabel();
   const db = getDb();
-  return (status
+  const rijen = (status
     ? db.prepare("SELECT * FROM content_opdrachten WHERE status = ? ORDER BY bijgewerkt DESC").all(status)
-    : db.prepare("SELECT * FROM content_opdrachten ORDER BY bijgewerkt DESC LIMIT 200").all()) as ContentOpdracht[];
+    : db.prepare("SELECT * FROM content_opdrachten ORDER BY bijgewerkt DESC LIMIT 500").all()) as ContentOpdracht[];
+  const apart = o.zonderApart ? apartMarkten() : [];
+  return rijen.filter((r) => (o.markt ? r.markt === o.markt : !apart.includes(r.markt))).slice(0, 200);
 }
 
-export function aantalWachtend(): number {
-  tabel();
-  return (getDb().prepare("SELECT COUNT(*) n FROM content_opdrachten WHERE status = 'wacht-op-goedkeuring'").get() as any).n;
+/** Wachtend in de algemene "Wacht op jou" (zonder de sites met een eigen wachtrij); met markt: enkel die site. */
+export function aantalWachtend(markt?: string): number {
+  return opdrachten("wacht-op-goedkeuring", markt ? { markt } : { zonderApart: true }).length;
 }
 
 const STATUSSEN: ContentStatus[] = ["in-behandeling", "niet-passend", "wacht-op-goedkeuring", "goedgekeurd", "afgewezen"];
