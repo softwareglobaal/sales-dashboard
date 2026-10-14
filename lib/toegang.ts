@@ -76,7 +76,8 @@ export function magCommissie(groepenKop: string | null): boolean {
 
 /**
  * Mag deze bezoeker het Bisson-overzicht zien (Engineering → Studiebureau Bisson)?
- * Strenger dan wp-alles: enkel de directie (BISSON_KIJKERS, standaard Siyan en Mehdi).
+ * Strenger dan wp-alles: enkel de directie en Matthew (BISSON_KIJKERS, standaard siyan,
+ * mehdi en matthew).
  * Het overzicht gaat over de samenwerking met de firma van een vennoot; het salesteam
  * en de afdelingen hoeven het niet te zien. Op gebruikersnaam, want daar bestaat geen
  * eigen Authentik-groep voor.
@@ -84,7 +85,8 @@ export function magCommissie(groepenKop: string | null): boolean {
 export function magBisson(groepenKop: string | null, gebruiker: string | null): boolean {
   const groepen = groepenUit(groepenKop);
   if (process.env.TOEGANG_DEV === "1" && groepen.length === 0) return true;
-  const kijkers = (process.env.BISSON_KIJKERS || "siyan,mehdi")
+  // Matthew (Engineering) leest het na en stelt per project vast wat klopt (Siyan, 13 okt 2026).
+  const kijkers = (process.env.BISSON_KIJKERS || "siyan,mehdi,matthew")
     .split(",")
     .map((u) => u.trim().toLowerCase())
     .filter(Boolean);

@@ -2,7 +2,17 @@ import { headers } from "next/headers";
 import { DienstKop } from "@/components/dienst/DienstKop";
 import { afdeling } from "@/lib/afdelingen";
 import { magBisson } from "@/lib/toegang";
-import { architectenOverzicht, dealsOpBissonWerven, maandJaar, type BissonProject } from "@/lib/architecten";
+import {
+  architectenOverzicht,
+  contactenVan,
+  dealsOpBissonWerven,
+  maandJaar,
+  nietBinnengehaald,
+  type BissonProject,
+  type Contact,
+  type NietBinnen,
+} from "@/lib/architecten";
+import { vaststellingen } from "@/lib/vaststellingen";
 import { euro, num } from "@/lib/format";
 import { BissonLijst } from "./BissonLijst";
 import { BureauTabel } from "./BureauTabel";
@@ -17,12 +27,6 @@ import { BureauTabel } from "./BureauTabel";
 export const dynamic = "force-dynamic";
 
 const ERNST: Record<string, number> = { eigen: 0, "eerst-bij-ons": 1, beide: 2, prospect: 3, "enkel-bisson": 4 };
-
-function schatting(p: BissonProject, prijzen: Record<string, { mediaan: number; n: number }>): number | null {
-  if (!p.dienst) return null;
-  const k = prijzen[`${p.dienst}_${p.soort}`] || prijzen[p.dienst];
-  return k ? k.mediaan : null;
-}
 
 function dag(d: string | null | undefined) {
   return d ? d.slice(0, 10).split("-").reverse().join("/") : "—";
@@ -48,7 +52,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
         <DienstKop a={a} tab="overzicht" sp={{}} filters={false} />
         <div className="paneel mt-4">
           <h2>Geen toegang</h2>
-          <p className="mt-2 text-[13px] text-zinc-500">Dit overzicht is enkel zichtbaar voor de directie.</p>
+          <p className="mt-2 text-[13px] text-zinc-500">Dit overzicht is enkel zichtbaar voor de directie en Matthew.</p>
         </div>
       </main>
     );
@@ -61,7 +65,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
       tab="/engineering/bisson"
       sp={{}}
       filters={false}
-      ondertitel="Projecten die TKN-Buro uitvoert voor Studiebureau Bisson · enkel zichtbaar voor de directie"
+      ondertitel="Projecten die TKN-Buro uitvoert voor Studiebureau Bisson · enkel zichtbaar voor de directie en Matthew"
     />
   );
   if (stand.status !== "ok") {
@@ -77,20 +81,28 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
     );
   }
 
-  const { bisson, architecten } = stand.data;
+  const { bisson, opdrachtgevers: architecten, nakijken, controle } = stand.data;
   const projecten = bisson.projecten;
   const opBureau = new Map(architecten.map((x) => [x.id, x]));
   const werfDeals = dealsOpBissonWerven(projecten);
   const nu = new Date().getFullYear();
+  const vast = vaststellingen();
 
+  // Een Bisson-project hoort bij elke partij die erop staat (architect én ingenieur).
   const perBureau: Record<string, BissonProject[]> = {};
-  for (const p of projecten) if (p.bureau) (perBureau[p.bureau] ||= []).push(p);
+  for (const p of projecten) for (const x of p.partijen) (perBureau[x.id] ||= []).push(p);
 
   const perJaar = bisson.per_jaar.map((j) => {
     const pj = projecten.filter((p) => p.jaar === j.jaar);
-    const waarden = pj.map((p) => schatting(p, bisson.prijzen)).filter((x): x is number => x != null);
-    return { ...j, aandeel: j.tkn_totaal ? j.bisson / j.tkn_totaal : 0, waarde: waarden.reduce((s, x) => s + x, 0) };
+    const waarden = pj.map((p) => p.schatting).filter((x): x is number => x != null);
+    return {
+      ...j,
+      aandeel: j.tkn_totaal ? j.bisson / j.tkn_totaal : 0,
+      waarde: waarden.reduce((s, x) => s + x, 0),
+      groot: pj.filter((p) => p.omvang?.klasse === "groot").length,
+    };
   });
+  const groteProjecten = projecten.filter((p) => p.omvang?.klasse === "groot").length;
   const totaalWaarde = perJaar.reduce((s, j) => s + j.waarde, 0);
   const totaalTkn = perJaar.reduce((s, j) => s + j.tkn_totaal, 0);
   const dit = perJaar.find((j) => j.jaar === nu);
@@ -123,22 +135,33 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
   const zonderOpdrachtgever = projecten.filter((p) => !p.opdrachtgever);
   const ingenieurs = projecten.filter((p) => p.ingenieur);
 
+  // Per getoond bureau: de deals die we niet binnenhaalden en de contactpersonen (Pipedrive).
+  const extra: Record<string, { nietBinnen: NietBinnen[]; contacten: Contact[] }> = {};
+  for (const b of bissonArchitecten) extra[b.id] = { nietBinnen: nietBinnengehaald(b), contacten: contactenVan(b) };
+
   const werven = projecten
     .map((p) => ({ p, treffers: [...(p.werf_bij_ons || []), ...(werfDeals[p.nr] || [])] }))
     .filter((x) => x.treffers.length);
 
   const prijsSta = bisson.prijzen["STA"];
   const lijst = projecten.map((p) => {
-    const b = p.bureau ? opBureau.get(p.bureau) : undefined;
+    // Onze klant als één van de partijen klant is (architect of ingenieur).
+    const sig = p.partijen
+      .map((x) => opBureau.get(x.id)?.signaal || null)
+      .sort((x, y) => (ERNST[x || ""] ?? 9) - (ERNST[y || ""] ?? 9))[0];
     return {
       ...p,
-      bureau_naam: b?.naam || null,
-      bureau_zeker: b?.zeker ?? true,
-      signaal: b?.signaal || null,
-      schatting: schatting(p, bisson.prijzen),
+      signaal: sig || null,
       werf_treffers: (p.werf_bij_ons?.length || 0) + (werfDeals[p.nr]?.length || 0),
     };
   });
+
+  // Nakijken: per soort, zodat het belangrijkste niet verdrinkt in de Monday-statussen.
+  const nkKoppeling = nakijken.filter((n) => n.redenen.some((r) => r.startsWith("Monday-kolom")));
+  const nkZonder = nakijken.filter((n) => n.redenen.some((r) => r.startsWith("Bisson-project zonder")));
+  const nkStatus = nakijken.filter((n) => n.redenen.some((r) => r.startsWith("Monday zegt nog")));
+  const nkNaam = bissonArchitecten.filter((b) => !b.zeker);
+  const controleOk = controle.filter((c) => c.ok).length;
 
   return (
     <main className="mx-auto max-w-7xl px-6 pb-10">
@@ -170,9 +193,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
         />
         <KpiLink
           naar="#per-jaar"
-          label="Geschatte waarde"
+          label="Geschatte waarde (minstens)"
           waarde={euro(totaalWaarde)}
-          sub={`stabiliteit tegen onze eigen prijs${prijsSta ? ` (mediaan ${euro(prijsSta.mediaan)} over ${prijsSta.n} TKN-projecten)` : ""}`}
+          sub={`stabiliteit tegen onze eigen mediaanprijs${prijsSta ? ` (${euro(prijsSta.mediaan)}, ${prijsSta.n} TKN-projecten)` : ""} · ${groteProjecten} grote projecten kosten meer`}
         />
         <KpiLink
           naar="#facturen"
@@ -225,6 +248,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
                 <th className="num">Aandeel</th>
                 <th className="num">STA</th>
                 <th className="num">DRA</th>
+                <th className="num">Groot</th>
                 <th className="num">Geschatte waarde</th>
                 <th className="num">Gefactureerd aan Bisson</th>
               </tr>
@@ -256,7 +280,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
                   </td>
                   <td className="num">{j.sta}</td>
                   <td className="num">{j.dra}</td>
-                  <td className="num">{j.waarde ? euro(j.waarde) : "—"}</td>
+                  <td className="num">{j.groot || "—"}</td>
+                  <td className="num">{j.waarde ? `≥ ${euro(j.waarde)}` : "—"}</td>
                   <td className="num">
                     {factuurPerJaar.get(String(j.jaar)) ? (
                       <a href="#facturen" className="underline decoration-dotted underline-offset-4">
@@ -274,6 +299,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
         <p className="mt-3 text-[12px] text-zinc-500">
           Rood = via Bisson, grijs = eigen TKN-werk. De geschatte waarde rekent elk stabiliteitsproject aan de mediaanprijs die TKN
           zelf vraagt (nieuwbouw en renovatie apart waar er genoeg eigen projecten zijn); voor tekenwerk is er geen eigen prijsbasis.
+          Het is een ondergrens: TKN&apos;s eigen projecten zijn bijna allemaal klein, terwijl er bij Bisson appartementen en reeksen
+          woningen tussen zitten (&ldquo;groot&rdquo; = 150+ bestanden in de map of meerdere woningen in de mapnaam). Een bedrag per
+          project staat enkel op Monday als iemand het invult.
         </p>
       </section>
 
@@ -281,12 +309,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
       <section className="paneel mt-4 scroll-mt-32" id="overlap">
         <div className="kop">
           <h2>Onze klanten die via Bisson werken</h2>
-          <small>klik een bureau: elk project bij ons (dienst, firma, deal, factuur) naast elk Bisson-project</small>
+          <small>architecten, ingenieurs en studiebureaus · klik een bureau voor elk project, de reden van elke koppeling en de contactpersonen</small>
         </div>
         {overlap.length === 0 ? (
           <p className="text-[13px] text-zinc-500">Geen overlap gevonden.</p>
         ) : (
-          <BureauTabel bureaus={overlap} bisson={perBureau} metOns anker="klant" />
+          <BureauTabel bureaus={overlap} bisson={perBureau} metOns anker="klant" extra={extra} vast={vast} />
         )}
         <p className="mt-3 text-[12px] text-zinc-500">
           Klant = minstens één gewonnen deal, factuur of eigen TKN-project bij een van onze firma&apos;s. &ldquo;Eerst bij ons, nu via
@@ -303,7 +331,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
             {ingenieurs.length ? ` · ${ingenieurs.length} projecten in onderaanneming van een ingenieur` : ""}
           </small>
         </div>
-        <BureauTabel bureaus={bissonArchitecten} bisson={perBureau} metOns={false} />
+        <BureauTabel bureaus={bissonArchitecten} bisson={perBureau} metOns={false} extra={extra} vast={vast} />
         {zonderOpdrachtgever.length > 0 && (
           <div className="notitie let mt-3">
             <b>{zonderOpdrachtgever.length} projecten zonder architect of ingenieur.</b> De naam staat niet in de Dropbox-map en niet in
@@ -429,18 +457,135 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
         </div>
       </section>
 
+      {/* ---------------------------------------------------------------- nakijken en controle */}
+      <section className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="paneel scroll-mt-32 lg:col-span-2" id="nakijken">
+          <div className="kop">
+            <h2>Na te kijken</h2>
+            <small>waar de bronnen elkaar tegenspreken of iets ontbreekt · Matthew zet per project een vaststelling in de lijst hieronder</small>
+          </div>
+          <details open className="mb-2">
+            <summary className="cursor-pointer text-[13px] font-medium">
+              Bronnen spreken elkaar tegen · {nkKoppeling.length}
+            </summary>
+            <p className="mt-1 text-[12px] text-zinc-500">
+              De mapnaam en de architectkolom op Monday noemen een ander bureau. Het platform houdt de mapnaam aan; de Monday-naam telt
+              niet mee tot iemand het rechtzet.
+            </p>
+            <ul className="mt-1 space-y-1 text-[12.5px]">
+              {nkKoppeling.map((n) => (
+                <li key={n.project}>
+                  <b>{n.project}</b> {n.adres ? `· ${n.adres}` : ""} {n.bisson ? <span className="chip">Bisson</span> : <span className="chip">eigen</span>}{" "}
+                  — {n.redenen.find((r) => r.startsWith("Monday-kolom"))}{" "}
+                  {n.monday && (
+                    <a href={n.monday} target="_blank" rel="noopener" className="underline">
+                      Monday ↗
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+          <details className="mb-2">
+            <summary className="cursor-pointer text-[13px] font-medium">
+              Bisson-projecten zonder architect of ingenieur · {nkZonder.length}
+            </summary>
+            <p className="mt-1 text-[12px] text-zinc-500">
+              Niet in de mapnaam, niet in de kolommen architect of ingenieur op het Monday-bord TKN-Buro projects en geen factuur op het
+              nummer. Vul de kolom op Monday in; het platform neemt het de volgende nacht over.
+            </p>
+            <ul className="mt-1 space-y-1 text-[12.5px]">
+              {nkZonder.map((n) => (
+                <li key={n.project}>
+                  <b>{n.project}</b> {n.adres ? `· ${n.adres}` : ""}{" "}
+                  {n.monday && (
+                    <a href={n.monday} target="_blank" rel="noopener" className="underline">
+                      Monday ↗
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+          <details className="mb-2">
+            <summary className="cursor-pointer text-[13px] font-medium">Naam van het bureau te bevestigen · {nkNaam.length}</summary>
+            <p className="mt-1 text-[12px] text-zinc-500">
+              De code in de mapnaam past op meer dan één bureau (bv. VERCAMMEN, SMETS). Bevestig of verbeter via de vaststelling bij
+              het bureau.
+            </p>
+            <p className="mt-1 text-[12.5px]">
+              {nkNaam.map((b, i) => (
+                <span key={b.id}>
+                  {i > 0 && " · "}
+                  <a href={`#bureau-${b.id}`} className="underline decoration-dotted underline-offset-4">
+                    {b.naam}
+                  </a>{" "}
+                  ({b.codes.join(", ")})
+                </span>
+              ))}
+            </p>
+          </details>
+          <details>
+            <summary className="cursor-pointer text-[13px] font-medium">
+              Monday-status niet bijgewerkt · {nkStatus.length}
+            </summary>
+            <p className="mt-1 text-[12px] text-zinc-500">
+              Monday zegt nog &ldquo;Active&rdquo; voor een project dat meer dan een jaar geleden startte. Dat zegt niets over het werk,
+              wel dat het bord niet bijgehouden wordt.
+            </p>
+            <p className="mt-1 text-[12px] text-zinc-600">
+              {nkStatus.map((n, i) => (
+                <span key={n.project}>
+                  {i > 0 && ", "}
+                  {n.monday ? (
+                    <a href={n.monday} target="_blank" rel="noopener" className="underline">
+                      {n.project}
+                    </a>
+                  ) : (
+                    n.project
+                  )}
+                </span>
+              ))}
+            </p>
+          </details>
+        </div>
+        <div className="paneel scroll-mt-32" id="controle">
+          <div className="kop">
+            <h2>Controle</h2>
+            <small>
+              {controleOk}/{controle.length} in orde
+            </small>
+          </div>
+          <ul className="space-y-1.5 text-[12.5px]">
+            {controle.map((c) => (
+              <li key={c.toets}>
+                <span className={"chip " + (c.ok ? "goed" : "kritiek")}>{c.ok ? "✓" : "✗"}</span> {c.toets}
+                <div className="text-[11.5px] text-zinc-500">{c.detail}</div>
+              </li>
+            ))}
+          </ul>
+          {stand.data.register && (
+            <p className="mt-3 text-[12px] text-zinc-500">
+              Eén register: {num(stand.data.register.projecten)} projecten over alle firma&apos;s, waarvan{" "}
+              {num(stand.data.register.met_opdrachtgever)} met een opdrachtgever. Elke koppeling project-opdrachtgever draagt zijn bron en
+              reden (zichtbaar als je een bureau openklikt).
+            </p>
+          )}
+        </div>
+      </section>
+
       {/* ---------------------------------------------------------------- alle projecten */}
       <section className="paneel mt-4 scroll-mt-32" id="projecten">
         <div className="kop">
           <h2>Alle Bisson-projecten</h2>
           <small>
             klik een architect voor al zijn projecten · klik map of Monday om te openen ·{" "}
-            <a href="/architecten" className="underline">
-              architecten-klanten
+            <a href="/opdrachtgevers" className="underline">
+              alle opdrachtgevers
             </a>
           </small>
         </div>
-        <BissonLijst projecten={lijst} beginJaar={sp.jaar || ""} />
+        <BissonLijst projecten={lijst} beginJaar={sp.jaar || ""} vast={vast} />
       </section>
     </main>
   );

@@ -785,4 +785,19 @@ Bisson? Daarnaast één overzicht van alle architecten die klant zijn bij onze f
   dat projectnummer). Projecten zonder architect staan in een lijst om op Monday aan te vullen.
 - **Facturen aan Bisson**: enkel tekenwerk per maand; de laatste datum en het aantal projecten
   sindsdien staan bovenaan.
+- **Eén register en opdrachtgevers (13 okt 2026, feedback Mehdi):** het facturatieplatform bouwt
+  eerst één projectregister over alle firma's en Bisson en hangt daar per project de partijen aan
+  (architect, ingenieur/studiebureau, EPB-bureau, aannemer, landmeter), elk met bron en reden.
+  De tab heet sindsdien **Opdrachtgevers** (`/opdrachtgevers`, filter op soort; `/architecten`
+  verwijst door). Per bureau: contactpersonen en de open/verloren deals uit Pipedrive
+  (`nietBinnengehaald`, `contactenVan`; herkend aan de organisatie of een "B2B"-contact, nooit aan
+  een particulier). Prospect ("in onze B2B-lijst") bepaalt het dashboard uit de organisaties.
+- **Omvang** per Bisson-project (klein/middel/groot, bestanden, meerdere woningen, Monday-bedrag);
+  de geschatte waarde is een ondergrens.
+- **Nakijken en controle** op de Bisson-pagina: tegenstrijdige bronnen, projecten zonder
+  opdrachtgever, namen te bevestigen, Monday-status niet bijgewerkt; plus de negen toetsen.
+- **Matthew** ziet de Bisson-tab (BISSON_KIJKERS standaard siyan,mehdi,matthew) en zet per project
+  of bureau een **vaststelling** (klopt / fout gekoppeld / nakijken + notitie), bewaard in tabel
+  `bisson_vaststelling` via `POST /api/bisson/vaststelling` (middleware laat die route door; de
+  route eist zelf magBisson).
 
