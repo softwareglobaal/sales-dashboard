@@ -49,9 +49,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   // Het antwoord op de introductievraag mag iedereen geven (bewaart enkel dat ze gezien is).
-  // Vaststellingen bij het Bisson-overzicht: de route eist zelf magBisson (ook Matthew,
-  // die geen editor is maar het overzicht wel naleest).
-  if (pad === "/api/bisson/vaststelling") {
+  // Vaststellingen en zelf ingevulde opdrachtgevers bij het Bisson-overzicht: de routes
+  // eisen zelf magBisson.
+  if (pad === "/api/bisson/vaststelling" || pad === "/api/bisson/opdrachtgever") {
     return NextResponse.next();
   }
   if (pad === "/api/intro") {

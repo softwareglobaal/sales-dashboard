@@ -12,7 +12,8 @@ import {
   type Contact,
   type NietBinnen,
 } from "@/lib/architecten";
-import { vaststellingen } from "@/lib/vaststellingen";
+import { ingevuldeOpdrachtgevers, vaststellingen } from "@/lib/vaststellingen";
+import { OpdrachtgeverInvullen } from "./OpdrachtgeverInvullen";
 import { euro, num } from "@/lib/format";
 import { BissonLijst } from "./BissonLijst";
 import { BureauTabel } from "./BureauTabel";
@@ -81,8 +82,53 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
     );
   }
 
-  const { bisson, opdrachtgevers: architecten, nakijken, controle } = stand.data;
+  // Een kopie per weergave: het overzicht zit 10 minuten in het geheugen en de zelf
+  // ingevulde opdrachtgevers hieronder mogen die gedeelde kopie niet aanpassen.
+  const data = structuredClone(stand.data);
+  const { bisson, nakijken, controle } = data;
+  const architecten = data.opdrachtgevers;
   const projecten = bisson.projecten;
+
+  // Zelf ingevulde opdrachtgevers (projecten waar de naam nergens stond): meteen meetellen.
+  // Past de naam op een bekend bureau, dan hangt het project daaraan; anders komt er een
+  // nieuw bureau bij.
+  const ingevuld = ingevuldeOpdrachtgevers();
+  const zonderBron = projecten.filter((p) => !p.opdrachtgever).map((p) => p.nr);
+  const norm = (t: string) => t.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const SOORT_LABEL: Record<string, string> = { architect: "Architect", ingenieur: "Ingenieur / studiebureau", aannemer: "Aannemer", overig: "Bedrijf (soort onbekend)" };
+  for (const p of projecten) {
+    const iv = ingevuld[p.nr];
+    if (!iv || p.opdrachtgever) continue;
+    const n = norm(iv.naam);
+    let b = architecten.find((a) => norm(a.naam) === n || a.namen.some((x) => norm(x) === n) || a.codes.some((c) => norm(c) === n));
+    if (!b) {
+      b = {
+        id: "ingevuld-" + n.replace(/ /g, "-"), naam: iv.naam, soort: iv.soort, soort_label: SOORT_LABEL[iv.soort] || iv.soort,
+        plaats: null, zeker: true, eigen: false, codes: [], namen: [iv.naam], zoek: [n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")],
+        contacten: [], klant: false, firmas: [], diensten: [], projecten: [], aantal_projecten: 0, aantal_facturen: 0,
+        verkocht: 0, gefactureerd: 0, eerste_bij_ons: null, laatste_bij_ons: null, bisson: [], aantal_bisson: 0,
+        eerste_bisson: null, laatste_bisson: null, bij_ons_na_eerste_bisson: null, signaal: "enkel-bisson", nakijken: [],
+      };
+      architecten.push(b);
+    }
+    const waarom = `zelf ingevuld door ${iv.door} op ${iv.op.slice(0, 10).split("-").reverse().join("/")}`;
+    p.opdrachtgever = { soort: iv.soort, soort_label: SOORT_LABEL[iv.soort] || iv.soort, naam: b.naam, zeker: true };
+    p.bureau = b.id;
+    p.partijen = [...p.partijen, { id: b.id, naam: b.naam, soort: iv.soort, rollen: [iv.soort], waarom: [waarom] }];
+    p.nakijken = p.nakijken.filter((r) => !r.startsWith("Bisson-project zonder"));
+    if (!b.bisson.includes(p.nr)) {
+      b.bisson = [...b.bisson, p.nr];
+      b.aantal_bisson = b.bisson.length;
+      const d = p.datum;
+      if (!b.eerste_bisson || d < b.eerste_bisson) b.eerste_bisson = d;
+      if (!b.laatste_bisson || d > b.laatste_bisson) b.laatste_bisson = d;
+      // Signaal opnieuw bepalen met het extra Bisson-project (zelfde regel als het register).
+      if (b.eigen) b.signaal = "eigen";
+      else if (b.klant)
+        b.signaal = b.eerste_bij_ons && b.eerste_bij_ons.slice(0, 7) < (b.eerste_bisson || "").slice(0, 7) ? "eerst-bij-ons" : "beide";
+      else b.signaal = b.prospect_in?.length ? "prospect" : "enkel-bisson";
+    }
+  }
   const opBureau = new Map(architecten.map((x) => [x.id, x]));
   const werfDeals = dealsOpBissonWerven(projecten);
   const nu = new Date().getFullYear();
@@ -333,25 +379,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
         </div>
         <BureauTabel bureaus={bissonArchitecten} bisson={perBureau} metOns={false} extra={extra} vast={vast} />
         {zonderOpdrachtgever.length > 0 && (
-          <div className="notitie let mt-3">
-            <b>{zonderOpdrachtgever.length} projecten zonder architect of ingenieur.</b> De naam staat niet in de Dropbox-map en niet in
-            de kolom &ldquo;architect&rdquo; op het Monday-bord TKN-Buro projects. Vul die kolom in en het platform neemt het de volgende
-            nacht over:{" "}
-            {zonderOpdrachtgever.map((p, i) => (
-              <span key={p.nr}>
-                {i > 0 && ", "}
-                {p.monday?.link ? (
-                  <a href={p.monday.link} target="_blank" rel="noopener" className="underline">
-                    {p.nr}
-                  </a>
-                ) : (
-                  p.nr
-                )}{" "}
-                ({p.adres})
-              </span>
-            ))}
-            .
-          </div>
+          <p className="mt-3 text-[12.5px]">
+            <a href="#zonder-opdrachtgever" className="underline">
+              {zonderOpdrachtgever.length} projecten zonder architect of ingenieur
+            </a>{" "}
+            staan in een eigen blok verderop, met een veld om de naam in te vullen.
+          </p>
         )}
       </section>
 
@@ -457,12 +490,81 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
         </div>
       </section>
 
+      {/* ---------------------------------------------------------------- zonder opdrachtgever */}
+      <section className="paneel mt-4 scroll-mt-32" id="zonder-opdrachtgever">
+        <div className="kop">
+          <h2>Bisson-projecten zonder architect of ingenieur</h2>
+          <small>
+            {zonderBron.filter((nr) => !ingevuld[nr]).length} nog te zoeken · {zonderBron.filter((nr) => ingevuld[nr]).length} ingevuld ·
+            de naam stond niet in de mapnaam, niet op Monday en op geen factuur
+          </small>
+        </div>
+        <p className="mb-3 text-[12.5px] text-zinc-500">
+          Zoek op adres en projectnummer en vul de architect of het ingenieursbureau hier in. Het telt meteen mee bij dat bureau
+          (ook in &ldquo;Onze klanten die via Bisson werken&rdquo; en &ldquo;Voor wie doet Bisson het werk?&rdquo;).
+        </p>
+        <div className="overflow-x-auto">
+          <table className="tabel">
+            <thead>
+              <tr>
+                <th>Nr</th>
+                <th>Start</th>
+                <th>Dienst</th>
+                <th>Werfadres</th>
+                <th>Omvang</th>
+                <th>Openen</th>
+                <th>Architect of ingenieur</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projecten
+                .filter((p) => zonderBron.includes(p.nr))
+                .map((p) => (
+                  <tr key={p.nr}>
+                    <td className="font-medium">{p.nr}</td>
+                    <td className="whitespace-nowrap">{maandJaar(p.datum)}</td>
+                    <td className="text-[12.5px]">
+                      {p.dienst_naam || "—"}
+                      {p.soort_naam ? ` · ${p.soort_naam}` : ""}
+                    </td>
+                    <td className="text-[12.5px]">{p.adres || "—"}</td>
+                    <td className="text-[12px]">
+                      {p.omvang?.bestanden != null ? `${p.omvang.bestanden} bestanden` : "geen map"}
+                    </td>
+                    <td>
+                      <div className="flex flex-wrap gap-1">
+                        {p.link && (
+                          <a href={p.link} target="_blank" rel="noopener" className="chip accent" style={{ textDecoration: "none" }}>
+                            map ↗
+                          </a>
+                        )}
+                        {p.monday?.link && (
+                          <a href={p.monday.link} target="_blank" rel="noopener" className="chip accent" style={{ textDecoration: "none" }}>
+                            Monday ↗
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <OpdrachtgeverInvullen
+                        nr={p.nr}
+                        begin={ingevuld[p.nr] || null}
+                        suggesties={stand.data.opdrachtgevers.filter((a) => !a.eigen).map((a) => a.naam).sort()}
+                      />
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {/* ---------------------------------------------------------------- nakijken en controle */}
       <section className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="paneel scroll-mt-32 lg:col-span-2" id="nakijken">
           <div className="kop">
             <h2>Na te kijken</h2>
-            <small>waar de bronnen elkaar tegenspreken of iets ontbreekt · Matthew zet per project een vaststelling in de lijst hieronder</small>
+            <small>waar de bronnen elkaar tegenspreken of iets ontbreekt</small>
           </div>
           <details open className="mb-2">
             <summary className="cursor-pointer text-[13px] font-medium">
@@ -477,27 +579,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ j
                 <li key={n.project}>
                   <b>{n.project}</b> {n.adres ? `· ${n.adres}` : ""} {n.bisson ? <span className="chip">Bisson</span> : <span className="chip">eigen</span>}{" "}
                   — {n.redenen.find((r) => r.startsWith("Monday-kolom"))}{" "}
-                  {n.monday && (
-                    <a href={n.monday} target="_blank" rel="noopener" className="underline">
-                      Monday ↗
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
-          <details className="mb-2">
-            <summary className="cursor-pointer text-[13px] font-medium">
-              Bisson-projecten zonder architect of ingenieur · {nkZonder.length}
-            </summary>
-            <p className="mt-1 text-[12px] text-zinc-500">
-              Niet in de mapnaam, niet in de kolommen architect of ingenieur op het Monday-bord TKN-Buro projects en geen factuur op het
-              nummer. Vul de kolom op Monday in; het platform neemt het de volgende nacht over.
-            </p>
-            <ul className="mt-1 space-y-1 text-[12.5px]">
-              {nkZonder.map((n) => (
-                <li key={n.project}>
-                  <b>{n.project}</b> {n.adres ? `· ${n.adres}` : ""}{" "}
                   {n.monday && (
                     <a href={n.monday} target="_blank" rel="noopener" className="underline">
                       Monday ↗
