@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Architect, BissonProject } from "@/lib/architecten";
+import type { Architect, BissonProject, Contact, NietBinnen } from "@/lib/architecten";
 import { BureauDetail, jaarVan } from "@/components/architecten/BureauDetail";
 
-// Tabel van architect-klanten met filters en een uitklapbare projectlijst per bureau.
+// Tabel van opdrachtgevers (architecten, ingenieurs, studiebureaus, ...) met filters en een
+// uitklapbare projectlijst per bureau: waarom elk project aan het bureau hangt, de
+// contactpersonen en de deals die niet binnengehaald werden.
 
 function euro(n: number) {
   return new Intl.NumberFormat("nl-BE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -20,17 +22,22 @@ const SIGNAAL: Record<string, [string, string]> = {
   beide: ["Ook via Bisson", "let"],
 };
 
-export function ArchitectenLijst({
+export function OpdrachtgeversLijst({
   architecten,
   directie: toonBisson,
   firmas,
   bisson,
+  extra = {},
+  soorten,
 }: {
   architecten: Architect[];
   directie: boolean;
   firmas: string[];
   bisson?: Record<string, BissonProject[]>;
+  extra?: Record<string, { nietBinnen: NietBinnen[]; contacten: Contact[] }>;
+  soorten: { soort: string; label: string; n: number }[];
 }) {
+  const [soort, setSoort] = useState("");
   const [firma, setFirma] = useState("");
   const [dienst, setDienst] = useState("");
   const [zoek, setZoek] = useState("");
@@ -52,7 +59,7 @@ export function ArchitectenLijst({
   );
   const [open, setOpen] = useState<string | null>(null);
 
-  // Een link als /architecten#mv2 opent meteen dat bureau.
+  // Een link als /opdrachtgevers#mv2 opent meteen dat bureau.
   useEffect(() => {
     const lees = () => {
       const id = decodeURIComponent(window.location.hash.slice(1));
@@ -70,6 +77,7 @@ export function ArchitectenLijst({
   const rijen = useMemo(() => {
     const z = zoek.trim().toLowerCase();
     return architecten
+      .filter((a) => !soort || a.soort === soort)
       .filter((a) => !firma || a.firmas.includes(firma))
       .filter((a) => !dienst || a.diensten.includes(dienst))
       .filter((a) => !jaar || inJaar(a).length > 0 || (toonBisson && bisJaar(a) > 0))
@@ -81,7 +89,7 @@ export function ArchitectenLijst({
           ),
       );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [architecten, firma, dienst, zoek, jaar]);
+  }, [architecten, soort, firma, dienst, zoek, jaar]);
 
   const keuze = "rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-[12.5px]";
   const kolommen = toonBisson ? 8 : 7;
@@ -92,6 +100,14 @@ export function ArchitectenLijst({
           <option value="">Alle firma&apos;s</option>
           {firmas.map((f) => (
             <option key={f}>{f}</option>
+          ))}
+        </select>
+        <select className={keuze} value={soort} onChange={(e) => setSoort(e.target.value)} aria-label="Soort">
+          <option value="">Alle soorten</option>
+          {soorten.map((x) => (
+            <option key={x.soort} value={x.soort}>
+              {x.label} ({x.n})
+            </option>
           ))}
         </select>
         <select className={keuze} value={jaar} onChange={(e) => setJaar(e.target.value)} aria-label="Jaar">
@@ -141,6 +157,7 @@ export function ArchitectenLijst({
                     <span className="font-medium">{a.naam}</span>
                     {a.plaats && <span className="text-zinc-500"> · {a.plaats}</span>}
                     {!a.zeker && <span className="chip ml-2">te bevestigen</span>}
+                    <div className="text-[11.5px] text-zinc-500">{a.soort_label}</div>
                   </td>
                   <td>
                     <div className="flex flex-wrap gap-1">
@@ -178,7 +195,14 @@ export function ArchitectenLijst({
                 isOpen && (
                   <tr key={a.id + "-detail"}>
                     <td colSpan={kolommen} style={{ background: "var(--vlak)" }}>
-                      <BureauDetail key={jaar} a={a} bisson={toonBisson ? bisson?.[a.id] || [] : undefined} jaar={jaar} />
+                      <BureauDetail
+                        key={jaar}
+                        a={a}
+                        bisson={toonBisson ? bisson?.[a.id] || [] : undefined}
+                        jaar={jaar}
+                        nietBinnen={extra[a.id]?.nietBinnen}
+                        contacten={extra[a.id]?.contacten}
+                      />
                     </td>
                   </tr>
                 ),

@@ -36,7 +36,7 @@ const MARKETING: Item[] = [
   { href: "/websites", label: "Websites", icon: "web" },
 ];
 // Het klantenbestand van architecten over alle firma's heen; enkel voor wp-alles.
-const KLANTEN: Item[] = [{ href: "/architecten", label: "Architecten", icon: "klanten" }];
+const KLANTEN: Item[] = [{ href: "/opdrachtgevers", label: "Opdrachtgevers", icon: "klanten" }];
 const TEAM: Item[] = [
   { href: "/sales-team", label: "Sales team", icon: "team" },
   { href: "/woordenboek", label: "Woordenboek", icon: "boek" },

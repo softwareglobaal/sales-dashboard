@@ -23,6 +23,13 @@ export type MondayRegel = {
 };
 export type Factuur = { dossier: string; nr: string; datum: string | null; bedrag: number | null; klant?: string | null; omschrijving?: string; pdf?: string | null };
 export type WerfTreffer = { bron: string; firma: string | null; tekst: string | null; klant?: string | null; datum?: string | null; link?: string | null; status?: string };
+export type Partij = { id: string; naam: string; soort: string; rollen: string[]; waarom: string[] };
+export type Omvang = {
+  bestanden: number | null;
+  meerdere_eenheden: boolean;
+  monday_bedrag: number | null;
+  klasse: "klein" | "middel" | "groot" | "onbekend";
+};
 export type BissonProject = {
   nr: string;
   jaar: number;
@@ -33,12 +40,12 @@ export type BissonProject = {
   soort_naam: string | null;
   pakket: string | null;
   architect_code: string | null;
-  architect_bron: "mapnaam" | "Monday" | null;
+  // Hoofdopdrachtgever: de architect, anders het ingenieursbureau (onderaanneming), anders
+  // wie de factuur op dit nummer kreeg. Alle partijen staan in `partijen`, met hun reden.
   bureau: string | null;
-  // Mehdi: de architect, of het ingenieursbureau als het in onderaanneming was.
   ingenieur: string | null;
-  ingenieur_bron: "Monday" | "factuur" | null;
-  opdrachtgever: { soort: "architect" | "ingenieur"; naam: string; bron: string | null; zeker?: boolean } | null;
+  opdrachtgever: { soort: string; soort_label: string; naam: string; zeker?: boolean } | null;
+  partijen: Partij[];
   adres: string | null;
   postcode: string | null;
   map: string | null;
@@ -47,9 +54,13 @@ export type BissonProject = {
   monday: MondayRegel | null;
   facturen: Factuur[];
   werf_bij_ons: WerfTreffer[];
+  omvang: Omvang;
+  schatting: number | null;
+  nakijken: string[];
 };
 export type ProjectBron = { bron: string; firma: string; ref?: string; link?: string; datum?: string; verkocht?: number; gefactureerd?: number; omschrijving?: string };
 export type OnsProject = {
+  id: string;
   projectnrs: string[];
   adres: string | null;
   adressen: string[];
@@ -57,24 +68,32 @@ export type OnsProject = {
   diensten: string[];
   datum: string | null;
   laatst: string | null;
+  jaar: number;
   verkocht: number;
   gefactureerd: number;
-  contact: string | null;
   zonder_verwijzing: boolean;
-  bisson_nummer: boolean;
+  bisson: boolean;
   bronnen: ProjectBron[];
+  omvang: Omvang | Record<string, never>;
+  nakijken: string[];
+  partijen: Partij[];
 };
 export type Signaal = "eerst-bij-ons" | "beide" | "eigen" | "prospect" | "enkel-bisson" | null;
+export type Contact = { naam: string; email: string | null; telefoon: string | null; bron: string };
 export type Architect = {
   id: string;
   naam: string;
+  soort: string;
+  soort_label: string;
   plaats: string | null;
   zeker: boolean;
   eigen: boolean;
   codes: string[];
   namen: string[];
+  zoek: string[];
+  contacten: Contact[];
   klant: boolean;
-  prospect_in: string[];
+  prospect_in?: string[]; // door het dashboard ingevuld (B2B-lijst in Pipedrive)
   firmas: string[];
   diensten: string[];
   projecten: OnsProject[];
@@ -90,19 +109,27 @@ export type Architect = {
   laatste_bisson: string | null;
   bij_ons_na_eerste_bisson: number | null;
   signaal: Signaal;
+  nakijken: string[];
 };
+export type Opdrachtgever = Architect;
+export type Nakijken = { project: string; bisson: boolean; adres: string | null; redenen: string[]; monday: string | null };
+export type Controle = { toets: string; ok: boolean; detail: string };
 export type Overzicht = {
   ververst: string | null;
   gemaakt: string;
   bisson: {
     projecten: BissonProject[];
-    per_jaar: { jaar: number; tkn_totaal: number; bisson: number; eigen: number; sta: number; dra: number }[];
+    per_jaar: { jaar: number; tkn_totaal: number; bisson: number; eigen: number; sta: number; dra: number; groot?: number }[];
     prijzen: Record<string, { mediaan: number; n: number }>;
     facturen_aan_bisson: Factuur[];
     facturen_aan_bisson_totaal: number;
     uitleg: string;
   };
-  architecten: Architect[];
+  opdrachtgevers: Architect[];
+  architecten?: Architect[];
+  nakijken: Nakijken[];
+  controle: Controle[];
+  register?: { projecten: number; bisson: number; met_opdrachtgever: number };
 };
 export type Stand = { status: "ok"; data: Overzicht } | { status: "niet-ingesteld" } | { status: "fout"; melding: string };
 
@@ -122,7 +149,12 @@ export async function architectenOverzicht(): Promise<Stand> {
       cache: "no-store",
     });
     if (!r.ok) throw new Error(`facturatieplatform gaf ${r.status}`);
-    waarde = { status: "ok", data: (await r.json()) as Overzicht };
+    const data = (await r.json()) as Overzicht;
+    data.opdrachtgevers = data.opdrachtgevers || data.architecten || [];
+    data.nakijken = data.nakijken || [];
+    data.controle = data.controle || [];
+    vulProspects(data.opdrachtgevers);
+    waarde = { status: "ok", data };
   } catch (e: any) {
     waarde = { status: "fout", melding: String(e?.message || e) };
   }
@@ -230,4 +262,155 @@ export function maandJaar(d: string | null | undefined): string {
   // Een Bisson-project zonder Monday-startdatum heeft enkel het jaar uit het nummer.
   if (!m || d.endsWith("-01-01")) return j;
   return `${m}/${j}`;
+}
+
+// ---------- opdrachtgevers terugvinden in Pipedrive (alle statussen) ----------
+//
+// Het facturatieplatform ziet enkel gewonnen deals. Hier, met alle deals van de vier
+// accounts, komt erbij: staat het bureau in onze B2B-lijst (prospect), welke aanvragen of
+// offertes werden níet binnengehaald, en wie zijn de contactpersonen. Een bureau wordt
+// herkend aan de organisatienaam, of aan een contact dat met "B2B" begint -- nooit aan
+// een particulier die toevallig zo heet.
+
+type DealRij = {
+  account_key: string;
+  id: number;
+  title: string | null;
+  status: string;
+  pipeline_name: string | null;
+  stage_name: string | null;
+  add_time: string | null;
+  lost_time: string | null;
+  won_time: string | null;
+  lost_reason: string | null;
+  persoon: string | null;
+  org: string | null;
+  email: string | null;
+  telefoon: string | null;
+};
+let dealCache: { t: number; rijen: DealRij[]; orgs: { account_key: string; naam: string }[] } | null = null;
+
+function deals() {
+  if (dealCache && Date.now() - dealCache.t < TIEN_MIN) return dealCache;
+  const db = getDb();
+  const rijen = db
+    .prepare(
+      `SELECT account_key, id, title, status, pipeline_name, stage_name, add_time, lost_time, won_time, lost_reason,
+              json_extract(raw, '$.person_name') AS persoon, json_extract(raw, '$.org_name') AS org,
+              json_extract(raw, '$.person_id.email[0].value') AS email,
+              json_extract(raw, '$.person_id.phone[0].value') AS telefoon
+         FROM deals`,
+    )
+    .all() as DealRij[];
+  const orgs = db.prepare(`SELECT account_key, name AS naam FROM organizations WHERE name IS NOT NULL`).all() as {
+    account_key: string;
+    naam: string;
+  }[];
+  dealCache = { t: Date.now(), rijen, orgs };
+  return dealCache;
+}
+
+function regexen(a: Architect): RegExp[] {
+  return (a.zoek || []).flatMap((z) => {
+    try {
+      return [new RegExp(z, "i")];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function past(rx: RegExp[], persoon: string | null, org: string | null): boolean {
+  if (!rx.length) return false;
+  const o = slug(org || "");
+  if (o && rx.some((r) => r.test(o))) return true;
+  const p = persoon || "";
+  return /^\s*b2b\b/i.test(p) && rx.some((r) => r.test(slug(p)));
+}
+
+const ACCOUNTNAAM = (k: string) => ACCOUNTS.find((a) => a.key === k)?.name || k;
+
+/** Staat het bureau in onze B2B-lijst? Dan wordt "enkel via Bisson" -> "in onze B2B-lijst". */
+function vulProspects(lijst: Architect[]) {
+  let d: ReturnType<typeof deals>;
+  try {
+    d = deals();
+  } catch {
+    return; // geen database (bv. tijdens de build): dan blijft het signaal ongewijzigd
+  }
+  for (const a of lijst) {
+    const rx = regexen(a);
+    const acc = new Set<string>();
+    for (const o of d.orgs) if (rx.some((r) => r.test(slug(o.naam)))) acc.add(ACCOUNTNAAM(o.account_key));
+    for (const r of d.rijen) if (past(rx, r.persoon, r.org)) acc.add(ACCOUNTNAAM(r.account_key));
+    a.prospect_in = [...acc].sort();
+    if (a.signaal === "enkel-bisson" && a.prospect_in.length) a.signaal = "prospect";
+  }
+}
+
+export type NietBinnen = {
+  firma: string;
+  status: "open" | "verloren";
+  soort: "prospectie" | "aanvraag";
+  titel: string | null;
+  pipeline: string | null;
+  fase: string | null;
+  datum: string | null;
+  reden: string | null;
+  contact: string | null;
+  link: string;
+};
+
+/** Deals van dit bureau die (nog) niet gewonnen zijn: prospectie of een echte aanvraag. */
+export function nietBinnengehaald(a: Architect): NietBinnen[] {
+  const rx = regexen(a);
+  if (!rx.length) return [];
+  return deals()
+    .rijen.filter((r) => r.status !== "won" && past(rx, r.persoon, r.org))
+    .map((r) => {
+      const acc = ACCOUNTS.find((x) => x.key === r.account_key);
+      const prospectie = /b2b|prospect|campag/i.test(r.pipeline_name || "");
+      return {
+        firma: acc?.name || r.account_key,
+        status: r.status === "lost" ? ("verloren" as const) : ("open" as const),
+        soort: prospectie ? ("prospectie" as const) : ("aanvraag" as const),
+        titel: r.title,
+        pipeline: r.pipeline_name,
+        fase: r.stage_name,
+        datum: (r.status === "lost" ? r.lost_time : r.add_time)?.slice(0, 10) || null,
+        reden: r.lost_reason,
+        contact: r.persoon,
+        link: acc ? `https://${acc.domain}.pipedrive.com/deal/${r.id}` : "",
+      };
+    })
+    .sort((x, y) => (y.datum || "").localeCompare(x.datum || ""));
+}
+
+/** "B2B ARC Maarten Vermersch Maarten" -> "Maarten Vermersch" (zelfde regel als het facturatieplatform). */
+function schoneNaam(n: string): string {
+  let t = n.trim();
+  for (;;) {
+    const v = t.replace(/^(b2b|kl|pa|pp|arc|int|ing|lm|epb|aan|eng|dw|h-?a|ha|b2c|m)\b[\s\-_.]*/i, "");
+    if (v === t) break;
+    t = v;
+  }
+  const d = t.split(/\s+/);
+  if (d.length >= 2 && d[d.length - 1].toLowerCase() === d[0].toLowerCase()) d.pop();
+  return d.join(" ").trim();
+}
+
+/** Contactpersonen: uit het register (gewonnen deals) en uit alle andere deals van het bureau. */
+export function contactenVan(a: Architect): Contact[] {
+  const uit = new Map<string, Contact>();
+  for (const c of a.contacten || []) uit.set(slug(c.naam), c);
+  const rx = regexen(a);
+  if (rx.length) {
+    for (const r of deals().rijen) {
+      if (!past(rx, r.persoon, r.org) || !(r.email || r.telefoon)) continue;
+      const naam = schoneNaam(r.persoon || r.org || "");
+      const k = slug(naam);
+      if (!uit.has(k)) uit.set(k, { naam, email: r.email, telefoon: r.telefoon, bron: `Pipedrive ${ACCOUNTNAAM(r.account_key)}` });
+    }
+  }
+  return [...uit.values()].slice(0, 6);
 }

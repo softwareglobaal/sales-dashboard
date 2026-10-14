@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Architect, BissonProject } from "@/lib/architecten";
+import type { Architect, BissonProject, Contact, NietBinnen } from "@/lib/architecten";
 import { BureauDetail, jaarVan } from "@/components/architecten/BureauDetail";
+import type { VaststellingWaarde } from "@/components/architecten/Vaststelling";
 
-// Uitklapbare lijst bureaus op de Bisson-pagina: klik een bureau open en zie elk project
-// bij onze firma's (dienst, firma, deal, factuur, map) naast elk Bisson-project.
+// Uitklapbare lijst opdrachtgevers op de Bisson-pagina: klik een bureau open en zie elk
+// project bij onze firma's (dienst, firma, deal, factuur, map, en waarom het aan dit bureau
+// hangt) naast elk Bisson-project, de niet binnengehaalde deals en de contactpersonen.
 // Een link #bureau-<id> (vanuit de projectlijst) opent meteen dat bureau.
 
 const SIGNAAL: Record<string, [string, string]> = {
@@ -27,9 +29,13 @@ export function BureauTabel({
   bisson,
   metOns,
   anker = "bureau",
+  extra = {},
+  vast = {},
 }: {
   bureaus: Architect[];
   bisson: Record<string, BissonProject[]>;
+  extra?: Record<string, { nietBinnen: NietBinnen[]; contacten: Contact[] }>;
+  vast?: Record<string, VaststellingWaarde>;
   metOns: boolean; // kolommen voor "bij ons" tonen (overlap) of enkel Bisson
   anker?: string; // id-voorvoegsel: #bureau-<id> opent het bureau in deze tabel
 }) {
@@ -112,6 +118,10 @@ export function BureauTabel({
                   <span className="font-medium underline decoration-dotted underline-offset-4">{x.naam}</span>
                   {x.plaats && <span className="text-zinc-500"> · {x.plaats}</span>}
                   {!x.zeker && <span className="chip ml-2" title="De code in de map is niet eenduidig aan één bureau te hangen">te bevestigen</span>}
+                  <div className="text-[11.5px] text-zinc-500">
+                    {x.soort_label}
+                    {vast[`bureau|${x.id}`]?.status && <span className="chip ml-1" style={{ fontSize: 10.5 }}>{vast[`bureau|${x.id}`]!.status}</span>}
+                  </div>
                 </td>
                 <td>{s && <span className={"chip " + s[1]}>{s[0]}</span>}</td>
                 {metOns && (
@@ -136,7 +146,15 @@ export function BureauTabel({
               isOpen && (
                 <tr key={x.id + "-detail"}>
                   <td colSpan={kolommen} style={{ background: "var(--vlak)" }}>
-                    <BureauDetail key={jaar} a={x} bisson={bisson[x.id] || []} jaar={jaar} />
+                    <BureauDetail
+                      key={jaar}
+                      a={x}
+                      bisson={bisson[x.id] || []}
+                      jaar={jaar}
+                      nietBinnen={extra[x.id]?.nietBinnen}
+                      contacten={extra[x.id]?.contacten}
+                      vast={vast}
+                    />
                   </td>
                 </tr>
               ),
