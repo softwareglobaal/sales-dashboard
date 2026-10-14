@@ -660,7 +660,9 @@ export default async function WebsitesPage({ searchParams }: { searchParams: Pro
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <Paneel titel="Bezoekers op de kaart" uitleg="Per gemeente, op basis van het IP-adres. Land klopt; de gemeente is een benadering, want sommige providers tonen hun knooppunt (vaak de hoofdstad of een grote stad).">
-                <BezoekersKaart punten={stadRijen} landen={kaartLanden} />
+                {/* key: bij een andere site of periode opnieuw opbouwen; anders hergebruikt Next.js de
+                    kaart bij het doorklikken en blijven de bolletjes van de vorige keuze staan. */}
+                <BezoekersKaart key={`${sites.join(",")}|${periode}|${sp.dienst || ""}`} punten={stadRijen} landen={kaartLanden} />
               </Paneel>
             </div>
             <Paneel titel="Landen">
