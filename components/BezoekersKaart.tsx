@@ -116,7 +116,13 @@ export function BezoekersKaart({ punten, landen }: { punten: KaartPunt[]; landen
         });
 
         // Thema wisselen in het dashboard = ander kaartbeeld; de lagen komen terug via style.load.
-        waarnemer = new MutationObserver(() => m.setStyle(donker() ? STIJL.donker : STIJL.licht));
+        let huidig = donker();
+        waarnemer = new MutationObserver(() => {
+          if (donker() === huidig) return;
+          huidig = donker();
+          // diff: false = volledig herladen, zodat style.load opnieuw vuurt en de bolletjes terugkomen.
+          m.setStyle(huidig ? STIJL.donker : STIJL.licht, { diff: false });
+        });
         waarnemer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-thema"] });
       } catch (e) {
         setFout(String((e as Error)?.message || e));
