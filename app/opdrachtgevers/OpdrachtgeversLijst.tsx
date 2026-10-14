@@ -172,7 +172,9 @@ export function OpdrachtgeversLijst({
                   <td className="num font-medium">
                     {inJaar(a).filter((p) => !p.zonder_verwijzing).length}
                     {inJaar(a).some((p) => p.zonder_verwijzing) && (
-                      <span className="text-[11px] font-normal text-zinc-400" title="plus facturen zonder projectverwijzing"> +</span>
+                      <div className="text-[11px] font-normal text-zinc-500" title="facturen zonder projectnummer of werf">
+                        + {inJaar(a).filter((p) => p.zonder_verwijzing).reduce((t, p) => t + p.bronnen.length, 0)} fact.
+                      </div>
                     )}
                   </td>
                   <td className="whitespace-nowrap">

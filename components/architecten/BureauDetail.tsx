@@ -91,7 +91,10 @@ export function OnzeProjecten({ a, projecten }: { a: Architect; projecten: Archi
                 <td className="whitespace-nowrap">{p.projectnrs.join(", ") || "—"}</td>
                 <td className="text-[12.5px]">
                   {p.zonder_verwijzing ? (
-                    <span className="text-zinc-500">facturen zonder projectverwijzing ({p.datum?.slice(0, 4)})</span>
+                    <span className="text-zinc-500">
+                      {p.bronnen.length} factu{p.bronnen.length === 1 ? "ur" : "ren"} zonder projectnummer of werf (
+                      {p.datum?.slice(0, 4)}): geen project
+                    </span>
                   ) : (
                     p.adres || "—"
                   )}
@@ -326,6 +329,8 @@ export function BureauDetail({
   const bis = (bisson || []).filter((p) => !jaar || String(p.jaar) === jaar);
   const niet = (nietBinnen || []).filter((d) => !jaar || jaarVan(d.datum) === jaar);
   const telOns = ons.filter((p) => !p.zonder_verwijzing).length;
+  // Facturen waarvan niet te achterhalen is over welk project ze gaan: apart geteld, niet als project.
+  const losse = ons.filter((p) => p.zonder_verwijzing).reduce((t, p) => t + p.bronnen.length, 0);
   const knop = (waarde: string, label: string) => (
     <button
       key={label}
@@ -370,6 +375,7 @@ export function BureauDetail({
       <div>
         <div className="label mb-1">
           Bij onze firma&apos;s{jaar ? ` in ${jaar}` : ""} · {telOns} project{telOns === 1 ? "" : "en"}
+          {losse > 0 && ` + ${losse} factu${losse === 1 ? "ur" : "ren"} zonder projectnummer of werf`}
         </div>
         <OnzeProjecten a={a} projecten={ons} />
       </div>

@@ -49,6 +49,8 @@ export function BureauTabel({
   ].sort((x, y) => y.localeCompare(x));
   const telOns = (b: Architect) =>
     b.projecten.filter((p) => !p.zonder_verwijzing && (!jaar || jaarVan(p.datum) === jaar)).length;
+  const telLos = (b: Architect) =>
+    b.projecten.filter((p) => p.zonder_verwijzing && (!jaar || jaarVan(p.datum) === jaar)).reduce((t, p) => t + p.bronnen.length, 0);
   const telBis = (b: Architect) => (bisson[b.id] || []).filter((p) => !jaar || String(p.jaar) === jaar).length;
   const zichtbaar = bureaus.filter((b) => !jaar || telBis(b) > 0 || (metOns && telOns(b) > 0));
 
@@ -130,7 +132,16 @@ export function BureauTabel({
                     <div className="text-zinc-500">{x.diensten.join(", ")}</div>
                   </td>
                 )}
-                {metOns && <td className="num">{telOns(x)}</td>}
+                {metOns && (
+                  <td className="num">
+                    {telOns(x)}
+                    {telLos(x) > 0 && (
+                      <div className="text-[11px] font-normal text-zinc-500" title="facturen zonder projectnummer of werf">
+                        + {telLos(x)} fact.
+                      </div>
+                    )}
+                  </td>
+                )}
                 {metOns && (
                   <td className="whitespace-nowrap">
                     {maandJaar(x.eerste_bij_ons)} – {maandJaar(x.laatste_bij_ons)}
