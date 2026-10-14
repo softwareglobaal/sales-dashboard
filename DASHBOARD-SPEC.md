@@ -800,4 +800,9 @@ Bisson? Daarnaast één overzicht van alle architecten die klant zijn bij onze f
   of bureau een **vaststelling** (klopt / fout gekoppeld / nakijken + notitie), bewaard in tabel
   `bisson_vaststelling` via `POST /api/bisson/vaststelling` (middleware laat die route door; de
   route eist zelf magBisson).
+- **Projecten zonder opdrachtgever (14 okt 2026):** eigen blok op de Bisson-pagina met
+  projectnummer, adres, map en Monday. Siyan en Mehdi zoeken het op en vullen de architect of het
+  ingenieursbureau daar in (tabel `bisson_opdrachtgever`, `POST /api/bisson/opdrachtgever`); het
+  telt meteen mee bij dat bureau (bekend bureau op naam, anders een nieuw). Monday hoeft niet.
+  Matthew heeft inzage maar geen naleestaak.
 

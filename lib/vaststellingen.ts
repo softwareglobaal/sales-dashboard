@@ -36,3 +36,39 @@ export function bewaarVaststelling(sleutel: string, status: string | null, notit
     .prepare("INSERT OR REPLACE INTO bisson_vaststelling (sleutel, status, notitie, door, op) VALUES (?, ?, ?, ?, ?)")
     .run(sleutel, s, n, door, new Date().toISOString());
 }
+
+// ---------- zelf ingevulde opdrachtgever voor een Bisson-project ----------
+//
+// Voor Bisson-projecten waar de architect of het ingenieursbureau nergens staat (niet in de
+// mapnaam, niet op Monday, geen factuur) zoeken Siyan en Mehdi het zelf op, op adres en
+// projectnummer, en vullen het hier in. Het dashboard telt het meteen mee; Monday hoeft niet.
+
+export const OPDRACHTGEVER_SOORTEN = ["architect", "ingenieur", "aannemer", "overig"] as const;
+export type IngevuldeOpdrachtgever = { nr: string; naam: string; soort: string; door: string; op: string };
+
+function tabelOpdrachtgever() {
+  getDb().exec(
+    `CREATE TABLE IF NOT EXISTS bisson_opdrachtgever (
+       nr TEXT PRIMARY KEY, naam TEXT NOT NULL, soort TEXT NOT NULL, door TEXT NOT NULL, op TEXT NOT NULL)`,
+  );
+}
+
+export function ingevuldeOpdrachtgevers(): Record<string, IngevuldeOpdrachtgever> {
+  tabelOpdrachtgever();
+  const rijen = getDb().prepare("SELECT nr, naam, soort, door, op FROM bisson_opdrachtgever").all() as IngevuldeOpdrachtgever[];
+  return Object.fromEntries(rijen.map((r) => [r.nr, r]));
+}
+
+export function bewaarOpdrachtgever(nr: string, naam: string | null, soort: string | null, door: string) {
+  tabelOpdrachtgever();
+  if (!/^\d{6}$/.test(nr)) throw new Error("ongeldig projectnummer");
+  const n = (naam || "").trim().slice(0, 120);
+  if (!n) {
+    getDb().prepare("DELETE FROM bisson_opdrachtgever WHERE nr = ?").run(nr);
+    return;
+  }
+  const s = soort && (OPDRACHTGEVER_SOORTEN as readonly string[]).includes(soort) ? soort : "architect";
+  getDb()
+    .prepare("INSERT OR REPLACE INTO bisson_opdrachtgever (nr, naam, soort, door, op) VALUES (?, ?, ?, ?, ?)")
+    .run(nr, n, s, door, new Date().toISOString());
+}
