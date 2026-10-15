@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { magAanbestedingen } from "@/lib/toegang";
-import { dagenTot, laatste, type Firma, type OordeelStatus, type Treffer } from "@/lib/aanbestedingen";
+import { dagenTot, laatste, type Firma, type OordeelStatus, type SamenOpdracht, type Treffer, type Vereiste } from "@/lib/aanbestedingen";
 
 // Openbare aanbestedingen (spec §19): per firma de opdrachten die De Tenderwachter vond, met het
 // oordeel "kunnen we meedoen" en de reden, plus de zoekcriteria, waarom die gekozen zijn en welke
@@ -58,7 +58,7 @@ function link(firma: string | null, toon?: string) {
   return "/aanbestedingen" + (q ? "?" + q : "");
 }
 
-function Tabs({ firmas, actief }: { firmas: Firma[]; actief: string | null }) {
+function Tabs({ firmas, actief, samen }: { firmas: Firma[]; actief: string | null; samen: number }) {
   const knop = (href: string, label: string, aan: boolean, n?: number) => (
     <a
       key={href}
@@ -77,6 +77,7 @@ function Tabs({ firmas, actief }: { firmas: Firma[]; actief: string | null }) {
   return (
     <nav className="subtabs mt-4 !flex flex-wrap" aria-label="Firma's">
       {knop(link(null), "Alle firma's", actief === null)}
+      {knop(link("samen"), "Samen inschrijven", actief === "samen", samen)}
       {firmas.map((f) => knop(link(f.code), f.naam.replace(/ (BV|N\.V\.|VOF)$/, ""), actief === f.code, tel(f).ja + tel(f).als))}
     </nav>
   );
@@ -137,6 +138,128 @@ function Overzicht({ firmas }: { firmas: Firma[] }) {
   );
 }
 
+function Vereisten({ lijst, gelezen }: { lijst: Vereiste[]; gelezen: string[] }) {
+  if (!lijst?.length) {
+    return (
+      <p className="m-0 text-[12px] text-[var(--inkt-vaag)]">
+        Vereisten nog niet nagekeken in de opdrachtdocumenten. Pas daarna kan het oordeel "kan meedoen" worden.
+      </p>
+    );
+  }
+  const kleur = (v: string) => (v === "ja" ? "chip goed" : v === "nee" ? "chip kritiek" : "chip let");
+  return (
+    <details className="rounded-[12px] border border-[var(--lijn)] px-3 py-2" open={lijst.some((v) => v.voldoen !== "ja")}>
+      <summary className="cursor-pointer text-[12.5px] font-medium">
+        Vereisten nagekeken: {lijst.filter((v) => v.voldoen === "ja").length} van {lijst.length} voldaan
+        {gelezen?.length ? ` · gelezen in ${gelezen.length} document${gelezen.length > 1 ? "en" : ""}` : ""}
+      </summary>
+      <div className="tabelwrap mt-2 overflow-x-auto">
+        <table className="tabel">
+          <thead>
+            <tr>
+              <th>Eis</th>
+              <th>Bron</th>
+              <th>Voldoen we?</th>
+              <th>Toelichting</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lijst.map((v, i) => (
+              <tr key={i}>
+                <td className="min-w-[180px] text-[12.5px]">{v.eis}</td>
+                <td className="text-[12px] text-[var(--inkt-zacht)]">{v.bron}</td>
+                <td>
+                  <span className={kleur(v.voldoen)}>{v.voldoen}</span>
+                </td>
+                <td className="min-w-[200px] text-[12px]">{v.toelichting}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {gelezen?.length > 0 && <p className="mt-2 text-[11.5px] text-[var(--inkt-vaag)]">Gelezen: {gelezen.join("; ")}</p>}
+    </details>
+  );
+}
+
+function Samen({ lijst }: { lijst: SamenOpdracht[] }) {
+  return (
+    <section className="paneel mt-4">
+      <div className="kop">
+        <h2>Samen inschrijven</h2>
+      </div>
+      <p className="mt-2 max-w-[80ch] text-[13px] text-[var(--inkt-zacht)]">
+        Opdrachten waarop meerdere van onze firma&apos;s samen kunnen inschrijven, meestal als ontwerpteam. Per firma de dienst die ze
+        levert, waarom ze past en haar eigen oordeel. Wat geen van onze firma&apos;s levert, vraagt een externe partner.
+      </p>
+      {lijst.length === 0 && <p className="mt-3 text-[13px] text-[var(--inkt-zacht)]">Op dit moment geen gezamenlijke opdracht.</p>}
+      {lijst.map((o) => {
+        const s = STATUS[o.status];
+        return (
+          <article key={o.opdracht} className="mt-4 rounded-[16px] border border-[var(--lijn)] p-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <a href={o.url || "#"} target="_blank" rel="noopener" className="text-[15px] font-medium leading-snug hover:underline">
+                  {o.titel}
+                </a>
+                <div className="mt-1 text-[12px] text-[var(--inkt-vaag)]">
+                  {[o.aanbesteder, o.bron, o.niveau === "EU" ? "Europees" : "nationaal", wanneer(o.deadline)].join(" · ")}
+                </div>
+              </div>
+              <span className={s.chip}>
+                <i className="stip" />
+                {s.label}
+              </span>
+            </div>
+            {o.advies && <p className="mt-2 text-[13px]">{o.advies}</p>}
+            <div className="tabelwrap mt-3 overflow-x-auto">
+              <table className="tabel">
+                <thead>
+                  <tr>
+                    <th>Firma</th>
+                    <th>Dienst</th>
+                    <th>Waarom</th>
+                    <th>Oordeel</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {o.rollen.map((r) => (
+                    <tr key={r.firma}>
+                      <td className="whitespace-nowrap font-medium">
+                        <a href={link(r.firma)} className="hover:underline">{r.naam}</a>
+                      </td>
+                      <td className="min-w-[160px] text-[12.5px]">{r.dienst}</td>
+                      <td className="min-w-[180px] text-[12px] text-[var(--inkt-zacht)]">{r.waarom}</td>
+                      <td className="min-w-[240px] text-[12.5px]">
+                        <span className={STATUS[r.status].chip}>{STATUS[r.status].label}</span>
+                        <div className="mt-1">{r.reden}</div>
+                        {r.nodig && r.status !== "ja" && <div className="mt-1 text-[var(--inkt-zacht)]">Nodig: {r.nodig}</div>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {o.ontbreekt.length > 0 && (
+              <div className="notitie let mt-3">
+                <b className="font-medium">Geen eigen firma voor: </b>
+                {o.ontbreekt.join(", ")}. Daarvoor is een externe partner nodig.
+              </div>
+            )}
+            {o.map && (
+              <p className="mt-3 text-[12.5px]">
+                <a href={o.map.link} target="_blank" rel="noopener" className="underline underline-offset-2">
+                  Map in Dropbox met fiche en documenten
+                </a>
+              </p>
+            )}
+          </article>
+        );
+      })}
+    </section>
+  );
+}
+
 function OpdrachtRij({ t }: { t: Treffer }) {
   const s = STATUS[t.oordeel.status];
   const meta = [t.aanbesteder, t.bron, t.niveau === "EU" ? "Europees" : "nationaal", wanneer(t.deadline), bedrag(t)].filter(Boolean);
@@ -167,6 +290,20 @@ function OpdrachtRij({ t }: { t: Treffer }) {
               <li key={r}>· {r}</li>
             ))}
           </ul>
+        )}
+        {t.oordeel.status !== "ja" && t.oordeel.nodig && (
+          <p className="m-0 text-[13px] text-[var(--inkt)]">
+            <span className="font-medium">Wat nodig is om mee te doen: </span>
+            {t.oordeel.nodig}
+          </p>
+        )}
+        <Vereisten lijst={t.oordeel.vereisten} gelezen={t.oordeel.documenten_gelezen} />
+        {t.map && (
+          <p className="m-0 text-[12.5px]">
+            <a href={t.map.link} target="_blank" rel="noopener" className="underline underline-offset-2">
+              Map in Dropbox met fiche en documenten
+            </a>
+          </p>
         )}
         <p className="m-0 text-[11.5px] text-[var(--inkt-vaag)]">
           Gevonden op: {t.past.join("; ") || "zoekprofiel"}
@@ -452,6 +589,8 @@ export default async function AanbestedingenPagina({ searchParams }: { searchPar
     );
   }
   const firma = m.firmas.find((f) => f.code === sp.firma) || null;
+  const samen = m.samen || [];
+  const toonSamen = sp.firma === "samen";
   const totaal = m.firmas.reduce((n, f) => n + tel(f).ja + tel(f).als, 0);
   return (
     <main className="mx-auto max-w-6xl px-6 pb-10">
@@ -469,14 +608,23 @@ export default async function AanbestedingenPagina({ searchParams }: { searchPar
           </span>
         ))}
       </div>
-      <Tabs firmas={m.firmas} actief={firma?.code || null} />
-      {!firma ? (
+      <Tabs firmas={m.firmas} actief={toonSamen ? "samen" : firma?.code || null} samen={samen.length} />
+      {toonSamen ? (
+        <Samen lijst={samen} />
+      ) : !firma ? (
         <>
+          {samen.length > 0 && (
+            <div className="notitie accent mt-4">
+              <b className="font-medium">{samen.length} opdracht{samen.length > 1 ? "en" : ""} waarop meerdere firma&apos;s samen kunnen inschrijven. </b>
+              <a href={link("samen")} className="underline">Bekijk wie welke dienst levert.</a>
+            </div>
+          )}
           <Overzicht firmas={m.firmas} />
           <p className="mt-3 max-w-[80ch] text-[12.5px] text-[var(--inkt-zacht)]">
             Elke opdracht krijgt een oordeel: kan meedoen, kan meedoen als een voorwaarde vervuld is, of kan niet meedoen, telkens met de
-            reden. Het oordeel steunt op de situatie van de firma (erkenning, eigen vermogen, titels, taal, regio, termijn) en waar
-            mogelijk op het bestek zelf. Opdrachten onder € 140.000 zonder bekendmaking verschijnen nergens: daarvoor moet een firma door
+            reden. Het oordeel steunt op de situatie van de firma (erkenning, eigen vermogen, titels, taal, regio, termijn).
+            &quot;Kan meedoen&quot; staat er pas als de vereisten in de opdrachtdocumenten nagekeken zijn; bij &quot;kan niet&quot; staat
+            telkens wat nodig is om wel mee te kunnen doen. Opdrachten onder € 140.000 zonder bekendmaking verschijnen nergens: daarvoor moet een firma door
             het bestuur uitgenodigd worden.
           </p>
         </>

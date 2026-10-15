@@ -836,3 +836,16 @@ met de reden van die keuze en de andere mogelijkheden, en per gevonden project o
   mogelijkheden met keuze en reden).
 - **Toegang**: `/aanbestedingen` (menu "Overheid") enkel voor wp-alles (`magAanbestedingen`),
   omdat de pagina de financiële toestand van de firma's toont.
+- **Aanvullingen 15 okt 2026 (Siyan):**
+  - "Kan meedoen" enkel als De Tenderwachter de vereisten in de opdrachtdocumenten nagekeken heeft;
+    elke opdracht toont dan de controlelijst (eis, bron, voldoen we, toelichting) en welke
+    documenten gelezen zijn. De vaste toets gaat nooit verder dan "kan meedoen als".
+  - Bij "kan niet" en "als" staat telkens **wat nodig is om wel mee te doen** (bv. jaarrekening
+    neerleggen en eigen vermogen positief maken, erkenning aanvragen, nog twee referenties).
+  - Tab **Samen inschrijven** (`?firma=samen`): opdrachten waarop meerdere van onze firma's kunnen
+    meedoen (bv. ontwerpteam met architectuur, stabiliteit, EPB en veiligheidscoördinatie), met
+    per firma de dienst, waarom en haar oordeel, plus de onderdelen waarvoor een externe partner
+    nodig is. Bron: `samen` in de momentopname (`resultaten/samen.json` van de agent gaat voor).
+  - Per opdracht een link naar de **Dropbox-map** met fiche en alle documenten:
+    `Work All/o01. Sales/08. Openbare aanbestedingen/01. Kansen/<firma of 00. Samen inschrijven>/`
+    en voor HDS `Work All/HDS Work/04. Aanbestedingen/01. Kansen/`.
