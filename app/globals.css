@@ -324,17 +324,14 @@ body {
   stroke-linejoin: round;
 }
 
-/* De sticky kopbalk boven een pagina (was: bg-[#d7dde7]/85 met blur). */
+/* De kop boven een pagina. Was een sticky balk met eigen achtergrond en blur; die balk viel
+   vooral in donkere modus op als zwart vlak achter de titel. Op vraag van Siyan (15 okt 2026)
+   weg op het hele platform: de titel staat nu gewoon op de achtergrond en scrolt mee. */
 .kopbalk {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+  position: relative;
   margin: 0 -24px 24px;
   padding: 18px 24px 0;
-  background: rgba(228, 226, 227, 0.86);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--lijn);
+  background: transparent;
 }
 
 /* Koppen: de pagina's droegen text-2xl/font-bold; nu de serif van de standaard. */
@@ -715,7 +712,6 @@ main a.rounded-lg {
 :root[data-thema="donker"] .knop-klein,
 :root[data-thema="donker"] .knop-licht { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .10); color: var(--inkt); }
 :root[data-thema="donker"] .knop-donker { background: var(--inkt); color: var(--grond); }
-:root[data-thema="donker"] .kopbalk { background: rgba(18, 18, 17, .78); }
 :root[data-thema="donker"] select, :root[data-thema="donker"] input, :root[data-thema="donker"] textarea { background: #1d1c1a; color: var(--inkt); border-color: rgba(255, 255, 255, .12); }
 :root[data-thema="donker"] ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .14); }
 :root[data-thema="donker"] .recharts-cartesian-grid line { stroke: rgba(255, 255, 255, .08); }
