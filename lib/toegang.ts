@@ -99,3 +99,13 @@ export function magArchitecten(groepenKop: string | null): boolean {
   if (process.env.TOEGANG_DEV === "1" && groepen.length === 0) return true;
   return groepen.includes("wp-alles");
 }
+
+/**
+ * Openbare aanbestedingen (/aanbestedingen, spec §19): toont de financiële toestand van de
+ * firma's (eigen vermogen, achterstallige jaarrekeningen) naast de opdrachten. Enkel wp-alles.
+ */
+export function magAanbestedingen(groepenKop: string | null): boolean {
+  const groepen = groepenUit(groepenKop);
+  if (process.env.TOEGANG_DEV === "1" && groepen.length === 0) return true;
+  return groepen.includes("wp-alles");
+}

@@ -37,6 +37,8 @@ const MARKETING: Item[] = [
 ];
 // Het klantenbestand van architecten over alle firma's heen; enkel voor wp-alles.
 const KLANTEN: Item[] = [{ href: "/opdrachtgevers", label: "Opdrachtgevers", icon: "klanten" }];
+// Openbare aanbestedingen per firma (De Tenderwachter); enkel voor wp-alles.
+const OVERHEID: Item[] = [{ href: "/aanbestedingen", label: "Openbare aanbestedingen", icon: "overheid" }];
 const TEAM: Item[] = [
   { href: "/sales-team", label: "Sales team", icon: "team" },
   { href: "/woordenboek", label: "Woordenboek", icon: "boek" },
@@ -72,6 +74,7 @@ const ICONEN: Record<string, string> = {
   links: '<path d="M15 5l-7 7 7 7"/>',
   rechts: '<path d="m9 5 7 7-7 7"/>',
   klanten: '<path d="M3 21V9l6-4 6 4v12"/><path d="M15 21h6v-8l-6-3"/><path d="M7 12h4M7 16h4"/>',
+  overheid: '<path d="M3 21h18"/><path d="m12 3 9 5H3z"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/>',
 };
 
 function Icoon({ naam, className }: { naam: string; className?: string }) {
@@ -90,10 +93,12 @@ export function Sidebar({
   afdelingen,
   wachtend = 0,
   architecten = false,
+  aanbestedingen = false,
 }: {
   afdelingen: string[];
   wachtend?: number;
   architecten?: boolean; // het architecten-klantenbestand (enkel wp-alles, lib/toegang.ts)
+  aanbestedingen?: boolean; // openbare aanbestedingen per firma (enkel wp-alles, lib/toegang.ts)
 }) {
   const mag = (pad: string) => afdelingen.includes(pad);
   const pathname = usePathname();
@@ -194,6 +199,7 @@ export function Sidebar({
         {group("Overzicht", OVERZICHT)}
         {afdelingGroep()}
         {architecten && group("Klanten", KLANTEN)}
+        {aanbestedingen && group("Overheid", OVERHEID)}
         {group("Marketing", MARKETING)}
         {group("Team", TEAM)}
       </nav>
