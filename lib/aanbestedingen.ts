@@ -26,10 +26,43 @@ export type Treffer = {
     status: OordeelStatus;
     reden: string | null; // oordeel van De Tenderwachter
     redenen: string[]; // vaste toets
+    nodig: string | null; // wat er moet gebeuren om wel mee te kunnen doen
+    vereisten: Vereiste[]; // nagekeken in de opdrachtdocumenten (verplicht voor "ja")
+    documenten_gelezen: string[];
     door: string;
     datum: string | null;
     dossier: string | null;
   };
+  map: { pad: string; link: string } | null; // Dropbox-map met fiche en documenten
+  opdracht: string;
+  beschrijving?: string;
+};
+
+export type Vereiste = { eis: string; bron: string; voldoen: "ja" | "nee" | "onbekend"; toelichting: string };
+
+export type SamenRol = {
+  firma: string;
+  naam: string;
+  dienst: string;
+  waarom: string;
+  status: OordeelStatus;
+  reden: string;
+  nodig: string | null;
+};
+
+export type SamenOpdracht = {
+  opdracht: string;
+  titel: string;
+  aanbesteder: string;
+  bron: string;
+  niveau: "EU" | "nationaal";
+  deadline: string | null;
+  url: string | null;
+  map: { pad: string; link: string } | null;
+  rollen: SamenRol[];
+  ontbreekt: string[];
+  status: OordeelStatus;
+  advies: string | null;
 };
 
 export type Punt = { onderwerp: string; stand: string; kleur: "rood" | "oranje" | "groen"; gevolg: string };
@@ -73,6 +106,7 @@ export type Momentopname = {
   bijgewerkt: string;
   bronnen: { bron: string; datum: string; status: "ok" | "oud" | "fout"; uitleg: string }[];
   firmas: Firma[];
+  samen?: SamenOpdracht[]; // opdrachten waarop meerdere van onze firma's samen kunnen inschrijven
 };
 
 function tabel() {
