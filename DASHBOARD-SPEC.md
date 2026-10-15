@@ -806,3 +806,33 @@ Bisson? Daarnaast één overzicht van alle architecten die klant zijn bij onze f
   telt meteen mee bij dat bureau (bekend bureau op naam, anders een nieuw). Monday hoeft niet.
   Matthew heeft inzage maar geen naleestaak.
 
+
+## 19. Openbare aanbestedingen (oktober 2026)
+
+Vraag van Siyan (15 okt 2026): één tab met per firma de openbare aanbestedingen, de zoekcriteria
+met de reden van die keuze en de andere mogelijkheden, en per gevonden project of we
+**effectief kunnen meedoen** gezien de situatie van de firma, met de reden als het niet kan.
+
+- **Bron**: De Tenderwachter (vakagent overheidsopdrachten, `~/.claude/agents/tenderwachter.md`)
+  draait op de AppPortal-server vanuit de repo seo-agents (`aanbestedingen/`). Zijn scan
+  (`scan/tenderscan.py`) leest België via BOSA (zoekprofielen per firma; export uit de ingelogde
+  sessie) en TED, Suriname via IDB-open data, gov.sr (OW&RO, Social Bond, bekendmakingen) en
+  PURP (mediabibliotheek van purp.sr, die ook vangt wat PURP enkel op Facebook aankondigt).
+  `scan/dashboard.py` stuurt één volledige momentopname naar `POST /api/v1/aanbestedingen`
+  (`SALES_AGENT_TOKEN`); het dashboard bewaart de laatste 30 in `aanbestedingen_stand` en toont
+  de laatste. Het dashboard rekent zelf niets na.
+- **Firma's op de tab**: H-Architects, TKN-Buro, Energie Efficiënt, UNABO, Harmonie Bouw (België,
+  BOSA) en HDS (Suriname). Elevait en de firma's zonder profiel staan er niet op.
+- **Oordeel per opdracht**: `ja` (kan meedoen), `als` (kan meedoen als een voorwaarde vervuld is)
+  of `nee` (kan niet, met reden). Twee lagen: de vaste toets (`scan/geschiktheid.py`, op
+  `firmas/situatie.json`: erkenning, eigen vermogen, jaarrekening, beroepstitels, taal, regio,
+  termijn) en het oordeel van De Tenderwachter (`resultaten/oordelen.json`), dat voorgaat waar
+  het bestaat. Een negatief eigen vermogen is geen automatische uitsluiting: het blokkeert pas als
+  het bestek een omzet- of solvabiliteitseis stelt. Bij Europese opdrachten staat het daarom als
+  voorwaarde, tot de agent het bestek gelezen heeft.
+- **Per firma**: gevonden opdrachten (standaard enkel de kansen, `?toon=nee` toont wat afvalt met
+  de reden), situatie van de firma (rood/oranje/groen + wat nodig is vóór een indiening) en de
+  zoekcriteria (BOSA-profielen met CPV en regio, de scan erbovenop, waarom deze keuze, andere
+  mogelijkheden met keuze en reden).
+- **Toegang**: `/aanbestedingen` (menu "Overheid") enkel voor wp-alles (`magAanbestedingen`),
+  omdat de pagina de financiële toestand van de firma's toont.

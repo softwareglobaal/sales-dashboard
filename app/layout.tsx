@@ -5,7 +5,7 @@ import { aantalWachtend } from "@/lib/content";
 import { introGezien, HANDLEIDING } from "@/lib/intro";
 import { IntroVraag } from "@/components/intro/IntroVraag";
 import { headers } from "next/headers";
-import { afdelingenVoor, AFDELING_VAN_PAD, magArchitecten } from "@/lib/toegang";
+import { afdelingenVoor, AFDELING_VAN_PAD, magArchitecten, magAanbestedingen } from "@/lib/toegang";
 
 export const metadata: Metadata = {
   title: "Sales & Marketing Dashboard",
@@ -55,7 +55,7 @@ export default async function RootLayout({
           <i className="b4" />
         </div>
         <div className="app-sales">
-          <Sidebar afdelingen={paden} wachtend={aantalWachtend()} architecten={magArchitecten(h.get("x-authentik-groups"))} />
+          <Sidebar afdelingen={paden} wachtend={aantalWachtend()} architecten={magArchitecten(h.get("x-authentik-groups"))} aanbestedingen={magAanbestedingen(h.get("x-authentik-groups"))} />
           <div className="min-w-0">{children}</div>
           {toonIntro && <IntroVraag naam={voornaam} handleiding={HANDLEIDING} />}
         </div>
