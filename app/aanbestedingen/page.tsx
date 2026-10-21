@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { magAanbestedingen } from "@/lib/toegang";
+import { aanbestedingFirmas } from "@/lib/toegang";
 import { dagenTot, laatste, type Firma, type OordeelStatus, type SamenOpdracht, type Treffer, type Vereiste } from "@/lib/aanbestedingen";
 
 // Openbare aanbestedingen (spec §19): per firma de opdrachten die De Tenderwachter vond, met het
@@ -83,7 +83,7 @@ function Tabs({ firmas, actief, samen }: { firmas: Firma[]; actief: string | nul
   );
 }
 
-function Overzicht({ firmas }: { firmas: Firma[] }) {
+function Overzicht({ firmas, toonKnelpunt = true }: { firmas: Firma[]; toonKnelpunt?: boolean }) {
   return (
     <section className="paneel mt-4">
       <div className="kop">
@@ -99,7 +99,7 @@ function Overzicht({ firmas }: { firmas: Firma[] }) {
               <th className="num">Als …</th>
               <th className="num">Kan niet</th>
               <th>Eerstvolgende kans</th>
-              <th>Grootste knelpunt</th>
+              {toonKnelpunt && <th>Grootste knelpunt</th>}
             </tr>
           </thead>
           <tbody>
@@ -125,9 +125,11 @@ function Overzicht({ firmas }: { firmas: Firma[] }) {
                     <a href={link(f.code, "nee")} className="chip kritiek">{n.nee}</a>
                   </td>
                   <td className="max-w-[280px] text-[12.5px]">{eerstvolgende(f)}</td>
-                  <td className="max-w-[280px] text-[12.5px]">
-                    {knelpunt ? `${knelpunt.onderwerp}: ${knelpunt.stand}` : "geen rood punt"}
-                  </td>
+                  {toonKnelpunt && (
+                    <td className="max-w-[280px] text-[12.5px]">
+                      {knelpunt ? `${knelpunt.onderwerp}: ${knelpunt.stand}` : "geen rood punt"}
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -562,9 +564,17 @@ function Criteria({ f }: { f: Firma }) {
   );
 }
 
+/** Voor afdelingsteams: bedragen van het eigen vermogen uit de toelichtingen weglaten (het oordeel blijft). */
+function zonderBedragen(f: Firma): Firma {
+  const tekst = JSON.stringify(f).replace(/(eigen vermogen)( van)?\s*(:\s*)?€\s?-?[\d.]+(,\d+)?/gi, "$1 (bedrag enkel voor de directie)");
+  return JSON.parse(tekst) as Firma;
+}
+
 export default async function AanbestedingenPagina({ searchParams }: { searchParams: Promise<Zoek> }) {
   const h = await headers();
-  if (!magAanbestedingen(h.get("x-authentik-groups"))) {
+  const toegang = aanbestedingFirmas(h.get("x-authentik-groups"));
+  const volledig = toegang === "alle";
+  if (!toegang) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-8">
         <div className="paneel">
@@ -588,16 +598,18 @@ export default async function AanbestedingenPagina({ searchParams }: { searchPar
       </main>
     );
   }
-  const firma = m.firmas.find((f) => f.code === sp.firma) || null;
-  const samen = m.samen || [];
-  const toonSamen = sp.firma === "samen";
-  const totaal = m.firmas.reduce((n, f) => n + tel(f).ja + tel(f).als, 0);
+  // Afdelingsteams zien enkel hun eigen firma, zonder overzicht, samenwerkingen of financiële situatie.
+  const firmas = volledig ? m.firmas : m.firmas.filter((f) => (toegang as string[]).includes(f.code)).map(zonderBedragen);
+  const firma = firmas.find((f) => f.code === sp.firma) || (!volledig && firmas.length === 1 ? firmas[0] : null);
+  const samen = volledig ? m.samen || [] : [];
+  const toonSamen = volledig && sp.firma === "samen";
+  const totaal = firmas.reduce((n, f) => n + tel(f).ja + tel(f).als, 0);
   return (
     <main className="mx-auto max-w-6xl px-6 pb-10">
       <div className="kopbalk">
         <h1 className="h1-glas">Openbare aanbestedingen</h1>
         <p className="text-[12.5px] text-zinc-500">
-          {totaal} kansen over {m.firmas.length} firma&apos;s · bijgewerkt {datum(m.bijgewerkt)} door De Tenderwachter
+          {totaal} kansen over {firmas.length} firma{firmas.length === 1 ? "" : "&apos;s"} · bijgewerkt {datum(m.bijgewerkt)} door De Tenderwachter
         </p>
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -608,7 +620,7 @@ export default async function AanbestedingenPagina({ searchParams }: { searchPar
           </span>
         ))}
       </div>
-      <Tabs firmas={m.firmas} actief={toonSamen ? "samen" : firma?.code || null} samen={samen.length} />
+      {(volledig || firmas.length > 1) && <Tabs firmas={firmas} actief={toonSamen ? "samen" : firma?.code || null} samen={samen.length} />}
       {toonSamen ? (
         <Samen lijst={samen} />
       ) : !firma ? (
@@ -619,7 +631,7 @@ export default async function AanbestedingenPagina({ searchParams }: { searchPar
               <a href={link("samen")} className="underline">Bekijk wie welke dienst levert.</a>
             </div>
           )}
-          <Overzicht firmas={m.firmas} />
+          <Overzicht firmas={firmas} toonKnelpunt={volledig} />
           <p className="mt-3 max-w-[80ch] text-[12.5px] text-[var(--inkt-zacht)]">
             Elke opdracht krijgt een oordeel: kan meedoen, kan meedoen als een voorwaarde vervuld is, of kan niet meedoen, telkens met de
             reden. Het oordeel steunt op de situatie van de firma (erkenning, eigen vermogen, titels, taal, regio, termijn).
@@ -632,11 +644,11 @@ export default async function AanbestedingenPagina({ searchParams }: { searchPar
         <>
           <nav className="mt-4 flex gap-4 text-[13px]">
             <a href="#opdrachten" className="text-[var(--inkt-zacht)] hover:text-[var(--inkt)]">Opdrachten</a>
-            <a href="#situatie" className="text-[var(--inkt-zacht)] hover:text-[var(--inkt)]">Situatie</a>
+            {volledig && <a href="#situatie" className="text-[var(--inkt-zacht)] hover:text-[var(--inkt)]">Situatie</a>}
             <a href="#criteria" className="text-[var(--inkt-zacht)] hover:text-[var(--inkt)]">Zoekcriteria</a>
           </nav>
           <Opdrachten f={firma} toon={sp.toon || "open"} />
-          <Situatie f={firma} />
+          {volledig && <Situatie f={firma} />}
           <Criteria f={firma} />
         </>
       )}
