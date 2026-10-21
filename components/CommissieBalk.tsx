@@ -1,21 +1,10 @@
 import { euro } from "@/lib/format";
-import commissie from "@/config/commissie.json";
+import { algemeneRegels, beloning, commissieConfig, commissieStatus, verdeel, type Mijlpaal } from "@/lib/commissie";
 
 // Voortgang van de maandelijkse teambeloning (Joey & Shelton) voor één afdeling.
 // Klikken op de balk klapt de regels open (<details>, dus geen client-JS nodig).
 // Zonder `toonBeloning` (iedereen buiten wp-alles) blijft enkel het teamdoel over:
 // omzet tegenover het doel en de mijlpalen, zonder pot, namen of regels.
-
-type Mijlpaal = { omzet: number; pot: number };
-type Afdeling = {
-  titel: string;
-  omvat: string;
-  vertrek: number;
-  doel: number;
-  breakeven?: number;
-  mijlpalen: Mijlpaal[];
-  extraRegels: string[];
-};
 
 const kort = (n: number) => `€ ${Math.round(n / 1000)}k`;
 
@@ -32,11 +21,13 @@ export function CommissieBalk({
   maandLabel: string;
   dagenOver: number | null; // null = afgesloten maand
 }) {
-  const cfg = commissie[afdeling] as Afdeling;
+  // Het rekenwerk staat in lib/commissie.ts, zodat de balk en de agent-API
+  // (en daarmee Payrun) niet elk hun eigen uitkomst krijgen.
+  const cfg = commissieConfig(afdeling);
+  const b = beloning(afdeling, omzet);
   const pct = (v: number) => Math.max(0, Math.min(100, (v / cfg.doel) * 100));
-  const behaald = [...cfg.mijlpalen].reverse().find((m) => omzet >= m.omzet) || null;
-  const volgende = cfg.mijlpalen.find((m) => omzet < m.omzet) || null;
-  const pot = behaald?.pot || 0;
+  const volgende: Mijlpaal | null = b.volgende;
+  const pot = b.pot;
 
   // Met beloning: openklapbaar (<details>) voor de regels; zonder: een gewoon paneel.
   const Buiten = toonBeloning ? "details" : "section";
@@ -63,7 +54,7 @@ export function CommissieBalk({
                 {euro(pot)}
               </span>
               <span className="text-[12px] text-[var(--inkt-vaag)]">
-                {pot > 0 ? `${euro(pot / 2)} p.p.` : "nog geen mijlpaal"}
+                {pot > 0 ? b.verdeling.map((d) => `${d.naam} ${euro(d.bedrag)}`).join(" · ") : "nog geen mijlpaal"}
               </span>
             </div>
           </div>
@@ -141,7 +132,7 @@ export function CommissieBalk({
               <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--inkt-vaag)]">
                 <th className="py-1 font-medium">Omzet</th>
                 <th className="py-1 text-right font-medium">Teampot</th>
-                {commissie.verdeling.map((p) => (
+                {verdeel(0).map((p) => (
                   <th key={p.naam} className="py-1 text-right font-medium">
                     {p.naam}
                   </th>
@@ -150,14 +141,14 @@ export function CommissieBalk({
             </thead>
             <tbody>
               {cfg.mijlpalen.map((m) => {
-                const ok = behaald?.omzet === m.omzet;
+                const ok = b.behaald?.omzet === m.omzet;
                 return (
                   <tr key={m.omzet} className="border-t" style={{ borderColor: "var(--lijn)", fontWeight: ok ? 600 : 400 }}>
                     <td className="py-1.5">{euro(m.omzet)}</td>
                     <td className="py-1.5 text-right">{euro(m.pot)}</td>
-                    {commissie.verdeling.map((p) => (
+                    {verdeel(m.pot).map((p) => (
                       <td key={p.naam} className="py-1.5 text-right">
-                        {euro(m.pot * p.aandeel)}
+                        {euro(p.bedrag)}
                       </td>
                     ))}
                   </tr>
@@ -170,11 +161,11 @@ export function CommissieBalk({
         <div>
           <div className="label mb-2">Regels</div>
           <ul className="list-disc space-y-1.5 pl-4 text-[var(--inkt-zacht)]">
-            {[...commissie.algemeneRegels, ...cfg.extraRegels].map((r) => (
+            {[...algemeneRegels(), ...cfg.extraRegels].map((r) => (
               <li key={r}>{r}</li>
             ))}
           </ul>
-          <p className="mt-3 text-[12px] text-[var(--inkt-vaag)]">{commissie.status}.</p>
+          <p className="mt-3 text-[12px] text-[var(--inkt-vaag)]">{commissieStatus()}.</p>
         </div>
       </div>
       )}
