@@ -10,6 +10,8 @@ import {
   isDienstPeriode,
   kpis,
   maanddoel,
+  doelData,
+  doelBronnen,
   perMaand,
   uniekeTotalen,
   maandOpties,
@@ -77,8 +79,9 @@ export default async function Algemeen({ searchParams }: { searchParams: Promise
     const d = filterFirma(dataset(a), f);
     const k = kpis(d, b.van, b.tot);
     const v = b.vergelijk ? kpis(d, b.vergelijk.van, b.vergelijk.tot) : null;
-    const reeks = perMaand(d, nuJaar);
-    return { a, d, k, v, reeks, doel: maanddoel(a), adsActief: campagnes(a).filter((c) => c.status === "ENABLED").length };
+    // Reeks voor het maanddoel: bij Energy enkel UNABO (teambeloning), zie doelData.
+    const reeks = perMaand(doelData(a, d), nuJaar);
+    return { a, d, k, v, reeks, doel: maanddoel(a), doelTelt: doelBronnen(a), adsActief: campagnes(a).filter((c) => c.status === "ENABLED").length };
   });
 
   const tot = uniekeTotalen(diensten.map((x) => x.d), b.van, b.tot);
@@ -351,6 +354,7 @@ export default async function Algemeen({ searchParams }: { searchParams: Promise
                   <div className="flex justify-between">
                     <Link href={dienstHref("/" + x.a.pad, zoek)} className="font-medium hover:underline">
                       {x.a.naam}
+                      {x.doelTelt && <span className="ml-1.5 text-[11.5px] font-normal text-zinc-500">enkel {x.doelTelt}</span>}
                     </Link>
                     <span className="tabular-nums text-zinc-600">{euro(x.doel)} / maand</span>
                   </div>

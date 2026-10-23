@@ -103,6 +103,28 @@ export function maanddoel(a: Afdeling): number {
   return a.doel.maand || 0;
 }
 
+/**
+ * De omzet die telt voor het maanddoel. Bij een doel uit de teambeloning (commissie.*)
+ * enkel de bronnen die config/commissie.json noemt: voor Energy alleen UNABO, niet de
+ * rechtstreekse verkoop van Energie Efficiënt. Anders de hele dataset.
+ */
+export function doelData(a: Afdeling, d: Dataset): Dataset {
+  if (!a.doel.bron?.startsWith("commissie.")) return d;
+  const k = a.doel.bron.slice("commissie.".length);
+  const bronnen = (commissie as any)[k]?.bronnen as string[] | undefined;
+  if (!bronnen?.length) return d;
+  return { leads: d.leads.filter((l) => bronnen.includes(l.bron)), omzet: d.omzet.filter((o) => bronnen.includes(o.bron)) };
+}
+
+/** Welke bronnen tellen mee voor het doel, als korte tekst (leeg = alles). */
+export function doelBronnen(a: Afdeling): string {
+  if (!a.doel.bron?.startsWith("commissie.")) return "";
+  const k = a.doel.bron.slice("commissie.".length);
+  const bronnen = (commissie as any)[k]?.bronnen as string[] | undefined;
+  if (!bronnen?.length || bronnen.length === a.bronnen.length) return "";
+  return a.bronnen.filter((b) => bronnen.includes(b.sleutel)).map((b) => b.label).join(" + ");
+}
+
 // ---------- datalaag ----------
 
 export type Status = "open" | "won" | "lost";

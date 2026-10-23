@@ -2,7 +2,7 @@
 // de vorige maand. Het dashboard maakt de tekst zelf, met exact dezelfde cijfers als op
 // het scherm; het verzendscript (deploy/salesrapport.py) post enkel wat hier uitkomt.
 
-import { AFDELINGEN, dataset, kpis, maanddoel, openNu, type Afdeling } from "./afdelingen";
+import { AFDELINGEN, dataset, doelData, kpis, maanddoel, openNu, type Afdeling } from "./afdelingen";
 import { koppeling, standVoor } from "./facturatie";
 import { aantalWachtend } from "./content";
 import { MONTH_NAMES } from "./queries";
@@ -76,7 +76,7 @@ export async function rapport(soort: "week" | "maand", nu = new Date()): Promise
     const extra: string[] = [];
     const doel = maanddoel(a);
     if (doel) {
-      const m = kpis(d, doelVan, doelTot);
+      const m = kpis(doelData(a, d), doelVan, doelTot);
       extra.push(`Doel ${doelNaam}: ${euro(m.omzet)} van ${euro(doel)} (${Math.round((m.omzet / doel) * 100)}%)`);
     }
     const o = openNu(d);

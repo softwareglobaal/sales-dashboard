@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { agentGuard } from "@/lib/agentAuth";
-import { AFDELINGEN, dataset, perMaand } from "@/lib/afdelingen";
+import { AFDELINGEN, dataset, doelData, perMaand } from "@/lib/afdelingen";
 import { algemeneRegels, beloning, commissieConfig, commissieStatus, type Afdeling } from "@/lib/commissie";
 
 export const runtime = "nodejs";
@@ -47,7 +47,8 @@ export async function GET(req: Request) {
     const a = AFDELINGEN.find((x) => x.doel.bron === `commissie.${sleutel}`);
     // Dezelfde cijfers als de balk op het dashboard: gewonnen omzet van die
     // kalendermaand, uit dezelfde dataset en dezelfde functie.
-    const omzet = a ? perMaand(dataset(a), jaar)[nr - 1]?.omzet || 0 : 0;
+    // Enkel de bronnen die meetellen voor de beloning (Energy: alleen UNABO).
+    const omzet = a ? perMaand(doelData(a, dataset(a)), jaar)[nr - 1]?.omzet || 0 : 0;
     const b = beloning(sleutel, omzet);
     const c = commissieConfig(sleutel);
     return {
