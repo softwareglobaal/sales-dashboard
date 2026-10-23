@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { bereik, dataset, filterFirma, firmasVan, isDienstPeriode, kpis, perMaand, type Afdeling } from "@/lib/afdelingen";
+import { bereik, dataset, doelData, filterFirma, firmasVan, isDienstPeriode, kpis, perMaand, type Afdeling } from "@/lib/afdelingen";
 import { bundel, geslacht, perPipeline, regio, timing, trechters, velden, type Telling } from "@/lib/analyse";
 import { meetingStand } from "@/lib/agenda";
 import { euro, num } from "@/lib/format";
@@ -61,7 +61,8 @@ export function DienstAnalyse({ a, sp, toonBeloning }: { a: Afdeling; sp: Dienst
   const meet = meetingStand(d, b.van, b.tot);
   const commissie = a.doel.bron?.startsWith("commissie.") ? (a.doel.bron.slice(10) as "engineering" | "energy") : null;
   const cm = commissieMaand(/^\d{4}-\d{2}$/.test(periode) ? periode : "ytd");
-  const cmOmzet = commissie ? perMaand(d, +cm.maand.slice(0, 4))[+cm.maand.slice(5, 7) - 1]?.omzet || 0 : 0;
+  // Enkel de bronnen die meetellen voor de beloning (Energy: alleen UNABO), op de volledige dataset.
+  const cmOmzet = commissie ? perMaand(doelData(a, dataset(a)), +cm.maand.slice(0, 4))[+cm.maand.slice(5, 7) - 1]?.omzet || 0 : 0;
   const status = (["won", "open", "lost"].includes(sp.rs || "") ? sp.rs : "all") as "won" | "open" | "lost" | "all";
   const punten = status === "all" ? reg.punten : reg.punten.filter((p) => p.status === status);
   const kantoren: OurOffice[] = officesConfig.offices

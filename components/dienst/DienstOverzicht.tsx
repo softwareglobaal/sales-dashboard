@@ -9,6 +9,8 @@ import {
   isDienstPeriode,
   kpis,
   maanddoel,
+  doelData,
+  doelBronnen,
   openNu,
   perDienst,
   perFirma,
@@ -104,8 +106,13 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
   const doel = maanddoel(a);
   const doelMaand = /^\d{4}-\d{2}$/.test(periode) ? +periode.slice(5, 7) - 1 : huidigeMaand;
   const doelJaar = /^\d{4}-\d{2}$/.test(periode) ? +periode.slice(0, 4) : nuJaar;
-  const omzetDoelMaand = (doelJaar === nuJaar ? reeksNu : reeksVorig)[doelMaand]?.omzet || 0;
-  const omzetSindsJan = reeksNu.slice(0, huidigeMaand + 1).reduce((s, r) => s + r.omzet, 0);
+  // Bij Energy telt voor het doel enkel UNABO (teambeloning), niet de rechtstreekse EE-verkoop.
+  const dd = doelData(a, d);
+  const doelNu = dd === d ? reeksNu : perMaand(dd, nuJaar);
+  const doelVorig = dd === d ? reeksVorig : perMaand(dd, nuJaar - 1);
+  const doelTelt = doelBronnen(a);
+  const omzetDoelMaand = (doelJaar === nuJaar ? doelNu : doelVorig)[doelMaand]?.omzet || 0;
+  const omzetSindsJan = doelNu.slice(0, huidigeMaand + 1).reduce((s, r) => s + r.omzet, 0);
 
   const firmaRijen = firmasVan(a).length > 1 && !f ? perFirma(a, alles, b.van, b.tot) : [];
   const diensten = perDienst(d, b.van, b.tot).slice(0, 8);
@@ -183,7 +190,7 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
         <div className="paneel">
           <div className="kop">
             <h2>Doel</h2>
-            <small>gewonnen omzet per maand</small>
+            <small>gewonnen omzet per maand{doelTelt ? ` · telt enkel ${doelTelt}` : ""}</small>
           </div>
           {doel > 0 ? (
             <DoelBlok
@@ -191,7 +198,7 @@ export async function DienstOverzicht({ a, sp }: { a: Afdeling; sp: DienstZoek }
               maandLabel={`${MONTH_NAMES[doelMaand]} ${doelJaar}`}
               maandOmzet={omzetDoelMaand}
               sindsJan={periode === "ytd" ? { omzet: omzetSindsJan, doel: doel * (huidigeMaand + 1) } : null}
-              historiek={reeksNu.slice(0, huidigeMaand).map((r, i) => ({ maand: MONTH_NAMES[i].slice(0, 3), omzet: r.omzet }))}
+              historiek={doelNu.slice(0, huidigeMaand).map((r, i) => ({ maand: MONTH_NAMES[i].slice(0, 3), omzet: r.omzet }))}
               gefilterd={!!f}
             />
           ) : (
