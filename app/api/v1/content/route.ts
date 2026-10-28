@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 // De SEO-agents melden hier wat ze met een kans deden (spec §17). Status:
 // in-behandeling, niet-passend (met de reden in samenvatting) of wacht-op-goedkeuring
-// (met tekst, qc-verslag en bestand). Goedkeuren of afwijzen kan enkel een editor op /content.
+// (met tekst, qc-verslag en bestand), of gepubliceerd als de agent de tekst zelf online zette.
+// Goedkeuren of afwijzen kan enkel een editor op /content.
 export async function GET(req: Request) {
   const blok = agentGuard(req);
   if (blok) return blok;

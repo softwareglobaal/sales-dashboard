@@ -12,7 +12,7 @@ export default function ContentPagina() {
   const wacht = alle.filter((o) => o.status === "wacht-op-goedkeuring");
   const bezig = alle.filter((o) => o.status === "in-behandeling");
   const nietPassend = alle.filter((o) => o.status === "niet-passend");
-  const beoordeeld = alle.filter((o) => o.status === "goedgekeurd" || o.status === "afgewezen");
+  const beoordeeld = alle.filter((o) => o.status === "goedgekeurd" || o.status === "afgewezen" || o.status === "gepubliceerd");
   const open = kansen(100).filter((k) => !apartMarkten().includes(String(k.markt))).length;
   return (
     <main className="mx-auto max-w-5xl px-6 pb-10">

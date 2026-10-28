@@ -36,7 +36,7 @@ export type Kans = {
   datum: string | null;
 };
 
-export type ContentStatus = "in-behandeling" | "niet-passend" | "wacht-op-goedkeuring" | "goedgekeurd" | "afgewezen";
+export type ContentStatus = "in-behandeling" | "niet-passend" | "wacht-op-goedkeuring" | "goedgekeurd" | "afgewezen" | "gepubliceerd";
 export type ContentOpdracht = {
   kans_id: string; soort: string; markt: string; dienst: string; firma: string; titel: string;
   status: ContentStatus; samenvatting: string | null; tekst: string | null; qc: string | null;
@@ -176,7 +176,9 @@ export function aantalWachtend(markt?: string): number {
   return opdrachten("wacht-op-goedkeuring", markt ? { markt } : { zonderApart: true }).length;
 }
 
-const STATUSSEN: ContentStatus[] = ["in-behandeling", "niet-passend", "wacht-op-goedkeuring", "goedgekeurd", "afgewezen"];
+// gepubliceerd: sinds 28 okt 2026 zetten de agents teksten voor UNABO, Energie Efficiënt,
+// epb-boete en regulariseren zelf online (Siyan: "mag nu wel, ik heb geen tijd om te controleren").
+const STATUSSEN: ContentStatus[] = ["in-behandeling", "niet-passend", "wacht-op-goedkeuring", "goedgekeurd", "afgewezen", "gepubliceerd"];
 
 /** Door de agents: een kans oppakken of het resultaat melden. */
 export function meld(o: Partial<ContentOpdracht> & { kans_id: string; status: ContentStatus }) {
